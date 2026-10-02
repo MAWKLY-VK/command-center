@@ -37,6 +37,10 @@ dotnet build CommandCenter/CommandCenter.csproj -c Release
 
 The program is `CommandCenter/bin/Release/net10.0-windows/CommandCenter.exe`.
 
+To make a release, run `tools\publish.ps1 -Notes "What changed"`. It writes a single-file `publish\CommandCenter.exe`
+and `publish\update.json`; attach both to a GitHub release tagged `v<version>`. Older copies of Command Center
+then stop working until they update.
+
 ## Running
 
 The game folder is found automatically (current folder, the program's folder, then the Steam libraries).
@@ -47,6 +51,7 @@ The game folder is found automatically (current folder, the program's folder, th
 | `--library-folder <folder>` | Use a local folder of maps as the map library |
 | `--capture <folder> --size 1600x1000 --pages home,maps,hotkeys:keys` | Save screenshots of pages without showing the window |
 | `--samples` | Add sample health problems to review the layout (their fixes do nothing) |
+| `--update-url <url or file>` | Read the update manifest (`update.json`) from here instead of the latest GitHub release; a local file works for testing |
 
 Command Center keeps its own files in `Documents\Command and Conquer Generals Zero Hour Data\CommandCenter`
 (backups, quarantine, starred replays, map cache, settings).

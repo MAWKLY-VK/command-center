@@ -38,6 +38,11 @@ namespace CommandCenter
             _ = AppState.RefreshStatsAsync();
             _ = AppState.RefreshHealthAsync();
             _ = AppState.RefreshReplaysAsync();
+
+            // Screenshots skip the update check unless a manifest is given
+            string? updateSource = App.Arg("--update-url");
+            if (updateSource != null || !App.HasArg("--capture"))
+                _updateCheck = CheckUpdateAsync(updateSource ?? UpdateService.ManifestUrl);
         }
 
         // Opens at 1440 x 900 or 92% of the work area, whichever is smaller
@@ -149,6 +154,11 @@ namespace CommandCenter
 
         private void OnPreviewKeyDown(object sender, KeyEventArgs e)
         {
+            if (UpdateOverlay.IsOpen)
+            {
+                UpdateOverlay.OnKey(e);
+                return;
+            }
             if (e.Key == Key.K && Keyboard.Modifiers == ModifierKeys.Control && _pages.TryGetValue(_current, out var page))
             {
                 page.FocusSearch();
@@ -163,6 +173,8 @@ namespace CommandCenter
 
         private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
+            if (UpdateOverlay.Restarting)
+                return;
             var pending = _pages.Values.Where(p => p.HasPendingChanges).Select(p => p.Title).ToList();
             if (pending.Count == 0)
                 return;
@@ -233,6 +245,21 @@ namespace CommandCenter
             _ = AppState.RefreshStatsAsync();
         }
 
+        // ── Mandatory update ──
+
+        private Task? _updateCheck;
+
+        private async Task CheckUpdateAsync(string source)
+        {
+            if (await UpdateService.CheckAsync(source) is not { } update)
+                return;
+            ToastBox.Visibility = Visibility.Collapsed;
+            UpdateOverlay.Open(update);
+            // Test switch: install straight away without a click
+            if (App.HasArg("--update-auto"))
+                await UpdateOverlay.InstallAsync();
+        }
+
         // ── Toast ──
 
         public void Toast(string message, Action? undo = null, bool isError = false, string actionLabel = "Undo")
@@ -297,6 +324,10 @@ namespace CommandCenter
             Directory.CreateDirectory(folder);
             string[] ids = (pages ?? "home,maps,replays,hotkeys,health,addons,settings").Split(',');
             await Task.Delay(1500);
+            if (_updateCheck != null)
+                await _updateCheck;
+            if (UpdateOverlay.Restarting)
+                return;
             int n = 1;
             foreach (string entry in ids)
             {

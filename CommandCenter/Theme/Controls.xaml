@@ -765,6 +765,22 @@
         </Setter>
     </Style>
 
+    <!-- ── Progress bar ── thin rail with a gold fill, like the slider -->
+    <Style TargetType="ProgressBar">
+        <Setter Property="Height" Value="6"/>
+        <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ProgressBar">
+                    <Grid>
+                        <Border x:Name="PART_Track" CornerRadius="3" Background="#2E3438"/>
+                        <Border x:Name="PART_Indicator" CornerRadius="3" Background="{TemplateBinding Foreground}" HorizontalAlignment="Left"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- ── Tool tip ── -->
     <Style TargetType="ToolTip">
         <Setter Property="Foreground" Value="{StaticResource Text}"/>

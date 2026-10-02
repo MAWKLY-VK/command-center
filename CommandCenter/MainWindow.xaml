@@ -2,6 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:CommandCenter.Controls"
+        xmlns:pages="clr-namespace:CommandCenter.Pages"
         Title="Command Center" Width="1440" Height="900" MinWidth="1180" MinHeight="700"
         WindowStartupLocation="CenterScreen" Background="{StaticResource Bg0}"
         FontFamily="{StaticResource UiFont}" FontSize="14" Foreground="{StaticResource Text}"
@@ -177,5 +178,8 @@
                 <Button Style="{StaticResource IconBtn}" Width="28" Height="28" Margin="8,0,-6,0" ui:Ui.Icon="{StaticResource I.close}" Click="ToastClose_Click"/>
             </StackPanel>
         </ui:Chamfer>
+
+        <!-- Mandatory update: stays last so it covers everything, sidebar included -->
+        <pages:UpdateOverlay x:Name="UpdateOverlay"/>
     </Grid>
 </Window>

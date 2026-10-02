@@ -1,0 +1,68 @@
+<UserControl x:Class="CommandCenter.Pages.UpdateOverlay"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:CommandCenter.Controls"
+             Visibility="Collapsed">
+    <!-- Covers the whole window, sidebar included. The only ways out are installing the update or closing the window. -->
+    <Grid Background="#EB060708">
+        <!-- The window's own caption buttons are underneath, so the overlay brings its own in the same place -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,16,10,0" WindowChrome.IsHitTestVisibleInChrome="True">
+            <Button Style="{StaticResource IconBtn}" ui:Ui.Icon="{StaticResource I.min}" Click="Min_Click" ToolTip="Minimize"/>
+            <Button Style="{StaticResource IconBtn}" ui:Ui.Icon="{StaticResource I.max}" Click="Max_Click" ToolTip="Maximize"/>
+            <Button Style="{StaticResource CloseBtn}" ui:Ui.Icon="{StaticResource I.close}" Click="Close_Click" ToolTip="Close"/>
+        </StackPanel>
+
+        <ui:Chamfer Style="{StaticResource Panel}" Width="580" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="32,28,32,26">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="46" Height="46" BorderBrush="#3A3F42" BorderThickness="1" VerticalAlignment="Center">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#24282B" Offset="0"/>
+                                <GradientStop Color="#141618" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <ui:Icon Data="{StaticResource I.download}" Width="22" Height="22" Foreground="{StaticResource Accent}"/>
+                    </Border>
+                    <StackPanel Margin="16,0,0,0" VerticalAlignment="Center">
+                        <ui:TrackedText Style="{StaticResource Lbl}" Text="Command Center"/>
+                        <ui:TrackedText Style="{StaticResource H2}" FontSize="24" Text="Update required" Margin="0,3,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <TextBlock x:Name="Message" Style="{StaticResource Body}" FontSize="15" LineHeight="21" Foreground="{StaticResource Text}" Margin="0,22,0,0"/>
+                <TextBlock x:Name="Versions" Style="{StaticResource Small}" Margin="0,6,0,0"/>
+
+                <Border x:Name="NotesBox" Margin="0,16,0,0" Padding="14,11" Background="#990A0B0C" BorderBrush="{StaticResource Line}" BorderThickness="1">
+                    <StackPanel>
+                        <ui:TrackedText Style="{StaticResource Lbl}" Text="What's new"/>
+                        <TextBlock x:Name="Notes" Style="{StaticResource Body}" FontSize="13.5" LineHeight="19" Margin="0,6,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel x:Name="ProgressBox" Margin="0,22,0,0" Visibility="Collapsed">
+                    <DockPanel>
+                        <TextBlock x:Name="Percent" DockPanel.Dock="Right" FontSize="14" FontWeight="SemiBold" FontStretch="Condensed" Foreground="{StaticResource Text}"/>
+                        <TextBlock x:Name="Stage" FontSize="13.5" Foreground="{StaticResource Text2}" TextTrimming="CharacterEllipsis"/>
+                    </DockPanel>
+                    <ProgressBar x:Name="Bar" Maximum="1" Margin="0,9,0,0"/>
+                </StackPanel>
+
+                <DockPanel x:Name="ErrorBox" Margin="0,20,0,0" Visibility="Collapsed">
+                    <ui:StatusMark Mark="Danger" Width="16" Height="16" VerticalAlignment="Top" Margin="0,2,10,0"/>
+                    <TextBlock x:Name="Error" TextWrapping="Wrap" FontSize="13.5" LineHeight="19" Foreground="{StaticResource Text}"/>
+                </DockPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="0,26,0,0">
+                    <Button x:Name="UpdateNow" Style="{StaticResource BtnLg}" ui:Ui.Variant="Primary" ui:Ui.Icon="{StaticResource I.download}"
+                            Content="Update now" Click="UpdateNow_Click" ToolTip="Download, check and install the new version (Enter)"/>
+                    <Button x:Name="DownloadPage" Style="{StaticResource BtnLg}" ui:Ui.Icon="{StaticResource I.external}" Content="Download page"
+                            Margin="12,0,0,0" Visibility="Collapsed" Click="DownloadPage_Click"/>
+                    <Button Style="{StaticResource BtnLg}" ui:Ui.Variant="Ghost" Content="Close" Margin="12,0,0,0" Click="Close_Click"/>
+                </StackPanel>
+                <TextBlock Style="{StaticResource Small}" TextWrapping="Wrap" Margin="0,14,0,0"
+                           Text="Command Center downloads the new version, checks it and restarts by itself."/>
+            </StackPanel>
+        </ui:Chamfer>
+    </Grid>
+</UserControl>
