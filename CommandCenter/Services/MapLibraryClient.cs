@@ -40,6 +40,10 @@ namespace CommandCenter.Services
 
     public sealed record InstallReport(List<string> Installed, int Skipped, List<string> Failed, bool Cancelled);
 
+    // Where an install run is: map Number of Count and its name. Percent covers the whole run when there are several
+    // maps, otherwise the one download. Copying is true once the download is checked and its files are being copied.
+    public sealed record InstallProgress(int Number, int Count, string Name, int Percent, bool Copying);
+
     // The map library: catalog.json, maps/<id>.zip and previews/<id>.png, read from a web address or from a folder
     // that holds a copy. A web library's catalog and previews are cached in the launcher's own folder. Every zip is
     // checked against the catalog's SHA-256 before MapService installs it into the user's Maps folder.
@@ -333,8 +337,8 @@ namespace CommandCenter.Services
         }
 
         // Installs the maps one after another. Maps whose folder already exists are skipped, so nothing the user has is
-        // overwritten. Progress reports one line of text for the whole run.
-        public async Task<InstallReport> InstallAsync(IReadOnlyList<LibraryMap> maps, IProgress<string>? progress = null, CancellationToken ct = default)
+        // overwritten. Progress reports where the run is, for one line of text and a progress bar.
+        public async Task<InstallReport> InstallAsync(IReadOnlyList<LibraryMap> maps, IProgress<InstallProgress>? progress = null, CancellationToken ct = default)
         {
             var installed = new List<string>();
             var failed = new List<string>();
@@ -353,8 +357,7 @@ namespace CommandCenter.Services
                     continue;
                 }
 
-                int shown = -1;
-                string line = maps.Count > 1 ? $"Installing map {i + 1} of {maps.Count}" : "Downloading";
+                int shown = -1, number = i + 1;
                 void Report(long bytes)
                 {
                     int percent = maps.Count > 1
@@ -363,7 +366,7 @@ namespace CommandCenter.Services
                     if (percent == shown)
                         return;
                     shown = percent;
-                    progress?.Report(maps.Count > 1 ? $"{line} · {percent}% · {map.Name}" : $"{line} {map.Name} · {percent}%");
+                    progress?.Report(new InstallProgress(number, maps.Count, map.Name, percent, false));
                 }
                 Report(0);
 
@@ -371,7 +374,7 @@ namespace CommandCenter.Services
                 try
                 {
                     zip = await DownloadAsync(map, Report, ct).ConfigureAwait(false);
-                    progress?.Report(maps.Count > 1 ? $"{line} · {map.Name} · checked, copying files…" : $"Installing {map.Name}…");
+                    progress?.Report(new InstallProgress(number, maps.Count, map.Name, Math.Max(shown, 0), true));
                     string verified = zip;
                     var names = await Task.Run(() => MapService.Install(verified), CancellationToken.None).ConfigureAwait(false);
                     if (names.Count == 0)
