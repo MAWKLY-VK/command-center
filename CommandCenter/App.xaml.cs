@@ -19,6 +19,7 @@ namespace CommandCenter
         {
             base.OnStartup(e);
             DispatcherUnhandledException += OnUnhandled;
+            UpdateService.CleanUp();
 
             if (Arg("--library-folder") is { } library)
                 AppState.LibraryFolder = library;
