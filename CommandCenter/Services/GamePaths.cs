@@ -28,9 +28,15 @@ namespace CommandCenter.Services
 
         public static bool GameFound => File.Exists(Path.Combine(Game, GameExe));
 
-        public static string UserData => Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "Command and Conquer Generals Zero Hour Data");
+        private static string? _userData;
+
+        public static string UserData
+        {
+            get => _userData ?? Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                "Command and Conquer Generals Zero Hour Data");
+            set => _userData = value;
+        }
 
         public static string GoData => Path.Combine(UserData, "GeneralsOnlineData");
         public static string Options => Path.Combine(UserData, "Options.ini");

@@ -9,7 +9,7 @@ namespace CommandCenter.Services
         public string Id { get; set; } = "";
         public string Title { get; set; } = "";
         public string Detail { get; set; } = "";
-        public string Kind { get; set; } = "file"; // file, move or registry
+        public string Kind { get; set; } = "file"; // file, move, registry or readonly
         public string Target { get; set; } = "";
         public string? BackupFile { get; set; }
         public string AfterHash { get; set; } = "";
@@ -18,6 +18,9 @@ namespace CommandCenter.Services
         // registry: Target is the key under HKEY_CURRENT_USER, BackupFile holds the value name
         public string? OldValue { get; set; }
         public string? NewValue { get; set; }
+
+        // readonly: Target is the folder, Files the files whose read-only flag was cleared
+        public List<string>? Files { get; set; }
     }
 
     // Every file the launcher changes is copied first, so each change can be undone.
@@ -127,6 +130,48 @@ namespace CommandCenter.Services
             return entry;
         }
 
+        // Clears the read-only flag on files; undo sets it again on the same files.
+        public static BackupEntry ClearReadOnly(string title, string folder, IEnumerable<string> paths, string detail = "")
+        {
+            var cleared = new List<string>();
+            try
+            {
+                foreach (string path in paths)
+                {
+                    var attributes = File.GetAttributes(path);
+                    if (!attributes.HasFlag(FileAttributes.ReadOnly))
+                        continue;
+                    File.SetAttributes(path, attributes & ~FileAttributes.ReadOnly);
+                    cleared.Add(path);
+                }
+            }
+            catch
+            {
+                // Leave nothing half done
+                SetReadOnly(cleared);
+                throw;
+            }
+
+            var entry = new BackupEntry { Id = NewId(), Title = title, Detail = detail, Kind = "readonly", Target = folder, Files = cleared, When = DateTime.Now };
+            var entries = Load();
+            entries.Add(entry);
+            Save(entries);
+            return entry;
+        }
+
+        private static void SetReadOnly(IEnumerable<string> paths)
+        {
+            foreach (string path in paths)
+            {
+                try
+                {
+                    if (File.Exists(path))
+                        File.SetAttributes(path, File.GetAttributes(path) | FileAttributes.ReadOnly);
+                }
+                catch { }
+            }
+        }
+
         public static BackupEntry? Latest(string title) =>
             Load().Where(e => e.Title == title).OrderByDescending(e => e.When).FirstOrDefault();
 
@@ -141,6 +186,9 @@ namespace CommandCenter.Services
                     case "registry":
                         using (var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(entry.Target))
                             return (key?.GetValue(entry.BackupFile!) as string) == entry.NewValue;
+                    case "readonly":
+                        var present = (entry.Files ?? new()).Where(File.Exists).ToList();
+                        return present.Count > 0 && present.All(f => !File.GetAttributes(f).HasFlag(FileAttributes.ReadOnly));
                     default:
                         return File.Exists(entry.Target) && Hash(File.ReadAllBytes(entry.Target)) == entry.AfterHash;
                 }
@@ -199,6 +247,11 @@ namespace CommandCenter.Services
                     key.DeleteValue(entry.BackupFile!, throwOnMissingValue: false);
                 else
                     key.SetValue(entry.BackupFile!, entry.OldValue);
+                return;
+            }
+            if (entry.Kind == "readonly")
+            {
+                SetReadOnly(entry.Files ?? new());
                 return;
             }
 

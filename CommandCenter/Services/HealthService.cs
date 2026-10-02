@@ -121,21 +121,28 @@ namespace CommandCenter.Services
             Add(() => CheckWritable(game));
             Add(CheckGameRunning);
             AddMany(() => CheckRuntimeCopies(game));
+            Add(() => CheckDbgHelp(game));
             AddMany(() => CheckWrappers(game));
             AddMany(() => CheckExtraArchives(game));
+            Add(() => CheckReadOnlyGameFiles(game));
             Add(() => CheckEacSettings(game));
 
             AddMany(() => CheckAdminFlag(game));
             Add(() => CheckCompatibilityMode(game));
+            AddMany(() => CheckDpiOverride(game));
             Add(CheckVisualCpp);
             Add(CheckEasyAntiCheat);
             Add(CheckGraphics);
 
+            // Before the Options.ini fixes, so "Fix all" can write to a file that was read-only
+            Add(CheckReadOnlySettings);
             Add(CheckOptionsFile);
             Add(CheckResolution);
             Add(CheckNetworkAddress);
             Add(CheckGoSettings);
             Add(CheckDocumentsFolder);
+            Add(CheckDataFolderName);
+            Add(() => CheckDocumentsPath(game));
             return results;
         }
 
@@ -173,19 +180,26 @@ namespace CommandCenter.Services
 
         private static HealthResult CheckWritable(string game)
         {
+            if (CanWrite(game))
+                return new HealthResult { Id = "writable", Group = GroupFiles, Title = "Game folder can be updated", Detail = "Generals Online can install updates without administrator rights", Status = HealthStatus.Passed };
+            return new HealthResult
+            {
+                Id = "writable", Group = GroupFiles, Title = "Game folder is read-only", Status = HealthStatus.Warning,
+                Detail = "Updates need administrator rights here, which leads people to set \"Run as administrator\" and then hit error 740",
+                Note = "Installing the game outside Program Files avoids this.",
+            };
+        }
+
+        private static bool CanWrite(string folder)
+        {
             try
             {
-                using (new FileStream(Path.Combine(game, $"cc-write-test-{Guid.NewGuid():N}.tmp"), FileMode.CreateNew, FileAccess.Write, FileShare.None, 1, FileOptions.DeleteOnClose)) { }
-                return new HealthResult { Id = "writable", Group = GroupFiles, Title = "Game folder can be updated", Detail = "Generals Online can install updates without administrator rights", Status = HealthStatus.Passed };
+                using (new FileStream(Path.Combine(folder, $"cc-write-test-{Guid.NewGuid():N}.tmp"), FileMode.CreateNew, FileAccess.Write, FileShare.None, 1, FileOptions.DeleteOnClose)) { }
+                return true;
             }
             catch (UnauthorizedAccessException)
             {
-                return new HealthResult
-                {
-                    Id = "writable", Group = GroupFiles, Title = "Game folder is read-only", Status = HealthStatus.Warning,
-                    Detail = "Updates need administrator rights here, which leads people to set \"Run as administrator\" and then hit error 740",
-                    Note = "Installing the game outside Program Files avoids this.",
-                };
+                return false;
             }
         }
 
@@ -227,6 +241,36 @@ namespace CommandCenter.Services
             }
         }
 
+        // Generals Online loads dbghelp.dll when it starts (crash reports), and Windows takes the copy in the game folder first.
+        // The original game shipped an old one; GenPatcher renames it to dbghelp.dll.bak for the same reason.
+        private static HealthResult CheckDbgHelp(string game)
+        {
+            string path = Path.Combine(game, "dbghelp.dll");
+            if (!File.Exists(path))
+                return new HealthResult { Id = "dbghelp", Group = GroupFiles, Title = "No old dbghelp.dll", Detail = "Generals Online uses the crash report helper that comes with Windows", Status = HealthStatus.Passed };
+
+            string system = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.SystemX86), "dbghelp.dll");
+            var local = FileVersionOf(path);
+            if (File.Exists(system) && local >= FileVersionOf(system))
+                return new HealthResult { Id = "dbghelp", Group = GroupFiles, Title = "dbghelp.dll is up to date", Detail = $"The copy in the game folder ({local}) is as new as the one in Windows", Status = HealthStatus.Passed };
+
+            return new HealthResult
+            {
+                Id = "dbghelp", Group = GroupFiles, Title = "Old dbghelp.dll inside the game folder", Status = HealthStatus.Problem,
+                Detail = $"dbghelp.dll ({local}) is loaded instead of the Windows copy. It is too old for Generals Online, which then does not start (\"Entry Point Not Found\") or crashes",
+                Note = "It comes with the original game files. GenPatcher renames it to dbghelp.dll.bak for the same reason.",
+                FixLabel = "Quarantine",
+                FixPreview = "Moves dbghelp.dll to the launcher's quarantine folder so Windows' own copy is used. Undo puts it back.",
+                Fix = () => BackupService.MoveToQuarantine("Quarantined dbghelp.dll", path, "Old crash report helper"),
+            };
+        }
+
+        private static Version FileVersionOf(string path)
+        {
+            var info = FileVersionInfo.GetVersionInfo(path);
+            return new Version(info.FileMajorPart, info.FileMinorPart, info.FileBuildPart, info.FilePrivatePart);
+        }
+
         private static IEnumerable<HealthResult> CheckWrappers(string game)
         {
             var found = new List<HealthResult>();
@@ -238,6 +282,17 @@ namespace CommandCenter.Services
                 var info = FileVersionInfo.GetVersionInfo(path);
                 string product = (info.ProductName ?? info.FileDescription ?? "").Trim();
                 string label = product.Length > 0 ? product : what;
+                if (dll.Equals("d3d8.dll", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Generals Online loads DirectX 8 from the Windows folder only, so GenTool, dgVoodoo or DXVK here
+                    // still work for the original game and need no fix
+                    found.Add(new HealthResult
+                    {
+                        Id = "wrapper:" + dll, Group = GroupFiles, Title = "d3d8.dll is not used by Generals Online", Status = HealthStatus.Passed,
+                        Detail = $"{label}. Generals Online loads the DirectX 8 that comes with Windows, so this file only affects the original game",
+                    });
+                    continue;
+                }
                 found.Add(new HealthResult
                 {
                     Id = "wrapper:" + dll, Group = GroupFiles, Title = $"{dll} replaces part of the game", Status = HealthStatus.Warning,
@@ -259,18 +314,26 @@ namespace CommandCenter.Services
                     Fix = () => BackupService.MoveToQuarantine("Quarantined " + name, asi, "ASI plugin"),
                 });
             }
-            if (found.Count == 0)
-                found.Add(new HealthResult { Id = "wrappers", Group = GroupFiles, Title = "No wrapper DLLs", Detail = "No GenTool, dgVoodoo, ReShade or other DirectX replacement in the game folder", Status = HealthStatus.Passed });
+            if (found.All(f => f.Status == HealthStatus.Passed))
+                found.Add(new HealthResult
+                {
+                    Id = "wrappers", Group = GroupFiles, Title = "No wrapper DLLs", Status = HealthStatus.Passed,
+                    Detail = found.Count == 0
+                        ? "No GenTool, dgVoodoo, ReShade or other DirectX replacement in the game folder"
+                        : "Nothing else in the game folder replaces part of DirectX or Windows",
+                });
             return found;
         }
 
         private static IEnumerable<HealthResult> CheckExtraArchives(string game)
         {
             var found = new List<HealthResult>();
-            foreach (string archive in Directory.EnumerateFiles(game, "*.big"))
+            foreach (string archive in GameTree(game, "*.big"))
             {
                 string name = Path.GetFileName(archive);
-                if (KnownArchives.Contains(name))
+                string relative = Path.GetRelativePath(game, archive);
+                bool inSubfolder = relative != name;
+                if (inSubfolder ? IsPartOfInstall(game, archive, relative) : KnownArchives.Contains(name))
                     continue;
 
                 List<string> entries;
@@ -284,10 +347,12 @@ namespace CommandCenter.Services
                 string path = archive;
                 found.Add(new HealthResult
                 {
-                    Id = "archive:" + name, Group = GroupFiles, Title = $"{name} changes unit rules", Status = HealthStatus.Problem,
-                    Detail = "Other players do not have it, so online games end with \"The host has modified INI files\"",
+                    Id = "archive:" + relative, Group = GroupFiles, Title = $"{relative} changes unit rules", Status = HealthStatus.Problem,
+                    Detail = inSubfolder
+                        ? "The game also loads archives from folders inside the game folder. Other players do not have it, so online games end with \"The host has modified INI files\""
+                        : "Other players do not have it, so online games end with \"The host has modified INI files\"",
                     FixLabel = "Quarantine",
-                    FixPreview = $"Moves {name} to the launcher's quarantine folder. Undo puts it back.",
+                    FixPreview = $"Moves {relative} to the launcher's quarantine folder. Undo puts it back.",
                     Fix = () => BackupService.MoveToQuarantine("Quarantined " + name, path, "Caused mismatches"),
                 });
             }
@@ -311,6 +376,41 @@ namespace CommandCenter.Services
             return found;
         }
 
+        // CD installs and some repacks copy every file as read-only. The Generals Online installer (Inno Setup) asks
+        // before it overwrites a read-only file, and a file it skips stays on the old version.
+        private static HealthResult CheckReadOnlyGameFiles(string game)
+        {
+            var locked = GameTree(game, "*").Where(IsReadOnly).ToList();
+            if (locked.Count == 0)
+                return new HealthResult { Id = "readonly:game", Group = GroupFiles, Title = "No read-only game files", Detail = "Updates can replace every file in the game folder", Status = HealthStatus.Passed };
+
+            string names = NameList(locked.Select(f => Path.GetRelativePath(game, f)).ToList());
+            bool writable = CanWrite(game);
+            return new HealthResult
+            {
+                Id = "readonly:game", Group = GroupFiles, Title = "Read-only files in the game folder", Status = HealthStatus.Warning,
+                Detail = $"{Plural(locked.Count, "file is", "files are")} marked read-only: {names}. Generals Online updates stop to ask about them, and a skipped file stays on the old version",
+                Note = writable
+                    ? "Old CD installs and repacks copy files this way. GenPatcher clears this flag too."
+                    : "Changing them needs administrator rights here: right-click the game folder › Properties, untick \"Read-only\" and apply it to all files.",
+                FixLabel = writable ? "Fix" : null,
+                FixPreview = writable ? $"Clears the read-only flag on {Plural(locked.Count, "file", "files")} in the game folder. Their contents stay the same. Undo sets the flag again." : null,
+                Fix = writable ? () => BackupService.ClearReadOnly("Cleared read-only game files", game, locked, $"Game folder · {Plural(locked.Count, "file", "files")}") : null,
+                GuideLabel = writable ? null : "Show folder",
+                GuideTarget = writable ? null : "select:" + game,
+            };
+        }
+
+        private static bool IsReadOnly(string path) => File.GetAttributes(path).HasFlag(FileAttributes.ReadOnly);
+
+        private static string Plural(int n, string one, string many) => n == 1 ? "1 " + one : $"{n} {many}";
+
+        // "a, b, c and 4 more"
+        private static string NameList(IReadOnlyList<string> names, int show = 3) =>
+            names.Count == 1 ? names[0]
+            : names.Count <= show ? string.Join(", ", names.Take(names.Count - 1)) + " and " + names[^1]
+            : string.Join(", ", names.Take(show)) + $" and {names.Count - show} more";
+
         private static HealthResult? CheckEacSettings(string game)
         {
             string settings = Path.Combine(game, "EasyAntiCheat", "Settings.json");
@@ -330,6 +430,35 @@ namespace CommandCenter.Services
                 Detail = $"EasyAntiCheat looks for {exe}, which is missing, so it stops with \"Invalid game executable path\"",
                 Note = "Reinstall Generals Online, or restore the file if an antivirus removed it.",
             };
+        }
+
+        // Files the game finds the way it looks for archives: the game folder and every folder below it,
+        // skipping folder names with a dot like the game's own "*." folder search does
+        private static List<string> GameTree(string folder, string pattern)
+        {
+            var files = Directory.EnumerateFiles(folder, pattern).ToList();
+            foreach (string sub in Directory.EnumerateDirectories(folder))
+            {
+                if (Path.GetFileName(sub).Contains('.') || new DirectoryInfo(sub).Attributes.HasFlag(FileAttributes.ReparsePoint))
+                    continue;
+                try { files.AddRange(GameTree(sub, pattern)); }
+                catch (UnauthorizedAccessException) { }
+            }
+            return files;
+        }
+
+        // Archives below the game folder that every player of the same edition has
+        private static bool IsPartOfInstall(string game, string archive, string relative)
+        {
+            // Steam keeps the original Generals archives in ZH_Generals
+            if (relative.StartsWith(@"ZH_Generals\", StringComparison.OrdinalIgnoreCase))
+                return true;
+            // Older editions ship a second INIZH.big here; Generals Online skips it
+            if (relative.Equals(@"Data\INI\INIZH.big", StringComparison.OrdinalIgnoreCase))
+                return true;
+            // A copy of one of the game's own archives
+            string original = Path.Combine(game, Path.GetFileName(archive));
+            return KnownArchives.Contains(Path.GetFileName(archive)) && File.Exists(original) && new FileInfo(original).Length == new FileInfo(archive).Length;
         }
 
         private static List<string> ReadArchiveNames(string archive)
@@ -379,8 +508,8 @@ namespace CommandCenter.Services
                     FixPreview = $"Removes RUNASADMIN from the compatibility settings of {files}. Other settings stay.",
                     Fix = () =>
                     {
-                        foreach (var (name, data) in user)
-                            BackupService.SetUserRegistryValue("Turned off \"Run as administrator\"", LayersKey, name, Without(data, "RUNASADMIN"), Path.GetFileName(name) + " · registry");
+                        foreach (var (name, _) in user)
+                            RemoveLayerFlags("Turned off \"Run as administrator\"", name, "RUNASADMIN");
                     },
                 };
             }
@@ -415,15 +544,74 @@ namespace CommandCenter.Services
                 FixPreview = $"Removes the old Windows mode from {files}. Other settings stay.",
                 Fix = () =>
                 {
-                    foreach (var (name, data) in found)
-                    {
-                        string? keep = data;
-                        foreach (string mode in HarmfulCompatModes)
-                            keep = keep == null ? null : Without(keep, mode);
-                        BackupService.SetUserRegistryValue("Removed old compatibility mode", LayersKey, name, keep, Path.GetFileName(name) + " · registry");
-                    }
+                    foreach (var (name, _) in found)
+                        RemoveLayerFlags("Removed old compatibility mode", name, HarmfulCompatModes);
                 },
             };
+        }
+
+        // "Override high DPI scaling behavior" set to System (DPIUNAWARE) or System (Enhanced) (GDIDPISCALING DPIUNAWARE).
+        // Generals Online declares itself DPI aware (per monitor), so Windows should leave the scaling to the game.
+        private static readonly string[] DpiOverrides = { "DPIUNAWARE", "GDIDPISCALING" };
+
+        private static IEnumerable<HealthResult> CheckDpiOverride(string game)
+        {
+            var user = LayerEntries(Registry.CurrentUser, game).Where(e => DpiOverrides.Any(t => HasToken(e.Data, t))).ToList();
+            var machine = LayerEntries(Registry.LocalMachine, game).Where(e => DpiOverrides.Any(t => HasToken(e.Data, t))).ToList();
+            return DpiResults(user, machine);
+        }
+
+        private static IEnumerable<HealthResult> DpiResults(List<(string Name, string Data)> user, List<(string Name, string Data)> machine)
+        {
+            const string detail = "Windows is set to scale the game picture itself (\"Override high DPI scaling\" › System). Generals Online scales itself, so on a display set above 100% the game looks blurry and menus or the mouse can be out of line";
+            if (user.Count == 0 && machine.Count == 0)
+            {
+                yield return new HealthResult { Id = "dpi", Group = GroupWindows, Title = "No DPI scaling override", Detail = "Generals Online handles high-resolution displays itself", Status = HealthStatus.Passed };
+                yield break;
+            }
+            if (user.Count > 0)
+            {
+                string files = string.Join(", ", user.Select(u => Path.GetFileName(u.Name)));
+                yield return new HealthResult
+                {
+                    Id = "dpi", Group = GroupWindows, Title = "DPI scaling is overridden for the game", Status = HealthStatus.Warning,
+                    Detail = detail,
+                    Note = $"Set on {files}",
+                    FixLabel = "Fix",
+                    FixPreview = $"Removes the DPI override (DPIUNAWARE, GDIDPISCALING) from the compatibility settings of {files}. Other settings stay.",
+                    Fix = () =>
+                    {
+                        foreach (var (name, _) in user)
+                            RemoveLayerFlags("Removed DPI scaling override", name, DpiOverrides);
+                    },
+                };
+            }
+            if (machine.Count > 0)
+            {
+                yield return new HealthResult
+                {
+                    Id = "dpiall", Group = GroupWindows, Title = "DPI scaling is overridden for all users", Status = HealthStatus.Warning,
+                    Detail = detail + ". This setting needs administrator rights to change",
+                    Note = $"Right-click {Path.GetFileName(machine[0].Name)} › Properties › Compatibility › Change settings for all users › Change high DPI settings, then untick \"Override high DPI scaling behavior\".",
+                    GuideLabel = "Show file",
+                    GuideTarget = "select:" + machine[0].Name,
+                };
+            }
+        }
+
+        // Removes flags from one program's compatibility settings, starting from what is there now
+        // so several fixes on the same program keep each other's changes
+        private static void RemoveLayerFlags(string title, string program, params string[] flags)
+        {
+            string? data;
+            using (var key = Registry.CurrentUser.OpenSubKey(LayersKey))
+                data = key?.GetValue(program) as string;
+            if (data == null || !flags.Any(f => HasToken(data, f)))
+                return;
+            string? keep = data;
+            foreach (string flag in flags)
+                keep = keep == null ? null : Without(keep, flag);
+            BackupService.SetUserRegistryValue(title, LayersKey, program, keep, Path.GetFileName(program) + " · registry");
         }
 
         private static List<(string Name, string Data)> LayerEntries(RegistryKey hive, string game)
@@ -518,12 +706,61 @@ namespace CommandCenter.Services
 
         // ── SETTINGS ──
 
+        // Files the game and Generals Online write to. A read-only one makes saving fail without a message.
+        private static HealthResult CheckReadOnlySettings()
+        {
+            string data = GamePaths.UserData;
+            var candidates = new List<string>();
+            foreach (string folder in new[] { data, GamePaths.GoData, Path.Combine(data, "Save") })
+            {
+                if (Directory.Exists(folder))
+                    candidates.AddRange(Directory.EnumerateFiles(folder));
+            }
+            candidates.Add(Path.Combine(GamePaths.Maps, "MapCache.ini"));
+            candidates.Add(Path.Combine(GamePaths.Replays, "00000000.rep")); // the replay the game records into
+
+            var locked = candidates.Where(File.Exists).Where(IsReadOnly).ToList();
+            if (locked.Count == 0)
+                return new HealthResult { Id = "readonly:settings", Group = GroupSettings, Title = "Settings can be saved", Detail = "Options.ini, Generals Online settings and the last replay are not read-only", Status = HealthStatus.Passed };
+
+            var names = locked.Select(f => Path.GetRelativePath(data, f)).ToList();
+            bool replay = locked.Any(f => Path.GetFileName(f).Equals("00000000.rep", StringComparison.OrdinalIgnoreCase));
+            return new HealthResult
+            {
+                Id = "readonly:settings", Group = GroupSettings, Title = "Game settings files are read-only", Status = HealthStatus.Warning,
+                Detail = $"{NameList(names)} {(locked.Count == 1 ? "is" : "are")} marked read-only, so the game cannot save to {(locked.Count == 1 ? "it" : "them")}. "
+                         + (replay ? "Settings go back after a restart and games are not recorded as replays" : "Settings go back after a restart"),
+                Note = "GenPatcher clears this flag too. Some people set it on purpose to keep a setting; the game cannot save any change then.",
+                FixLabel = "Fix",
+                FixPreview = $"Clears the read-only flag on {NameList(names)}. Their contents stay the same. Undo sets the flag again.",
+                Fix = () => BackupService.ClearReadOnly("Cleared read-only settings files", data, locked, string.Join(", ", names)),
+            };
+        }
+
         private static HealthResult CheckOptionsFile()
         {
-            bool exists = File.Exists(GamePaths.Options);
-            return exists
-                ? new HealthResult { Id = "options", Group = GroupSettings, Title = "Game settings file", Detail = "Options.ini found", Status = HealthStatus.Passed }
-                : new HealthResult { Id = "options", Group = GroupSettings, Title = "Game settings file not created yet", Detail = "The game creates Options.ini with default settings on first start", Status = HealthStatus.Warning };
+            string path = GamePaths.Options;
+            if (!File.Exists(path))
+                return new HealthResult { Id = "options", Group = GroupSettings, Title = "Game settings file not created yet", Detail = "The game creates Options.ini with default settings on first start", Status = HealthStatus.Warning };
+
+            // A crash or power cut while the file is written leaves it empty or filled with zero bytes;
+            // the game skips what it cannot read and uses default settings
+            byte[] content = File.ReadAllBytes(path);
+            bool empty = content.All(b => b is 0 or (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n');
+            bool damaged = !empty && content.Contains((byte)0);
+            if (!empty && !damaged)
+                return new HealthResult { Id = "options", Group = GroupSettings, Title = "Game settings file", Detail = "Options.ini found", Status = HealthStatus.Passed };
+
+            return new HealthResult
+            {
+                Id = "options", Group = GroupSettings, Title = empty ? "Game settings file is empty" : "Game settings file is damaged", Status = HealthStatus.Warning,
+                Detail = empty
+                    ? "Options.ini has no settings in it, so the game starts with the default resolution, graphics and sound"
+                    : "Part of Options.ini is unreadable, usually after a crash or power cut. The game skips that part and uses default settings for it",
+                FixLabel = "Reset",
+                FixPreview = "Moves Options.ini to quarantine; the game writes a fresh one with default settings on next start. Undo puts it back.",
+                Fix = () => BackupService.MoveToQuarantine("Reset game settings", path, "Options.ini"),
+            };
         }
 
         private static HealthResult? CheckResolution()
@@ -616,6 +853,131 @@ namespace CommandCenter.Services
                 Note = "In OneDrive, right-click \"Command and Conquer Generals Zero Hour Data\" and choose \"Always keep on this device\".",
             } : null;
         }
+
+        // The game names its Documents folder after UserDataLeafName (current user first, then the machine-wide key
+        // that 32-bit programs see). Installers and patchers for other languages sometimes set a different name.
+        private static HealthResult? CheckDataFolderName()
+        {
+            const string zeroHourKey = @"SOFTWARE\Electronic Arts\EA Games\Command and Conquer Generals Zero Hour";
+            string? leaf = ReadString(Registry.CurrentUser, zeroHourKey, "UserDataLeafName");
+            if (string.IsNullOrWhiteSpace(leaf))
+            {
+                using var machine = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32);
+                leaf = ReadString(machine, zeroHourKey, "UserDataLeafName");
+            }
+            leaf = leaf?.Trim().TrimEnd('\\');
+            string expected = Path.GetFileName(GamePaths.UserData);
+            if (string.IsNullOrEmpty(leaf) || leaf.Equals(expected, StringComparison.OrdinalIgnoreCase))
+                return null;
+
+            return new HealthResult
+            {
+                Id = "datafolder", Group = GroupSettings, Title = "The game uses a different Documents folder", Status = HealthStatus.Warning,
+                Detail = $"Zero Hour is set to keep settings, maps and replays in Documents\\{leaf}, but Command Center reads Documents\\{expected}. Changes made here may not reach the game",
+                Note = "Set by UserDataLeafName in the registry, usually by an installer or patcher for another language.",
+            };
+        }
+
+        private static string? ReadString(RegistryKey hive, string path, string name)
+        {
+            using var key = hive.OpenSubKey(path);
+            return key?.GetValue(name) as string;
+        }
+
+        // Generals Online opens its files through the classic Windows path limit (259 characters, counted in UTF-8 bytes
+        // for letters outside English since the game uses the UTF-8 code page)
+        private const int MaxPathLength = 259;
+        // Room below the data folder for a downloaded map such as Maps\<name>\<name>.map
+        private const int MapPathRoom = 110;
+
+        private static HealthResult CheckDocumentsPath(string game)
+        {
+            string data = GamePaths.UserData;
+
+            if (!data.All(c => c < 128) && !GameCanUsePath(game, data))
+                return new HealthResult
+                {
+                    Id = "docpath", Group = GroupSettings, Title = "Documents path has letters the game cannot use", Status = HealthStatus.Problem,
+                    Detail = "This version of Generals Online cannot open a Documents folder with these letters, so settings, maps and replays are not found",
+                    Note = "Update Generals Online, or move the Documents folder to a path with English letters only (right-click Documents › Properties › Location).",
+                };
+
+            var tooLong = new List<string>();
+            foreach (string folder in new[] { GamePaths.Maps, GamePaths.Replays, Path.Combine(data, "Save") })
+            {
+                if (Directory.Exists(folder))
+                    tooLong.AddRange(Directory.EnumerateFiles(folder, "*", new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true })
+                        .Where(f => PathLength(f) > MaxPathLength));
+            }
+            if (tooLong.Count > 0)
+            {
+                var names = tooLong.Select(Path.GetFileName).Select(n => n!).ToList();
+                string first = Path.GetRelativePath(data, tooLong[0]).Split('\\')[0];
+                return new HealthResult
+                {
+                    Id = "docpath", Group = GroupSettings, Title = "Some maps or replays have paths too long for the game", Status = HealthStatus.Warning,
+                    Detail = $"{Plural(tooLong.Count, "file is", "files are")} past the Windows limit of {MaxPathLength} characters, so the game cannot open {(tooLong.Count == 1 ? "it" : "them")}: {NameList(names, 2)}",
+                    Note = "Shorten the folder or file names, or move the Documents folder to a shorter path.",
+                    GuideLabel = "Show folder",
+                    GuideTarget = "select:" + Path.Combine(data, first),
+                };
+            }
+
+            int length = PathLength(data);
+            if (length + 1 + MapPathRoom > MaxPathLength)
+                return new HealthResult
+                {
+                    Id = "docpath", Group = GroupSettings, Title = "Documents path is long", Status = HealthStatus.Warning,
+                    Detail = $"The game data folder path is {length} characters long, which leaves {Math.Max(0, MaxPathLength - length - 1)} for maps and replays. Maps with long names will not open",
+                    Note = "Moving the Documents folder to a shorter path avoids this (right-click Documents › Properties › Location).",
+                };
+
+            return new HealthResult { Id = "docpath", Group = GroupSettings, Title = "Documents path works with the game", Detail = "Short enough for maps and replays, with letters the game can read", Status = HealthStatus.Passed };
+        }
+
+        private static int PathLength(string path) => path.All(c => c < 128) ? path.Length : Encoding.UTF8.GetByteCount(path);
+
+        // Mirrors how Generals Online finds the Documents folder: the UTF-8 code page when its manifest asks for it
+        // (Windows 10 1903 or newer), otherwise the Windows code page, with the short 8.3 path as a fallback
+        private static bool GameCanUsePath(string game, string path)
+        {
+            if (FitsCodePage(path))
+                return true;
+            if (!ExeUsesUtf8(Path.Combine(game, GamePaths.GameExe)))
+                return false; // older builds had no fallback
+            if (Environment.OSVersion.Version.Build >= 18362)
+                return true;
+            var shortPath = new StringBuilder(MaxPathLength + 2);
+            uint length = GetShortPathName(path, shortPath, (uint)shortPath.Capacity);
+            return length > 0 && length < shortPath.Capacity && FitsCodePage(shortPath.ToString());
+        }
+
+        private static bool ExeUsesUtf8(string exe)
+        {
+            if (!File.Exists(exe))
+                return false;
+            byte[] bytes = File.ReadAllBytes(exe);
+            int at = bytes.AsSpan().IndexOf("<activeCodePage"u8);
+            return at >= 0 && bytes.AsSpan(at, Math.Min(160, bytes.Length - at)).IndexOf("UTF-8"u8) >= 0;
+        }
+
+        private static bool FitsCodePage(string text)
+        {
+            // Windows set to use UTF-8 for every program can hold any letter
+            if (GetACP() == 65001)
+                return true;
+            const uint ansiCodePage = 0, noBestFitChars = 0x400;
+            return WideCharToMultiByte(ansiCodePage, noBestFitChars, text, -1, IntPtr.Zero, 0, IntPtr.Zero, out int usedDefault) > 0 && usedDefault == 0;
+        }
+
+        [DllImport("kernel32.dll")]
+        private static extern uint GetACP();
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+        private static extern int WideCharToMultiByte(uint codePage, uint flags, string wide, int wideLength, IntPtr multi, int multiLength, IntPtr defaultChar, out int usedDefaultChar);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+        private static extern uint GetShortPathName(string longPath, StringBuilder shortPath, uint length);
 
         // ── NETWORK ── run separately because they wait on the network
 
