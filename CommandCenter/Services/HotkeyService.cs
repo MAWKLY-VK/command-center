@@ -10,7 +10,8 @@ namespace CommandCenter.Services
 
     public enum MenuKind { Structure, Unit, Powers }
 
-    // Buttons holds the ones with a hotkey; Silent the other buttons on the same bar (Sell, rally point...)
+    // Buttons holds the ones that can have a hotkey (a TextLabel in generals.csf), with or without one by default;
+    // Silent the other buttons on the same bar (science purchases without a label...)
     public sealed record HotkeyMenu(string Name, MenuKind Kind, string SetName, IReadOnlyList<HotkeyButton> Buttons, IReadOnlyList<HotkeyButton> Silent)
     {
         public int MaxSlot => Buttons.Concat(Silent).Select(b => b.Slot).DefaultIfEmpty(0).Max();
@@ -33,6 +34,9 @@ namespace CommandCenter.Services
         public required string Transition { get; init; }
         public required string UseableIn { get; init; }
         public bool IsBuiltIn { get; init; }
+        public bool IsTeam { get; init; }                 // always on the game's default; only reserved for conflict checks
+        public bool IsFixed { get; init; }                // built in, and no CommandMap block can change it
+        public string BuiltInCategory { get; init; } = "";
         public int Order { get; init; }
         public string FileKey { get; set; } = "";
         public string FileModifiers { get; set; } = "NONE";
@@ -40,6 +44,7 @@ namespace CommandCenter.Services
         public string Modifiers { get; set; } = "NONE";
         public bool Changed => Key != OriginalKey || Modifiers != OriginalModifiers;
         public bool Pending => Key != FileKey || Modifiers != FileModifiers;
+        public bool CanChange => !IsTeam && !IsFixed;
         public string Shortcut => HotkeyService.Describe(Key, Modifiers);
         public string DefaultShortcut => HotkeyService.Describe(OriginalKey, OriginalModifiers);
     }
@@ -48,17 +53,24 @@ namespace CommandCenter.Services
     // game data, checks them against the rules the engine applies, and writes changes as loose files that
     // override the archives. Neither file is part of the multiplayer check, so hotkeys never cause a mismatch.
     //
-    // Engine rules (GeneralsMD HotKey.cpp, MetaEvent.cpp):
+    // Engine rules (GeneralsMD HotKey.cpp, MetaEvent.cpp, ControlBar.cpp):
     //  - A button key is one letter or digit pressed alone; Ctrl, Alt and Shift are ignored for buttons.
+    //  - Any button with a TextLabel gets the letter after the first '&' in that text as its key, so a button the
+    //    game ships without a key (Sell, Exit) gets one when '&' is added. The tooltip draws "&X" as a highlighted X.
     //  - Two buttons with the same letter in one menu: only the first one works.
     //  - A plain global key (for example S for Stop) fires on key down and the button fires on key up, so both happen.
     //  - Two global commands on the same combination: only one of them works.
     //  - Some keys are built into the game when CommandMap.ini does not set them (Ctrl+I, F12, camera pitch...).
+    //    A CommandMap block with a key stops the game from adding its own. Only Generals Online knows these command
+    //    names; the original game stops at startup on a name it does not know, so they are written to a file in
+    //    Data\<language>\CommandMap\, a folder that Generals Online reads after CommandMap.ini and the original game never opens.
+    //  - Team keys (0-9 alone, with Ctrl, Shift or Alt) always stay on the game's defaults.
     public sealed class HotkeyService
     {
         public string Language { get; }
         public string CsfPath => $@"Data\{Language}\generals.csf";
         public string CommandMapPath => $@"Data\{Language}\CommandMap.ini";
+        public string BuiltInMapPath => $@"Data\{Language}\CommandMap\CommandCenter.ini";
 
         private static readonly (string Side, string Name, string Faction, string? General, string? Prefix)[] ArmyDefs =
         {
@@ -99,34 +111,49 @@ namespace CommandCenter.Services
             "BEGIN_FORCEATTACK", "BEGIN_WAYPOINTS", "BEGIN_PREFER_SELECTION", "TOGGLE_CAMERA_TRACKING_DRAWABLE",
         };
 
-        // Keys the game adds by itself when CommandMap.ini does not define the command (MetaMap::generateMetaMap)
-        private static readonly (string Command, string Name, string Key, string Mods, string Usable)[] BuiltIns =
+        // Keys the game adds by itself when CommandMap.ini does not define the command (MetaMap::generateMetaMap).
+        // Category is the one the game gives them (it leaves MISC on all but the idle worker).
+        private static readonly (string Command, string Name, string Key, string Mods, string Usable, string Category)[] BuiltIns =
         {
-            ("SELECT_NEXT_IDLE_WORKER", "Next idle worker", "KEY_I", "CTRL", "GAME"),
-            ("TAKE_SCREENSHOT_PNG", "Screenshot (PNG)", "KEY_F12", "CTRL", "EVERYWHERE"),
-            ("INCREASE_MAX_RENDER_FPS", "Raise frame limit", "KEY_KPPLUS", "CTRL", "EVERYWHERE"),
-            ("DECREASE_MAX_RENDER_FPS", "Lower frame limit", "KEY_KPMINUS", "CTRL", "EVERYWHERE"),
-            ("INCREASE_LOGIC_TIME_SCALE", "Faster game speed (offline)", "KEY_KPPLUS", "SHIFT_CTRL", "EVERYWHERE"),
-            ("DECREASE_LOGIC_TIME_SCALE", "Slower game speed (offline)", "KEY_KPMINUS", "SHIFT_CTRL", "EVERYWHERE"),
-            ("TOGGLE_PAUSE_ALT", "Pause (replays and observers)", "KEY_P", "SHIFT", "EVERYWHERE"),
-            ("STEP_FRAME_ALT", "Step one frame (paused)", "KEY_O", "SHIFT", "EVERYWHERE"),
-            ("TOGGLE_PAUSE", "Pause (observer)", "KEY_P", "NONE", "OBSERVER"),
-            ("STEP_FRAME", "Step one frame (observer)", "KEY_O", "NONE", "OBSERVER"),
-            ("TOGGLE_PLAYER_OBSERVER", "Switch player view (observer)", "KEY_M", "NONE", "OBSERVER"),
-            ("ALT_CAMERA_ROTATE_LEFT", "Rotate camera left (alternate)", "KEY_KP4", "CTRL", "GAME"),
-            ("ALT_CAMERA_ROTATE_RIGHT", "Rotate camera right (alternate)", "KEY_KP6", "CTRL", "GAME"),
-            ("BEGIN_CAMERA_PITCH_UP", "Tilt camera up", "KEY_KP9", "NONE", "GAME"),
-            ("ALT_BEGIN_CAMERA_PITCH_UP", "Tilt camera up (alternate)", "KEY_PGUP", "NONE", "GAME"),
-            ("BEGIN_CAMERA_PITCH_DOWN", "Tilt camera down", "KEY_KP3", "NONE", "GAME"),
-            ("ALT_BEGIN_CAMERA_PITCH_DOWN", "Tilt camera down (alternate)", "KEY_PGDN", "NONE", "GAME"),
-            ("CAMERA_PITCH_RESET", "Reset camera tilt", "KEY_KP7", "NONE", "GAME"),
-            ("ALT_CAMERA_PITCH_RESET", "Reset camera tilt (alternate)", "KEY_HOME", "NONE", "GAME"),
-            ("TAKE_SCREENSHOT", "Screenshot", "KEY_F12", "NONE", "EVERYWHERE"),
-            ("INCREASE_OBSERVER_NOTIFICATION_FONT", "Larger observer messages", "KEY_RIGHT", "SHIFT", "GAME"),
-            ("DECREASE_OBSERVER_NOTIFICATION_FONT", "Smaller observer messages", "KEY_LEFT", "SHIFT", "GAME"),
-            ("INCREASE_OBSERVER_STATS_FONT", "Larger observer statistics", "KEY_UP", "SHIFT", "GAME"),
-            ("DECREASE_OBSERVER_STATS_FONT", "Smaller observer statistics", "KEY_DOWN", "SHIFT", "GAME"),
+            ("SELECT_NEXT_IDLE_WORKER", "Next idle worker", "KEY_I", "CTRL", "GAME", "SELECTION"),
+            ("TAKE_SCREENSHOT_PNG", "Screenshot (PNG)", "KEY_F12", "CTRL", "EVERYWHERE", "MISC"),
+            ("INCREASE_MAX_RENDER_FPS", "Raise frame limit", "KEY_KPPLUS", "CTRL", "EVERYWHERE", "MISC"),
+            ("DECREASE_MAX_RENDER_FPS", "Lower frame limit", "KEY_KPMINUS", "CTRL", "EVERYWHERE", "MISC"),
+            ("INCREASE_LOGIC_TIME_SCALE", "Faster game speed (offline)", "KEY_KPPLUS", "SHIFT_CTRL", "EVERYWHERE", "MISC"),
+            ("DECREASE_LOGIC_TIME_SCALE", "Slower game speed (offline)", "KEY_KPMINUS", "SHIFT_CTRL", "EVERYWHERE", "MISC"),
+            ("TOGGLE_PAUSE_ALT", "Pause (replays and observers)", "KEY_P", "SHIFT", "EVERYWHERE", "MISC"),
+            ("STEP_FRAME_ALT", "Step one frame (paused)", "KEY_O", "SHIFT", "EVERYWHERE", "MISC"),
+            ("TOGGLE_PAUSE", "Pause (observer)", "KEY_P", "NONE", "OBSERVER", "MISC"),
+            ("STEP_FRAME", "Step one frame (observer)", "KEY_O", "NONE", "OBSERVER", "MISC"),
+            ("TOGGLE_PLAYER_OBSERVER", "Switch player view (observer)", "KEY_M", "NONE", "OBSERVER", "MISC"),
+            ("ALT_CAMERA_ROTATE_LEFT", "Rotate camera left (alternate)", "KEY_KP4", "CTRL", "GAME", "MISC"),
+            ("ALT_CAMERA_ROTATE_RIGHT", "Rotate camera right (alternate)", "KEY_KP6", "CTRL", "GAME", "MISC"),
+            ("BEGIN_CAMERA_PITCH_UP", "Tilt camera up", "KEY_KP9", "NONE", "GAME", "MISC"),
+            ("ALT_BEGIN_CAMERA_PITCH_UP", "Tilt camera up (alternate)", "KEY_PGUP", "NONE", "GAME", "MISC"),
+            ("BEGIN_CAMERA_PITCH_DOWN", "Tilt camera down", "KEY_KP3", "NONE", "GAME", "MISC"),
+            ("ALT_BEGIN_CAMERA_PITCH_DOWN", "Tilt camera down (alternate)", "KEY_PGDN", "NONE", "GAME", "MISC"),
+            ("CAMERA_PITCH_RESET", "Reset camera tilt", "KEY_KP7", "NONE", "GAME", "MISC"),
+            ("ALT_CAMERA_PITCH_RESET", "Reset camera tilt (alternate)", "KEY_HOME", "NONE", "GAME", "MISC"),
+            ("TAKE_SCREENSHOT", "Screenshot", "KEY_F12", "NONE", "EVERYWHERE", "MISC"),
+            ("INCREASE_OBSERVER_NOTIFICATION_FONT", "Larger observer messages", "KEY_RIGHT", "SHIFT", "GAME", "MISC"),
+            ("DECREASE_OBSERVER_NOTIFICATION_FONT", "Smaller observer messages", "KEY_LEFT", "SHIFT", "GAME", "MISC"),
+            ("INCREASE_OBSERVER_STATS_FONT", "Larger observer statistics", "KEY_UP", "SHIFT", "GAME", "MISC"),
+            ("DECREASE_OBSERVER_STATS_FONT", "Smaller observer statistics", "KEY_DOWN", "SHIFT", "GAME", "MISC"),
         };
+
+        // Built in, but missing from the CommandMap parser's name table: a block for them stops the game at startup
+        private static readonly HashSet<string> FixedBuiltIns = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "ALT_CAMERA_ROTATE_LEFT", "ALT_CAMERA_ROTATE_RIGHT",
+        };
+
+        // Keys the original game's CommandMap parser does not know (Generals Online added them)
+        private static readonly HashSet<string> NewKeyNames = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "KEY_KPPLUS", "KEY_KPMINUS", "KEY_KPDEL", "KEY_KPSTAR", "KEY_KPENTER",
+        };
+
+        private static readonly Regex TeamCommand = new(@"^(CREATE|SELECT|ADD|VIEW)_TEAM\d$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private readonly GameFiles _files;
         private CsfFile _csf = null!;
@@ -140,6 +167,15 @@ namespace CommandCenter.Services
         public bool UsesCommunityPatch => _files.UsesCommunityPatch;
         public bool HasUnsavedChanges => _pendingKeys.Any(p => p.Value != SavedKeyFor(p.Key)) || GameKeys.Any(k => k.Pending);
         public int PendingCount => _pendingKeys.Count(p => p.Value != SavedKeyFor(p.Key)) + GameKeys.Count(k => k.Pending);
+
+        // Team keys found changed in CommandMap.ini; they stay pending until Save puts the defaults back
+        public int ChangedTeamKeys => GameKeys.Count(k => k.IsTeam && k.Pending);
+
+        // Changes Discard can undo (everything pending except the team key repair)
+        public int DiscardableCount => PendingCount - ChangedTeamKeys;
+
+        // The game keys the editor lists: everything but the team keys
+        public IEnumerable<GameKey> ListedGameKeys => GameKeys.Where(k => !k.IsTeam);
 
         private HotkeyService(GameFiles files, string language)
         {
@@ -195,10 +231,11 @@ namespace CommandCenter.Services
 
         public void ResetKey(string label) => _pendingKeys[label] = DefaultKeyFor(label);
 
+        // Team keys keep their defaults, so a repair stays pending
         public void DiscardPending()
         {
             _pendingKeys.Clear();
-            foreach (var k in GameKeys)
+            foreach (var k in GameKeys.Where(k => !k.IsTeam))
             {
                 k.Key = k.FileKey;
                 k.Modifiers = k.FileModifiers;
@@ -210,13 +247,17 @@ namespace CommandCenter.Services
         public IEnumerable<(HotkeyArmy Army, HotkeyMenu Menu)> MenusUsing(string label) =>
             Armies.SelectMany(a => a.Menus.Where(m => m.Buttons.Any(b => b.Label.Equals(label, StringComparison.OrdinalIgnoreCase))).Select(m => (a, m)));
 
-        // Global commands on a plain letter or digit; they fire together with a button on the same key
+        // Global commands on a plain letter or digit while playing (team keys included: plain digits select teams);
+        // they fire together with a button on the same key
         public GameKey? PlainGlobalKey(char key)
         {
             string name = "KEY_" + char.ToUpperInvariant(key);
-            return GameKeys.FirstOrDefault(k => !k.IsBuiltIn && k.Key == name && k.Modifiers == "NONE" && k.UseableIn.Contains("GAME", StringComparison.OrdinalIgnoreCase)
+            return GameKeys.FirstOrDefault(k => k.Key == name && k.Modifiers == "NONE" && UsableInGame(k.UseableIn)
                                                 && !k.Command.Equals("TOGGLE_FAST_FORWARD_REPLAY", StringComparison.OrdinalIgnoreCase));
         }
+
+        private static bool UsableInGame(string useableIn) =>
+            useableIn.Contains("GAME", StringComparison.OrdinalIgnoreCase) || useableIn.Contains("EVERYWHERE", StringComparison.OrdinalIgnoreCase);
 
         // The plain game key that fires together with this button, unless both do the same thing (the Stop button on S)
         public GameKey? SharedGameKey(HotkeyButton button)
@@ -249,10 +290,26 @@ namespace CommandCenter.Services
             if (key == 'F')
                 issues.Add(new KeyIssue(IssueLevel.Info, "In replays F also turns fast forward on and off."));
 
-            if (issues.Count == 0)
-                issues.Add(new KeyIssue(IssueLevel.Ok, $"No other button in this menu uses {key}."));
+            // WithHotkey appends " (X)" when the name has no such letter; the tooltip shows it that way
+            if (!CsfFile.WithoutHotkey(_originalCsf.Get(button.Label) ?? "").Contains(key, StringComparison.OrdinalIgnoreCase))
+                issues.Add(new KeyIssue(IssueLevel.Info, $"The name has no {key}, so the game shows it as \"{ShownName(button.Label)}\"."));
+
+            if (!issues.Any(i => i.Level is IssueLevel.Error or IssueLevel.Warn))
+                issues.Insert(0, new KeyIssue(IssueLevel.Ok, $"No other button in this menu uses {key}."));
             return issues;
         }
+
+        // The button's name the way the game's tooltip shows it with the current key (the '&' marker removed)
+        public string ShownName(string label)
+        {
+            string original = _originalCsf.Get(label) ?? label;
+            return CsfFile.WithoutHotkey(LabelText(original, KeyFor(label))).Replace("&&", "&");
+        }
+
+        private static string LabelText(string original, char key) =>
+            key == CsfFile.HotkeyOf(original) ? original
+            : key == '\0' ? CsfFile.WithoutHotkey(original)
+            : CsfFile.WithHotkey(original, key);
 
         public IssueLevel WorstIssue(HotkeyMenu menu, HotkeyButton button) =>
             ButtonIssues(menu, button).Select(i => i.Level).DefaultIfEmpty(IssueLevel.Ok).Max();
@@ -278,11 +335,13 @@ namespace CommandCenter.Services
             return list;
         }
 
-        // Grid layout: each button gets the key of its position on the control bar (two rows of seven)
+        // Grid layout: each button gets the key of its position on the control bar (two rows of seven).
+        // Buttons the game ships without a key (Sell, Exit) keep what they have, so no layout sells by accident.
         public void ApplyGridLayout()
         {
             const string rows = "QWERTYUASDFGHJZXCVBNM";
-            var bySlot = Armies.SelectMany(a => a.Menus).SelectMany(m => m.Buttons).GroupBy(b => b.Label, StringComparer.OrdinalIgnoreCase);
+            var bySlot = Armies.SelectMany(a => a.Menus).SelectMany(m => m.Buttons).Where(b => DefaultKeyFor(b.Label) != '\0')
+                .GroupBy(b => b.Label, StringComparer.OrdinalIgnoreCase);
             foreach (var group in bySlot)
             {
                 int slot = group.GroupBy(b => b.Slot).OrderByDescending(g => g.Count()).First().Key;
@@ -362,8 +421,10 @@ namespace CommandCenter.Services
                 button.TryGetValue("ButtonImage", out var image);
                 button.TryGetValue("Command", out var action);
                 button.TryGetValue("TextLabel", out var label);
-                string text = label != null ? (_originalCsf.Get(label) ?? label).Replace("&", "") : command;
-                if (label == null || CsfFile.HotkeyOf(_originalCsf.Get(label)) == '\0')
+                string? labelText = label != null ? _originalCsf.Get(label) : null;
+                string text = label != null ? (labelText ?? label).Replace("&", "") : command;
+                // A key needs text to put the '&' in; buttons without one stay silent
+                if (label == null || string.IsNullOrWhiteSpace(labelText))
                 {
                     silent.Add(new HotkeyButton(command, label ?? "", slot, text, image, action ?? ""));
                     continue;
@@ -371,7 +432,10 @@ namespace CommandCenter.Services
                 list.Add(new HotkeyButton(command, label, slot, text, image, action ?? ""));
             }
 
-            return list.Count == 0 ? null : new HotkeyMenu(name, kind, setName, list.OrderBy(b => b.Slot).ToList(), silent);
+            // Menus without a single key in the game (a defence with only Sell) stay out of the list
+            return list.Any(b => CsfFile.HotkeyOf(_originalCsf.Get(b.Label)) != '\0')
+                ? new HotkeyMenu(name, kind, setName, list.OrderBy(b => b.Slot).ToList(), silent)
+                : null;
         }
 
         private sealed record GameObject(string Side, string DisplayName, string? CommandSet, bool IsStructure);
@@ -479,7 +543,7 @@ namespace CommandCenter.Services
         private void LoadGameKeys()
         {
             GameKeys.Clear();
-            _commandMapLines = (_files.ReadText(CommandMapPath)).Replace("\r\n", "\n").Split('\n');
+            _commandMapLines = ReadLines(CommandMapPath);
             var current = ParseCommandMap(_commandMapLines);
             var original = ParseCommandMap(Encoding.Latin1.GetString(_files.ReadFromArchive(CommandMapPath) ?? Array.Empty<byte>()).Replace("\r\n", "\n").Split('\n'))
                 .GroupBy(b => b.Command, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
@@ -489,13 +553,17 @@ namespace CommandCenter.Services
             {
                 string command = block.Command;
                 order++;
-                if (command.StartsWith("END_", StringComparison.OrdinalIgnoreCase) || command.StartsWith("DEMO_", StringComparison.OrdinalIgnoreCase) || HiddenCommands.Contains(command))
+                if (IsEndCommand(command) || command.StartsWith("DEMO_", StringComparison.OrdinalIgnoreCase) || HiddenCommands.Contains(command))
                     continue;
                 if (!block.Values.TryGetValue("Key", out var key))
                     continue;
 
+                string fileKey = key.ToUpperInvariant();
                 string mods = block.Values.GetValueOrDefault("Modifiers", "NONE").ToUpperInvariant();
                 var origin = original.GetValueOrDefault(command) ?? block;
+                string originalKey = origin.Values.GetValueOrDefault("Key", key).ToUpperInvariant();
+                string originalMods = origin.Values.GetValueOrDefault("Modifiers", "NONE").ToUpperInvariant();
+                bool team = TeamCommand.IsMatch(command);
                 string name = CommandNames.TryGetValue(command, out var known) ? known
                     : block.Values.TryGetValue("DisplayName", out var display) && _originalCsf.Get(display) is { } text ? text.Replace("&", "")
                     : Readable(command);
@@ -506,48 +574,68 @@ namespace CommandCenter.Services
                     Name = name,
                     Category = CategoryOf(command, block.Values.GetValueOrDefault("Category", "")),
                     Block = block.Line,
-                    OriginalKey = origin.Values.GetValueOrDefault("Key", key).ToUpperInvariant(),
-                    OriginalModifiers = origin.Values.GetValueOrDefault("Modifiers", "NONE").ToUpperInvariant(),
+                    OriginalKey = originalKey,
+                    OriginalModifiers = originalMods,
                     Transition = block.Values.GetValueOrDefault("Transition", "DOWN").ToUpperInvariant(),
                     UseableIn = block.Values.GetValueOrDefault("UseableIn", "GAME").ToUpperInvariant(),
-                    Order = TeamOrder(command, order),
-                    FileKey = key.ToUpperInvariant(),
+                    IsTeam = team,
+                    Order = order,
+                    FileKey = fileKey,
                     FileModifiers = mods,
-                    Key = key.ToUpperInvariant(),
-                    Modifiers = mods,
+                    // Team keys always go back to the game's defaults; one changed in the file is a pending repair
+                    Key = team ? originalKey : fileKey,
+                    Modifiers = team ? originalMods : mods,
                 });
             }
 
+            // Built-in keys: the game's own unless our file in Data\<language>\CommandMap\ sets another one
             var defined = current.Select(b => b.Command).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            foreach (var (command, name, key, mods, usable) in BuiltIns)
+            var changed = ParseCommandMap(ReadLines(BuiltInMapPath))
+                .GroupBy(b => b.Command, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
+            foreach (var (command, name, key, mods, usable, category) in BuiltIns)
             {
                 if (defined.Contains(command))
                     continue;
+                bool isFixed = FixedBuiltIns.Contains(command);
+                string fileKey = key, fileMods = mods;
+                // KEY_NONE leaves the record empty, and the game then adds its default after all
+                if (!isFixed && changed.TryGetValue(command, out var block) && block.Values.TryGetValue("Key", out var setKey)
+                    && !setKey.Equals("KEY_NONE", StringComparison.OrdinalIgnoreCase))
+                {
+                    fileKey = setKey.ToUpperInvariant();
+                    fileMods = block.Values.GetValueOrDefault("Modifiers", "NONE").ToUpperInvariant();
+                }
                 GameKeys.Add(new GameKey
                 {
-                    Command = command, Name = name, Category = "BUILT-IN", Block = -1, IsBuiltIn = true,
+                    Command = command, Name = name, Category = "BUILT-IN", Block = -1, IsBuiltIn = true, IsFixed = isFixed,
                     OriginalKey = key, OriginalModifiers = mods, Transition = "DOWN", UseableIn = usable, Order = 10000 + order++,
-                    FileKey = key, FileModifiers = mods, Key = key, Modifiers = mods,
+                    FileKey = fileKey, FileModifiers = fileMods, Key = fileKey, Modifiers = fileMods,
+                    BuiltInCategory = category,
                 });
             }
         }
+
+        private string[] ReadLines(string relativePath) => _files.ReadText(relativePath).Replace("\r\n", "\n").Split('\n');
+
+        // END_x (and ALT_END_x) blocks follow their BEGIN_x on key up; the editor never lists them
+        private static bool IsEndCommand(string command) =>
+            command.StartsWith("END_", StringComparison.OrdinalIgnoreCase) || command.StartsWith("ALT_END_", StringComparison.OrdinalIgnoreCase);
+
+        private static string? BeginOf(string endCommand) =>
+            endCommand.StartsWith("END_", StringComparison.OrdinalIgnoreCase) ? "BEGIN_" + endCommand[4..]
+            : endCommand.StartsWith("ALT_END_", StringComparison.OrdinalIgnoreCase) ? "ALT_BEGIN_" + endCommand[8..]
+            : null;
+
+        private static string? EndOf(string beginCommand) =>
+            beginCommand.StartsWith("BEGIN_", StringComparison.OrdinalIgnoreCase) ? "END_" + beginCommand[6..]
+            : beginCommand.StartsWith("ALT_BEGIN_", StringComparison.OrdinalIgnoreCase) ? "ALT_END_" + beginCommand[10..]
+            : null;
 
         private static string CategoryOf(string command, string category)
         {
             if (command.Contains("CAMERA", StringComparison.OrdinalIgnoreCase)) return "CAMERA";
             if (command.StartsWith("CHAT", StringComparison.OrdinalIgnoreCase) || command.Contains("BEACON", StringComparison.OrdinalIgnoreCase) || command == "DIPLOMACY") return "CHAT";
             return category.Length > 0 ? category.ToUpperInvariant() : "INTERFACE";
-        }
-
-        // Teams read 1 to 9 and then 0, the way they sit on the keyboard
-        private static int TeamOrder(string command, int fallback)
-        {
-            var m = Regex.Match(command, @"^(CREATE|SELECT|ADD|VIEW)_TEAM(\d)$", RegexOptions.IgnoreCase);
-            if (!m.Success)
-                return fallback;
-            int group = m.Groups[1].Value.ToUpperInvariant() switch { "SELECT" => 0, "CREATE" => 1, "ADD" => 2, _ => 3 };
-            int digit = int.Parse(m.Groups[2].Value);
-            return 1000 + group * 20 + (digit == 0 ? 10 : digit);
         }
 
         public static string TeamGroupOf(GameKey key)
@@ -566,10 +654,10 @@ namespace CommandCenter.Services
             {
                 if (!UsableTogether(gameKey.UseableIn, other.UseableIn))
                     continue;
-                issues.Add(new KeyIssue(other.IsBuiltIn ? IssueLevel.Error : IssueLevel.Error,
-                    other.IsBuiltIn
-                        ? $"{gameKey.Shortcut} is built into the game for {other.Name}; only one of them will work."
-                        : $"{gameKey.Shortcut} is also set for {other.Name}; only one of them will work."));
+                issues.Add(new KeyIssue(IssueLevel.Error,
+                    other.IsTeam ? $"{gameKey.Shortcut} is the team key {other.Name}, and team keys cannot change. Pick another key."
+                    : other.IsBuiltIn ? $"{gameKey.Shortcut} is built into the game for {other.Name}; only one of them will work."
+                    : $"{gameKey.Shortcut} is also set for {other.Name}; only one of them will work."));
             }
 
             if (gameKey.Modifiers == "NONE" && gameKey.Key.Length == 5 && gameKey.Key.StartsWith("KEY_"))
@@ -588,8 +676,23 @@ namespace CommandCenter.Services
             a.Contains("EVERYWHERE") || b.Contains("EVERYWHERE") || a == b
             || (a.Contains("GAME") && b.Contains("GAME")) || (a.Contains("OBSERVER") && b.Contains("OBSERVER"));
 
+        // Why a key cannot go on this command, or null when it can. CommandMap.ini is read by the original game too,
+        // which stops at startup on a key name it does not know; the built-in keys' own file is read by Generals Online only.
+        public static string? CannotUse(GameKey gameKey, string key)
+        {
+            if (gameKey.IsTeam)
+                return "Team keys always use the game's defaults.";
+            if (gameKey.IsFixed)
+                return "The game adds this key by itself and cannot read a new one for it.";
+            if (!gameKey.IsBuiltIn && NewKeyNames.Contains(key))
+                return $"{Describe(key, "NONE")} only works in Generals Online; the original game would not start with it in CommandMap.ini.";
+            return null;
+        }
+
         public void SetGameKey(GameKey gameKey, string key, string modifiers)
         {
+            if (CannotUse(gameKey, key) != null)
+                return;
             gameKey.Key = key;
             gameKey.Modifiers = modifiers;
         }
@@ -598,6 +701,13 @@ namespace CommandCenter.Services
         {
             gameKey.Key = gameKey.OriginalKey;
             gameKey.Modifiers = gameKey.OriginalModifiers;
+        }
+
+        // Every game key the editor can change goes back to the game's default (the Classic layout)
+        public void ResetGameKeys()
+        {
+            foreach (var k in GameKeys.Where(k => k.CanChange))
+                ResetGameKey(k);
         }
 
         public static string Describe(string key, string modifiers)
@@ -683,23 +793,46 @@ namespace CommandCenter.Services
 
         // ── Saving ──
 
+        // The files Save would write right now (relative to the game folder)
+        public List<string> PendingFiles()
+        {
+            var files = new List<string>();
+            if (_pendingKeys.Any(p => p.Value != SavedKeyFor(p.Key)))
+                files.Add(CsfPath);
+            if (GameKeys.Any(k => k.Pending && !k.IsBuiltIn))
+                files.Add(CommandMapPath);
+            if (GameKeys.Any(k => k.Pending && k.IsBuiltIn))
+                files.Add(BuiltInMapPath);
+            return files;
+        }
+
         public string Save()
         {
             var parts = new List<string>();
-            if (_pendingKeys.Any(p => p.Value != SavedKeyFor(p.Key)))
+            int buttons = _pendingKeys.Count(p => p.Value != SavedKeyFor(p.Key));
+            if (buttons > 0)
             {
-                BackupService.WriteFile("Saved hotkeys", _files.LoosePath(CsfPath), BuildCsf(), $"{CsfPath} · {_pendingKeys.Count(p => p.Value != SavedKeyFor(p.Key))} buttons");
+                BackupService.WriteFile("Saved hotkeys", _files.LoosePath(CsfPath), BuildCsf(), $"{CsfPath} · {buttons} buttons");
                 parts.Add("generals.csf");
             }
 
-            if (GameKeys.Any(k => k.Pending && !k.IsBuiltIn))
+            // Changed team keys are written back to their defaults here too
+            int mapped = GameKeys.Count(k => k.Pending && !k.IsBuiltIn);
+            if (mapped > 0)
             {
-                BackupService.WriteFile("Saved game keys", _files.LoosePath(CommandMapPath), Encoding.Latin1.GetBytes(BuildCommandMap()), $"{CommandMapPath} · {GameKeys.Count(k => k.Pending)} keys");
+                BackupService.WriteFile("Saved game keys", _files.LoosePath(CommandMapPath), Encoding.Latin1.GetBytes(BuildCommandMap()), $"{CommandMapPath} · {mapped} keys");
                 parts.Add("CommandMap.ini");
             }
 
+            int builtIn = GameKeys.Count(k => k.Pending && k.IsBuiltIn);
+            if (builtIn > 0)
+            {
+                BackupService.WriteFile("Saved built-in keys", _files.LoosePath(BuiltInMapPath), Encoding.Latin1.GetBytes(BuildBuiltInMap()), $"{BuiltInMapPath} · {builtIn} keys");
+                parts.Add(@"CommandMap\CommandCenter.ini");
+            }
+
             Reload();
-            return string.Join(" and ", parts);
+            return parts.Count <= 1 ? string.Join("", parts) : string.Join(", ", parts.SkipLast(1)) + " and " + parts[^1];
         }
 
         // Removes our loose files' changes: the game falls back to its own keys
@@ -707,22 +840,19 @@ namespace CommandCenter.Services
         {
             BackupService.RestoreOriginal(_files.LoosePath(CsfPath));
             BackupService.RestoreOriginal(_files.LoosePath(CommandMapPath));
+            BackupService.RestoreOriginal(_files.LoosePath(BuiltInMapPath));
             Reload();
         }
 
         internal byte[] BuildCsf()
         {
             foreach (var (label, key) in _pendingKeys)
-            {
-                string original = _originalCsf.Get(label) ?? "";
-                _csf.Set(label, key == CsfFile.HotkeyOf(original) ? original
-                    : key == '\0' ? CsfFile.WithoutHotkey(original)
-                    : CsfFile.WithHotkey(original, key));
-            }
+                _csf.Set(label, LabelText(_originalCsf.Get(label) ?? "", key));
             return _csf.ToBytes();
         }
 
-        // Rewrites the Key and Modifiers lines of each changed block; BEGIN_x changes also apply to END_x.
+        // Rewrites the Key and Modifiers lines of each changed block (team keys go back to their defaults);
+        // BEGIN_x changes also apply to END_x.
         internal string BuildCommandMap()
         {
             var lines = _commandMapLines.ToList();
@@ -742,8 +872,8 @@ namespace CommandCenter.Services
                 GameKey? change = null;
                 if (byBlock.TryGetValue(i, out var direct))
                     change = direct;
-                else if (command.StartsWith("END_", StringComparison.OrdinalIgnoreCase))
-                    byCommand.TryGetValue("BEGIN_" + command[4..], out change);
+                else if (BeginOf(command) is { } begin)
+                    byCommand.TryGetValue(begin, out change);
                 if (change == null)
                     continue;
 
@@ -761,6 +891,33 @@ namespace CommandCenter.Services
 
             return string.Join("\r\n", lines);
         }
+
+        // A block for every built-in key that differs from the game's own; a BEGIN_x key also gets its END_x on key up.
+        // With no block left the file only holds the comment, and the game adds all its own keys again.
+        internal string BuildBuiltInMap()
+        {
+            var text = new StringBuilder();
+            text.Append("; Written by Command Center: keys that Generals Online adds by itself, moved to other keys.\r\n");
+            text.Append("; Only Generals Online reads this folder. Without this file the game uses its own keys.\r\n");
+            foreach (var k in GameKeys.Where(k => k.IsBuiltIn && k.CanChange && k.Changed))
+            {
+                // The parser knows SHELL, GAME and OBSERVER; the game's own EVERYWHERE is all three
+                string usable = k.UseableIn == "EVERYWHERE" ? "SHELL GAME OBSERVER" : k.UseableIn;
+                AppendBlock(text, k.Command, k.Key, "DOWN", k.Modifiers, usable, k.BuiltInCategory);
+                if (EndOf(k.Command) is { } end)
+                    AppendBlock(text, end, k.Key, "UP", k.Modifiers, usable, k.BuiltInCategory);
+            }
+            return text.ToString();
+        }
+
+        private static void AppendBlock(StringBuilder text, string command, string key, string transition, string modifiers, string usable, string category) =>
+            text.Append("\r\nCommandMap ").Append(command).Append("\r\n")
+                .Append("  Key = ").Append(key).Append("\r\n")
+                .Append("  Transition = ").Append(transition).Append("\r\n")
+                .Append("  Modifiers = ").Append(modifiers).Append("\r\n")
+                .Append("  UseableIn = ").Append(usable).Append("\r\n")
+                .Append("  Category = ").Append(category).Append("\r\n")
+                .Append("End\r\n");
 
         // "SAVE_VIEW5" -> "Save view 5", used when the game has no display text for a command
         private static string Readable(string command)
