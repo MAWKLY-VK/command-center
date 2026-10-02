@@ -52,7 +52,7 @@ The game folder is found automatically (current folder, the program's folder, th
 | --- | --- |
 | `--game <folder>` | Use this game folder |
 | `--library-folder <folder>` | Use a local folder of maps as the map library |
-| `--user-data <folder>` | Use this folder instead of `DocumentsCommand and Conquer Generals Zero Hour Data` (for testing) |
+| `--user-data <folder>` | Use this folder instead of `Documents\Command and Conquer Generals Zero Hour Data` (for testing) |
 | `--capture <folder> --size 900x480 --pages home,tools:maps:library,options:launcher` | Save screenshots of pages without showing the window |
 | `--samples` | Add sample health problems to review the layout (their fixes do nothing) |
 | `--update-url <url or file>` | Read the update manifest (`update.json`) from here instead of the latest GitHub release; a local file works for testing |
