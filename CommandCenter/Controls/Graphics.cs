@@ -29,11 +29,27 @@ namespace CommandCenter.Controls
             SnapsToDevicePixels = false;
         }
 
+        // Arrows that point along the reading direction turn round in a right-to-left window; all other icons keep their drawing
+        private static HashSet<Geometry>? _directional;
+
+        private static bool IsDirectional(Geometry data)
+        {
+            _directional ??= new[] { "I.back", "I.chev", "I.undo" }
+                .Select(key => Application.Current?.TryFindResource(key) as Geometry)
+                .OfType<Geometry>()
+                .ToHashSet();
+            return _directional.Contains(data);
+        }
+
         protected override void OnRender(DrawingContext dc)
         {
             if (Data == null)
                 return;
-            double scale = Math.Min(ActualWidth, ActualHeight) / 24.0;
+            double size = Math.Min(ActualWidth, ActualHeight);
+            bool unmirror = FlowDirection == FlowDirection.RightToLeft && !IsDirectional(Data);
+            if (unmirror)
+                dc.PushTransform(Rtl.Unmirror(size));
+            double scale = size / 24.0;
             dc.PushTransform(new ScaleTransform(scale, scale));
             if (Filled)
             {
@@ -45,7 +61,16 @@ namespace CommandCenter.Controls
                 dc.DrawGeometry(null, pen, Data);
             }
             dc.Pop();
+            if (unmirror)
+                dc.Pop();
         }
+    }
+
+    // In a right-to-left window everything below the window is drawn mirrored. Drawings that must keep
+    // their orientation (icons, ticks, Latin glyph runs) push this transform first to turn it back.
+    public static class Rtl
+    {
+        public static Transform Unmirror(double width) => new MatrixTransform(-1, 0, 0, 1, width, 0);
     }
 
     public enum Mark { None, Ok, Warn, Danger, Info, Changed }
@@ -91,6 +116,10 @@ namespace CommandCenter.Controls
             var fill = BrushFor(Mark);
             double c = s / 2;
             var ink = new Pen(Ink, Math.Max(1.4, s * 0.13)) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round, LineJoin = PenLineJoin.Round };
+            // A tick stays a tick in a right-to-left window
+            bool unmirror = FlowDirection == FlowDirection.RightToLeft;
+            if (unmirror)
+                dc.PushTransform(Rtl.Unmirror(s));
 
             switch (Mark)
             {
@@ -117,6 +146,8 @@ namespace CommandCenter.Controls
                     dc.DrawGeometry(fill, null, Geometry.Parse(F("M{0},{1} L{2},{3} L{4},{5} L{6},{7} Z", c, s * .1, s * .9, c, c, s * .9, s * .1, c)));
                     break;
             }
+            if (unmirror)
+                dc.Pop();
         }
 
         private static string F(string format, params double[] values) =>
@@ -209,7 +240,19 @@ namespace CommandCenter.Controls
 
         private static readonly FontFamily Family = new("Bahnschrift");
 
-        private string Shown => Upper ? (Text ?? "").ToUpperInvariant() : Text ?? "";
+        // Bahnschrift has no Arabic letters; Segoe UI is the Windows font that has them
+        private static readonly FontFamily ShapedFamily = new("Bahnschrift, Segoe UI");
+
+        // Arabic letters look smaller than Latin capitals of the same size, most of all in the tiny section labels
+        private double ArabicScale => FontSize <= 13 ? 1.2 : 1.12;
+
+        // Right-to-left scripts (Hebrew, Arabic and their presentation forms)
+        public static bool HasRtl(string text) => text.Any(c => c is >= '\u0590' and <= '\u08FF' or >= '\uFB1D' and <= '\uFDFF' or >= '\uFE70' and <= '\uFEFF');
+
+        private bool Shaped => HasRtl(Text ?? "");
+
+        // Arabic has no capitals, and upper-casing the Latin words inside an Arabic phrase would look out of place
+        private string Shown => Upper && !Shaped ? (Text ?? "").ToUpperInvariant() : Text ?? "";
 
         private GlyphTypeface? Glyphs()
         {
@@ -217,11 +260,12 @@ namespace CommandCenter.Controls
             return typeface.TryGetGlyphTypeface(out var glyphs) ? glyphs : null;
         }
 
+        // The tracked glyph run, or null when the text needs WPF's own layout (Arabic, or a character Bahnschrift lacks)
         private (ushort[] Indices, double[] Advances, double Width)? Layout()
         {
-            string text = Shown;
+            string text = Visual(Shown);
             var glyphs = Glyphs();
-            if (glyphs == null || text.Length == 0)
+            if (glyphs == null || text.Length == 0 || Shaped)
                 return null;
             var indices = new ushort[text.Length];
             var advances = new double[text.Length];
@@ -237,34 +281,93 @@ namespace CommandCenter.Controls
             return (indices, advances, width);
         }
 
+        // A glyph run is always drawn left to right. In a right-to-left paragraph the spaces and punctuation at either
+        // end of a Latin phrase belong on the other side, as WPF's own text would place them ("/ Maps" shows as "Maps /").
+        private string Visual(string text)
+        {
+            // Text from Loc.Ltr is meant to stay left to right as a whole
+            bool embedded = text.Length > 1 && text[0] == Services.Loc.LtrMark && text[^1] == Services.Loc.LtrMark;
+            if (text.Any(IsBidiControl))
+                text = new string(text.Where(c => !IsBidiControl(c)).ToArray());
+            if (FlowDirection != FlowDirection.RightToLeft || embedded)
+                return text;
+            int start = 0, end = text.Length;
+            while (start < end && !char.IsLetterOrDigit(text[start]))
+                start++;
+            while (end > start && !char.IsLetterOrDigit(text[end - 1]))
+                end--;
+            if (start == end)
+                return Mirrored(text);
+            return Mirrored(text[end..]) + text[start..end] + Mirrored(text[..start]);
+        }
+
+        // Direction marks, embeddings and isolates: layout hints with no glyph of their own
+        private static bool IsBidiControl(char c) => c is '\u200E' or '\u200F' or >= '\u202A' and <= '\u202E' or >= '\u2066' and <= '\u2069';
+
+        private static string Mirrored(string part)
+        {
+            var chars = part.ToCharArray();
+            Array.Reverse(chars);
+            for (int i = 0; i < chars.Length; i++)
+                chars[i] = chars[i] switch { '(' => ')', ')' => '(', '[' => ']', ']' => '[', '<' => '>', '>' => '<', '{' => '}', '}' => '{', _ => chars[i] };
+            return new string(chars);
+        }
+
         protected override Size MeasureOverride(Size availableSize)
         {
             var glyphs = Glyphs();
-            double height = glyphs != null ? glyphs.Height * FontSize : FontSize * 1.2;
             var layout = Layout();
-            if (layout != null)
-                return new Size(Math.Ceiling(layout.Value.Width), Math.Ceiling(height));
-            return new Size(Math.Ceiling(Fallback().WidthIncludingTrailingWhitespace), Math.Ceiling(height));
+            if (layout != null && glyphs != null)
+                return new Size(Math.Ceiling(layout.Value.Width), Math.Ceiling(glyphs.Height * FontSize));
+            if (Shown.Length == 0)
+                return new Size(0, Math.Ceiling(glyphs != null ? glyphs.Height * FontSize : FontSize * 1.2));
+            var text = Formatted();
+            return new Size(Math.Ceiling(text.WidthIncludingTrailingWhitespace), Math.Ceiling(text.Height));
         }
 
-        private FormattedText Fallback() => new(Shown, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
-            new Typeface(Family, FontStyles.Normal, FontWeight, FontStretches.Condensed), FontSize, Foreground,
-            VisualTreeHelper.GetDpi(this).PixelsPerDip);
+        // Shaped text without tracking, laid out like a TextBlock in the element's own flow direction
+        private FormattedText Formatted()
+        {
+            return new FormattedText(Shown, CultureInfo.CurrentUICulture, FlowDirection,
+                new Typeface(ShapedFamily, FontStyles.Normal, FontWeight, FontStretches.Condensed), FontSize * (Shaped ? ArabicScale : 1), Foreground,
+                VisualTreeHelper.GetDpi(this).PixelsPerDip);
+        }
 
         protected override void OnRender(DrawingContext dc)
         {
+            if (Shown.Length == 0)
+                return;
             var layout = Layout();
             var glyphs = Glyphs();
+
+            // In a right-to-left window draw unmirrored, so letters keep their shape and a line starts at the right edge
+            bool rtl = FlowDirection == FlowDirection.RightToLeft;
+            if (rtl)
+                dc.PushTransform(Rtl.Unmirror(RenderSize.Width));
+
             if (layout == null || glyphs == null)
             {
-                if (Shown.Length > 0)
-                    dc.DrawText(Fallback(), new Point(0, 0));
-                return;
+                // Trimmed with an ellipsis only when the element really got less room than the text needs;
+                // a right-to-left paragraph lines up against the right end of MaxTextWidth
+                var text = Formatted();
+                double box = Math.Max(1, RenderSize.Width), natural = text.WidthIncludingTrailingWhitespace;
+                double max = box >= Math.Floor(natural) ? Math.Max(box, natural) + 1 : box;
+                text.MaxTextWidth = max;
+                text.MaxLineCount = 1;
+                text.Trimming = TextTrimming.CharacterEllipsis;
+                dc.DrawText(text, new Point(rtl ? box - max : 0, 0));
             }
-            float dip = (float)VisualTreeHelper.GetDpi(this).PixelsPerDip;
-            var run = new GlyphRun(glyphs, 0, false, FontSize, dip, layout.Value.Indices, new Point(0, glyphs.Baseline * FontSize),
-                layout.Value.Advances, null, null, null, null, null, null);
-            dc.DrawGlyphRun(Foreground, run);
+            else
+            {
+                float dip = (float)VisualTreeHelper.GetDpi(this).PixelsPerDip;
+                double x = rtl ? RenderSize.Width - layout.Value.Width : 0;
+                var run = new GlyphRun(glyphs, 0, false, FontSize, dip, layout.Value.Indices, new Point(x, glyphs.Baseline * FontSize),
+                    layout.Value.Advances, null, null, null, null, null, null);
+                dc.DrawGlyphRun(Foreground, run);
+            }
+
+            if (rtl)
+                dc.Pop();
         }
     }
 }

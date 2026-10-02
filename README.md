@@ -52,6 +52,7 @@ The game folder is found automatically (current folder, the program's folder, th
 | `--capture <folder> --size 1600x1000 --pages home,maps,hotkeys:keys` | Save screenshots of pages without showing the window |
 | `--samples` | Add sample health problems to review the layout (their fixes do nothing) |
 | `--update-url <url or file>` | Read the update manifest (`update.json`) from here instead of the latest GitHub release; a local file works for testing |
+| `--lang ar` / `--lang en` | Show Command Center in Arabic (right to left) or English for this run only; the saved language is not changed. With `--capture`, untranslated strings are listed in `missing-ar.txt` |
 
 Command Center keeps its own files in `Documents\Command and Conquer Generals Zero Hour Data\CommandCenter`
 (backups, quarantine, starred replays, map cache, settings).

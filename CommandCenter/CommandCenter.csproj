@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <Resource Include="Assets\**\*.jpg" />
+    <EmbeddedResource Include="Localization\*.json" LogicalName="Localization.%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

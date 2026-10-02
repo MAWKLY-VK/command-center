@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="clr-namespace:CommandCenter.Controls"
         xmlns:pages="clr-namespace:CommandCenter.Pages"
+        xmlns:l="clr-namespace:CommandCenter.Services"
         Title="Command Center" Width="1440" Height="900" MinWidth="1180" MinHeight="700"
         WindowStartupLocation="CenterScreen" Background="{StaticResource Bg0}"
         FontFamily="{StaticResource UiFont}" FontSize="14" Foreground="{StaticResource Text}"
@@ -84,14 +85,14 @@
                     </StackPanel>
 
                     <StackPanel DockPanel.Dock="Top" Margin="0,22,0,0">
-                        <RadioButton x:Name="NavHome" Style="{StaticResource NavItem}" Content="Home" ui:Ui.Icon="{StaticResource I.home}" Tag="home" Checked="Nav_Checked"/>
-                        <ui:TrackedText Style="{StaticResource Lbl}" Text="Library" Margin="20,18,0,6"/>
-                        <RadioButton x:Name="NavMaps" Style="{StaticResource NavItem}" Content="Maps" ui:Ui.Icon="{StaticResource I.map}" Tag="maps" Checked="Nav_Checked"/>
-                        <RadioButton x:Name="NavReplays" Style="{StaticResource NavItem}" Content="Replays" ui:Ui.Icon="{StaticResource I.replay}" Tag="replays" Checked="Nav_Checked"/>
-                        <ui:TrackedText Style="{StaticResource Lbl}" Text="Tools" Margin="20,18,0,6"/>
-                        <RadioButton x:Name="NavHotkeys" Style="{StaticResource NavItem}" Content="Hotkeys" ui:Ui.Icon="{StaticResource I.keys}" Tag="hotkeys" Checked="Nav_Checked"/>
-                        <RadioButton x:Name="NavHealth" Style="{StaticResource NavItem}" Content="Health" ui:Ui.Icon="{StaticResource I.shield}" Tag="health" Checked="Nav_Checked"/>
-                        <RadioButton x:Name="NavAddons" Style="{StaticResource NavItem}" Content="Add-ons" ui:Ui.Icon="{StaticResource I.cube}" Tag="addons" Checked="Nav_Checked"/>
+                        <RadioButton x:Name="NavHome" Style="{StaticResource NavItem}" Content="{l:T Home}" ui:Ui.Icon="{StaticResource I.home}" Tag="home" Checked="Nav_Checked"/>
+                        <ui:TrackedText Style="{StaticResource Lbl}" Text="{l:T Library}" Margin="20,18,0,6"/>
+                        <RadioButton x:Name="NavMaps" Style="{StaticResource NavItem}" Content="{l:T Maps}" ui:Ui.Icon="{StaticResource I.map}" Tag="maps" Checked="Nav_Checked"/>
+                        <RadioButton x:Name="NavReplays" Style="{StaticResource NavItem}" Content="{l:T Replays}" ui:Ui.Icon="{StaticResource I.replay}" Tag="replays" Checked="Nav_Checked"/>
+                        <ui:TrackedText Style="{StaticResource Lbl}" Text="{l:T Tools}" Margin="20,18,0,6"/>
+                        <RadioButton x:Name="NavHotkeys" Style="{StaticResource NavItem}" Content="{l:T Hotkeys}" ui:Ui.Icon="{StaticResource I.keys}" Tag="hotkeys" Checked="Nav_Checked"/>
+                        <RadioButton x:Name="NavHealth" Style="{StaticResource NavItem}" Content="{l:T Health}" ui:Ui.Icon="{StaticResource I.shield}" Tag="health" Checked="Nav_Checked"/>
+                        <RadioButton x:Name="NavAddons" Style="{StaticResource NavItem}" Content="{l:T Add-ons}" ui:Ui.Icon="{StaticResource I.cube}" Tag="addons" Checked="Nav_Checked"/>
                     </StackPanel>
 
                     <StackPanel x:Name="SideFooter" DockPanel.Dock="Bottom" Margin="16,0,16,16">
@@ -122,7 +123,7 @@
                         </DockPanel>
                     </StackPanel>
 
-                    <RadioButton x:Name="NavSettings" DockPanel.Dock="Bottom" Style="{StaticResource NavItem}" Content="Settings" ui:Ui.Icon="{StaticResource I.gear}" Tag="settings" Checked="Nav_Checked" Margin="0,0,0,14"/>
+                    <RadioButton x:Name="NavSettings" DockPanel.Dock="Bottom" Style="{StaticResource NavItem}" Content="{l:T Settings}" ui:Ui.Icon="{StaticResource I.gear}" Tag="settings" Checked="Nav_Checked" Margin="0,0,0,14"/>
                 </DockPanel>
             </Border>
 

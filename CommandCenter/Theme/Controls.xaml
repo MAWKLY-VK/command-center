@@ -13,6 +13,11 @@
         </Setter>
     </Style>
 
+    <!-- ── Pictures ── map previews, unit icons, control bars and Steam art keep their orientation in a right-to-left window -->
+    <Style TargetType="Image">
+        <Setter Property="FlowDirection" Value="LeftToRight"/>
+    </Style>
+
     <!-- ── Text ── -->
     <Style x:Key="Lbl" TargetType="ui:TrackedText">
         <Setter Property="FontSize" Value="11.5"/>
