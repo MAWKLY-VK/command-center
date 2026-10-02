@@ -6,13 +6,14 @@ using System.Text.RegularExpressions;
 
 namespace CommandCenter.Services
 {
-    public enum BarKind { Original, Pro, Observer }
+    // Other: control bar archives that are not offered here (added by hand); choosing a bar moves them aside
+    public enum BarKind { Original, Pro, Other }
 
     public sealed record BarPackage(BarKind Kind, string Resolution, string Url, string Sha256, long Size);
 
-    // Control bar add-ons from TheSuperHackers/GeneralsControlBar (MIT). Each download is checked against a
-    // pinned SHA-256 and only the .big archives are taken from it; scripts in the zip are never extracted.
-    // They change the interface only, so they do not cause mismatches.
+    // Control Bar Pro from TheSuperHackers/GeneralsControlBar (MIT), the only bar offered besides the game's own.
+    // Each download is checked against a pinned SHA-256 and only the .big archives are taken from it; scripts in
+    // the zip are never extracted. It changes the interface only, so it does not cause mismatches.
     public static class AddonService
     {
         private const string Repo = "https://github.com/TheSuperHackers/GeneralsControlBar/raw/main/";
@@ -26,7 +27,6 @@ namespace CommandCenter.Services
             new(BarKind.Pro, "1920x1080", Repo + "ControlBarProZH/Release/ControlBarProZH_v1.2_1920x1080.zip", "5B987CB864AAF1C55AC8F4CF8DBF28A9473E1233BBE34F05316BFEE5B7EB0836", 1221633),
             new(BarKind.Pro, "2560x1440", Repo + "ControlBarProZH/Release/ControlBarProZH_v1.2_2560x1440.zip", "E5021B5E76A7646AE027D3104B8DA5E2FCB104007FB82213D8A84205A2E1EDE9", 4984326),
             new(BarKind.Pro, "3840x2160", Repo + "ControlBarProZH/Release/ControlBarProZH_v1.2_3840x2160.zip", "66AFBD045A09B514578BC696C670E6B58654DB1740C44B9221DB191E1273C5E7", 4984359),
-            new(BarKind.Observer, "", Repo + "ControlBarObsZH/Release/ControlBarObsEnglishZH_v1.5.zip", "86A64E4E09F565842879E8B4119A0C9020F35B357A8FF716BE5DD0378AD2914C", 467503),
         };
 
         // Archives in the game folder that belong to a control bar add-on
@@ -38,15 +38,14 @@ namespace CommandCenter.Services
         public static (BarKind Kind, string? Resolution) Installed()
         {
             var names = InstalledFiles().Select(Path.GetFileName).OfType<string>().ToList();
-            if (names.Any(n => n.Contains("ControlBarObs", StringComparison.OrdinalIgnoreCase)))
-                return (BarKind.Observer, null);
-            if (names.Any(n => n.Contains("ControlBarPro", StringComparison.OrdinalIgnoreCase)))
-            {
-                // "340_ControlBarPro<height>ZH.big" sets the resolution; the Art and Data archives are shared between sizes
-                var height = names.Select(n => Regex.Match(n, @"ControlBarPro(\d+)ZH\.big$", RegexOptions.IgnoreCase)).FirstOrDefault(m => m.Success)?.Groups[1].Value;
-                return (BarKind.Pro, height switch { "720" => "1280x720", "900" => "1600x900", "1080" => "1920x1080", "1440" => "2560x1440", "2160" => "3840x2160", _ => null });
-            }
-            return (BarKind.Original, null);
+            if (names.Count == 0)
+                return (BarKind.Original, null);
+            if (names.Any(n => !n.Contains("ControlBarPro", StringComparison.OrdinalIgnoreCase)))
+                return (BarKind.Other, null);
+
+            // "340_ControlBarPro<height>ZH.big" sets the resolution; the Art and Data archives are shared between sizes
+            var height = names.Select(n => Regex.Match(n, @"ControlBarPro(\d+)ZH\.big$", RegexOptions.IgnoreCase)).FirstOrDefault(m => m.Success)?.Groups[1].Value;
+            return (BarKind.Pro, height switch { "720" => "1280x720", "900" => "1600x900", "1080" => "1920x1080", "1440" => "2560x1440", "2160" => "3840x2160", _ => null });
         }
 
         // The Pro resolution that matches the game's own resolution in Options.ini
@@ -103,7 +102,7 @@ namespace CommandCenter.Services
             return BackupService.Load().Skip(before).ToList();
         }
 
-        public static string Views(BarPackage p) => p.Kind == BarKind.Pro ? $"Control Bar Pro {p.Resolution}" : "Observer control bar";
+        public static string Views(BarPackage p) => $"Control Bar Pro {p.Resolution}";
 
         public static void Undo(List<BackupEntry> made)
         {

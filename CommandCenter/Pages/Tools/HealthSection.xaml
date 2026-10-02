@@ -5,9 +5,47 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBlock Text="{l:T HEALTH}" Style="{StaticResource SectionHeaderStyle}" HorizontalAlignment="Left"/>
-        <TextBlock Grid.Row="1" Text="Being rebuilt." Style="{StaticResource HintStyle}"/>
+
+        <DockPanel Grid.Row="0" LastChildFill="False">
+            <TextBlock Text="{l:T HEALTH}" Style="{StaticResource SectionHeaderStyle}" DockPanel.Dock="Left"/>
+            <Button x:Name="FixAllButton" DockPanel.Dock="Right" Style="{StaticResource GoldButtonStyle}" Margin="10,0,0,0"
+                    Visibility="Collapsed" Click="FixAll_Click"/>
+            <Button x:Name="CheckButton" DockPanel.Dock="Right" Content="{l:T CHECK AGAIN}" Style="{StaticResource DiagButtonStyle}"
+                    Click="Check_Click"/>
+        </DockPanel>
+
+        <TextBlock Grid.Row="1" x:Name="Summary" Style="{StaticResource HintStyle}" Margin="0,8,0,10"/>
+
+        <DockPanel Grid.Row="2" Margin="0,0,0,8" LastChildFill="False">
+            <RadioButton x:Name="TabChecks" GroupName="HealthViews" Style="{StaticResource SubTabStyle}" IsChecked="True"
+                         DockPanel.Dock="Left" Checked="View_Checked"/>
+            <RadioButton x:Name="TabHistory" GroupName="HealthViews" Style="{StaticResource SubTabStyle}"
+                         DockPanel.Dock="Left" Checked="View_Checked"/>
+            <TextBlock x:Name="CheckedAt" DockPanel.Dock="Right" Foreground="#8888AA" FontSize="12" VerticalAlignment="Center"/>
+        </DockPanel>
+
+        <Border Grid.Row="3" Style="{StaticResource ResultBoxStyle}" Padding="14,12,6,12">
+            <Grid>
+                <ScrollViewer x:Name="ChecksView" VerticalScrollBarVisibility="Auto" Focusable="False">
+                    <StackPanel x:Name="ChecksList" Margin="0,0,8,0"/>
+                </ScrollViewer>
+                <ScrollViewer x:Name="HistoryView" VerticalScrollBarVisibility="Auto" Focusable="False" Visibility="Collapsed">
+                    <StackPanel x:Name="HistoryList" Margin="0,0,8,0"/>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <DockPanel Grid.Row="4" Margin="0,10,0,0">
+            <Button DockPanel.Dock="Right" Content="{l:T COPY SUPPORT REPORT}" Style="{StaticResource DiagButtonStyle}" Margin="10,0,0,0"
+                    Click="Report_Click"/>
+            <Button x:Name="BackupsButton" DockPanel.Dock="Right" Content="{l:T OPEN BACKUPS}" Style="{StaticResource DiagButtonStyle}"
+                    Margin="10,0,0,0" Visibility="Collapsed" Click="Backups_Click"/>
+            <TextBlock x:Name="FooterHint" Foreground="#8888AA" FontSize="11.5" TextWrapping="Wrap" VerticalAlignment="Center"/>
+        </DockPanel>
     </Grid>
 </UserControl>
