@@ -36,36 +36,12 @@
                     <StackPanel>
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="1.9*"/>
-                                <ColumnDefinition Width="14"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <Button x:Name="PlayOnline" ui:Ui.Variant="Primary" ui:Ui.Icon="{StaticResource I.play}" ui:Ui.IconFilled="True" ui:Ui.Cut="14"
                                     Height="88" FontSize="32" Content="Play online" Click="PlayOnline_Click" ToolTip="Start Generals Online (Ctrl+Enter)"/>
-                            <Button x:Name="PlayOffline" Grid.Column="2" Height="88" Click="PlayOffline_Click" ui:Ui.Cut="12"
-                                    ToolTip="Start the original Zero Hour without Generals Online">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Grid Background="Transparent">
-                                            <ui:Chamfer x:Name="plate" Cut="12" Background="{StaticResource SteelFill}" BorderBrush="#454C50" BorderThickness="1"/>
-                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                                <ui:TrackedText Text="Play offline" FontSize="16" FontWeight="Bold" Tracking="0.1" Foreground="{StaticResource Steel}" HorizontalAlignment="Center"/>
-                                                <TextBlock Text="Original game · Skirmish · LAN" FontSize="12" Foreground="{StaticResource Text3}" Margin="8,5,8,0" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
-                                            </StackPanel>
-                                        </Grid>
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="plate" Property="Background" Value="{StaticResource SteelFillHover}"/>
-                                            </Trigger>
-                                            <Trigger Property="IsEnabled" Value="False">
-                                                <Setter Property="Opacity" Value="0.42"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
-                            <StackPanel x:Name="ChannelBox" Grid.Column="3" Margin="20,0,0,0" VerticalAlignment="Center">
+                            <StackPanel x:Name="ChannelBox" Grid.Column="1" Margin="24,0,0,0" VerticalAlignment="Center">
                                 <ui:TrackedText Style="{StaticResource Lbl}" Text="Client channel"/>
                                 <Border Style="{StaticResource SegBox}" Margin="0,9,0,0">
                                     <StackPanel Orientation="Horizontal">

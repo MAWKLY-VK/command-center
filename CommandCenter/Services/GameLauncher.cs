@@ -9,10 +9,8 @@ namespace CommandCenter.Services
     public static class GameLauncher
     {
         public const string TestExe = "GeneralsOnlineZH_TestEnvironment.exe";
-        public const string OriginalExe = "generals.exe";
 
         public static bool HasTestClient => File.Exists(Path.Combine(GamePaths.Game, TestExe));
-        public static bool HasOriginalGame => File.Exists(Path.Combine(GamePaths.Game, OriginalExe));
 
         // Mirrors the official launcher: the live client starts directly; the test client goes through the
         // Easy Anti-Cheat launcher when that anti-cheat is selected in settings.json.
@@ -31,9 +29,6 @@ namespace CommandCenter.Services
         }
 
         public static void PlayOnline(Channel channel) => Start(ExecutableFor(channel), Arguments());
-
-        // The original Zero Hour (no Generals Online) for skirmish, campaign and LAN
-        public static void PlayOffline() => Start(OriginalExe, "");
 
         private static void Start(string exe, string arguments)
         {

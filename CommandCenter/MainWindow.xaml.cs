@@ -201,9 +201,9 @@ namespace CommandCenter
 
         public Channel Channel { get; set; } = LauncherJson.Load().PreferLive ? Channel.Live : Channel.Test;
 
-        private void SidePlay_Click(object sender, RoutedEventArgs e) => _ = PlayAsync(online: true);
+        private void SidePlay_Click(object sender, RoutedEventArgs e) => _ = PlayAsync();
 
-        public async Task PlayAsync(bool online)
+        public async Task PlayAsync()
         {
             if (!GamePaths.GameFound)
             {
@@ -217,10 +217,7 @@ namespace CommandCenter
             }
             try
             {
-                if (online)
-                    GameLauncher.PlayOnline(Channel);
-                else
-                    GameLauncher.PlayOffline();
+                GameLauncher.PlayOnline(Channel);
             }
             catch (Exception ex)
             {

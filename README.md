@@ -11,7 +11,7 @@ game's own rules, control bar add-ons and the settings the in-game menu cannot r
 
 | Page | What it does |
 | --- | --- |
-| Home | Play online (Live / Test channel), play the original game offline, server numbers, game health summary, last match, recent changes with Undo |
+| Home | Play online (Live / Test channel), server numbers, game health summary, last match, recent changes with Undo |
 | Maps | Library and installed maps with previews, player counts and start positions; install by click or by dropping a `.zip` / folder |
 | Replays | Every match from `Replays` and `ArchivedReplays` with map, players, armies and teams; watch, keep, rename, star, copy, delete with Undo; turns the game's own *ArchiveReplays* option on or off |
 | Hotkeys | Unit and building buttons for all 12 armies drawn like the in-game bar, plus every game key; checks duplicates, clashes with game keys and built-in keys before saving |
@@ -50,6 +50,11 @@ The game folder is found automatically (current folder, the program's folder, th
 
 Command Center keeps its own files in `Documents\Command and Conquer Generals Zero Hour Data\CommandCenter`
 (backups, quarantine, starred replays, map cache, settings).
+
+## License
+
+Command Center is free software under the [GNU General Public License v3.0](LICENSE).
+Copyright (C) 2026 Command Center contributors.
 
 ## Credits
 

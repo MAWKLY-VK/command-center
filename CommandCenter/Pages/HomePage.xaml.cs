@@ -25,7 +25,6 @@ namespace CommandCenter.Pages
             bool hasTest = GameLauncher.HasTestClient;
             ChannelBox.Visibility = hasTest ? Visibility.Visible : Visibility.Collapsed;
             (Views.Main.Channel == Channel.Live ? Live : Test).IsChecked = true;
-            PlayOffline.IsEnabled = GameLauncher.HasOriginalGame;
             _loading = false;
 
             ShowChips();
@@ -212,8 +211,7 @@ namespace CommandCenter.Pages
             }
         }
 
-        private void PlayOnline_Click(object sender, RoutedEventArgs e) => _ = Views.Main.PlayAsync(online: true);
-        private void PlayOffline_Click(object sender, RoutedEventArgs e) => _ = Views.Main.PlayAsync(online: false);
+        private void PlayOnline_Click(object sender, RoutedEventArgs e) => _ = Views.Main.PlayAsync();
 
         private void Channel_Checked(object sender, RoutedEventArgs e)
         {
