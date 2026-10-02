@@ -19,7 +19,7 @@ pages with a sidebar.
 | Tools › Map library | The online map library and the installed maps, with previews, player counts and start positions; install by click or by dropping a `.zip` / folder |
 | Tools › Replays | Every match from `Replays` and `ArchivedReplays` with map, players, armies, results and who left when; watch, keep, rename, copy, delete with Undo; turns the game's own *ArchiveReplays* option on or off |
 | Tools › Hotkeys | Unit and building buttons for all 12 armies drawn like the in-game bar, plus the game keys; checks duplicates and clashes before saving |
-| Tools › Add-ons | Control Bar Pro and the Observer bar from TheSuperHackers, checked against pinned SHA-256 hashes; hotkey letters on the button pictures |
+| Tools › Add-ons | Control Bar Pro from TheSuperHackers in five sizes, checked against pinned SHA-256 hashes; hotkey letters on the button pictures |
 | Options | The official launcher's sections (camera, chat, input, graphics, social, network with diagnostics, data packs, plugins) plus Launcher: language, map library source and updates |
 
 ## Ground rules
@@ -69,7 +69,7 @@ Copyright (C) 2026 Command Center contributors.
 ## Credits
 
 - The interface, the Options page and the network diagnostics are based on the [Generals Online Launcher](https://github.com/GeneralsOnlineDevelopmentTeam/Launcher) by the GeneralsOnline Development Team (GPL-3.0).
-- Control Bar Pro and Observer control bar: [TheSuperHackers/GeneralsControlBar](https://github.com/TheSuperHackers/GeneralsControlBar) (MIT).
+- Control Bar Pro: [TheSuperHackers/GeneralsControlBar](https://github.com/TheSuperHackers/GeneralsControlBar) (MIT).
 - Map previews, icons and artwork are read at run time from the player's own game and Steam installation.
 
 Command & Conquer is a trademark of Electronic Arts. This project is not affiliated with Electronic Arts
