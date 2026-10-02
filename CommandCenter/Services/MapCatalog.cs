@@ -108,9 +108,9 @@ namespace CommandCenter.Services
         // ── The game's MapCache.ini ──
         // Keys are the full map path with "_XX" hex escapes, for example "..._5Cmy_20map_5Cmy_20map_2Emap"
 
-        private sealed record GameCacheEntry(int Players, List<Point> Starts);
+        public sealed record GameCacheEntry(int Players, List<Point> Starts);
 
-        private static Dictionary<string, GameCacheEntry> ReadMapCache(string path)
+        public static Dictionary<string, GameCacheEntry> ReadMapCache(string path)
         {
             var result = new Dictionary<string, GameCacheEntry>();
             if (!File.Exists(path))
