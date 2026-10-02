@@ -1,13 +1,165 @@
 <UserControl x:Class="CommandCenter.Pages.Tools.ReplaysSection"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:l="clr-namespace:CommandCenter.Services">
+             xmlns:l="clr-namespace:CommandCenter.Services"
+             xmlns:t="clr-namespace:CommandCenter.Pages.Tools">
+    <UserControl.Resources>
+        <!-- A row: blue edge and darker blue when selected, like the sidebar tabs -->
+        <Style x:Key="RowStyle" TargetType="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" Background="Transparent" BorderBrush="Transparent" BorderThickness="3,0,0,0"
+                                Padding="11,6,14,6">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#020830"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#040C52"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#2980FF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <DataTemplate x:Key="ReplayTemplate">
+            <StackPanel>
+                <Grid MinHeight="42">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="52"/>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="3*"/>
+                        <ColumnDefinition Width="112"/>
+                        <ColumnDefinition Width="62"/>
+                        <ColumnDefinition Width="84"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Width="40" Height="40" HorizontalAlignment="Left" Background="#00020F" BorderBrush="#2A2A55" BorderThickness="1">
+                        <Image Source="{Binding Preview}" Stretch="UniformToFill" FlowDirection="LeftToRight"
+                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,14,0">
+                        <TextBlock Text="{Binding Map}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Map}"/>
+                        <TextBlock Text="{Binding Sub}" FontSize="11" Foreground="{Binding SubBrush}" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <t:PlayerStrip Grid.Column="2" Players="{Binding Chips}" VerticalAlignment="Center" Margin="0,0,14,0"
+                                   ToolTip="{Binding PlayersTip}"/>
+                    <StackPanel Grid.Column="3" VerticalAlignment="Center" Margin="0,0,10,0">
+                        <TextBlock Text="{Binding Day}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding Time}" FontSize="11" Foreground="#8888AA" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="4" Text="{Binding Length}" FontSize="12" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="5" Text="{Binding ResultText}" Foreground="{Binding ResultBrush}" FontSize="12" FontWeight="SemiBold"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding ResultTip}"/>
+                </Grid>
+                <!-- The selected replay opens up: teams, who left and when, file and actions -->
+                <ContentPresenter x:Name="DetailsHost" Content="{Binding Details}" Margin="52,10,0,4"/>
+            </StackPanel>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Details}" Value="{x:Null}">
+                    <Setter TargetName="DetailsHost" Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </UserControl.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBlock Text="{l:T REPLAYS}" Style="{StaticResource SectionHeaderStyle}" HorizontalAlignment="Left"/>
-        <TextBlock Grid.Row="1" Text="Being rebuilt." Style="{StaticResource HintStyle}"/>
+
+        <!-- Title, search and folder -->
+        <DockPanel LastChildFill="False">
+            <TextBlock Text="{l:T REPLAYS}" Style="{StaticResource SectionHeaderStyle}" DockPanel.Dock="Left"/>
+            <Button DockPanel.Dock="Right" Content="{l:T OPEN FOLDER}" Style="{StaticResource DiagButtonStyle}" Margin="10,0,0,0"
+                    Click="OpenFolder_Click"/>
+            <Grid DockPanel.Dock="Right">
+                <TextBox x:Name="Search" Width="200" Style="{StaticResource TextBoxStyle}" TextChanged="Search_Changed"/>
+                <TextBlock x:Name="SearchHint" Text="{l:T Search map or player}" Foreground="#606080" FontSize="13" Margin="11,0,0,0"
+                           VerticalAlignment="Center" IsHitTestVisible="False"/>
+            </Grid>
+        </DockPanel>
+
+        <!-- The game's own ArchiveReplays option -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,10">
+            <CheckBox x:Name="Archive" Margin="0" VerticalAlignment="Center" Click="Archive_Click"
+                      Content="{l:T Archive every match}" ToolTip="{l:T Sets ArchiveReplays in Options.ini}"/>
+            <TextBlock Text="{l:T The game then keeps a copy of each match in ArchivedReplays, so the next one does not replace it.}"
+                       Foreground="#8888AA" FontSize="12" Margin="12,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+        </StackPanel>
+
+        <!-- The list -->
+        <Border Grid.Row="2" Style="{StaticResource ResultBoxStyle}" Padding="0,8,0,4">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid x:Name="Header" Margin="14,0,14,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="52"/>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="3*"/>
+                        <ColumnDefinition Width="112"/>
+                        <ColumnDefinition Width="62"/>
+                        <ColumnDefinition Width="84"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="1" Text="{l:T MAP}" Style="{StaticResource GroupLabelStyle}"/>
+                    <TextBlock Grid.Column="2" Text="{l:T PLAYERS}" Style="{StaticResource GroupLabelStyle}"/>
+                    <TextBlock Grid.Column="3" Text="{l:T DATE}" Style="{StaticResource GroupLabelStyle}"/>
+                    <TextBlock Grid.Column="4" Text="{l:T LENGTH}" Style="{StaticResource GroupLabelStyle}"/>
+                    <TextBlock Grid.Column="5" Text="{l:T RESULT}" Style="{StaticResource GroupLabelStyle}"/>
+                </Grid>
+                <ListBox x:Name="List" Grid.Row="1" Background="Transparent" BorderThickness="0" Padding="0"
+                         ItemContainerStyle="{StaticResource RowStyle}" ItemTemplate="{StaticResource ReplayTemplate}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True"
+                         VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                         VirtualizingPanel.ScrollUnit="Pixel" SelectionMode="Single"
+                         SelectionChanged="List_SelectionChanged" MouseDoubleClick="List_DoubleClick" KeyDown="List_KeyDown"
+                         ScrollViewer.ScrollChanged="List_ScrollChanged">
+                    <ListBox.Template>
+                        <ControlTemplate TargetType="ListBox">
+                            <ScrollViewer Focusable="False" CanContentScroll="True" VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled">
+                                <ItemsPresenter/>
+                            </ScrollViewer>
+                        </ControlTemplate>
+                    </ListBox.Template>
+                </ListBox>
+                <StackPanel x:Name="Empty" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="420"
+                            Visibility="Collapsed">
+                    <TextBlock x:Name="EmptyTitle" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center"
+                               TextWrapping="Wrap"/>
+                    <TextBlock x:Name="EmptyText" Style="{StaticResource HintStyle}" HorizontalAlignment="Center" TextAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Count and the main actions for the selected replay -->
+        <Grid Grid.Row="3" Margin="0,10,0,0" MinHeight="34">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="Status" Foreground="#8888AA" FontSize="12" VerticalAlignment="Center" Margin="0,0,14,0"
+                       TextTrimming="CharacterEllipsis"/>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button x:Name="KeepButton" Content="{l:T KEEP THIS MATCH}" Style="{StaticResource DiagButtonStyle}" Margin="0,0,10,0"
+                        Visibility="Collapsed" Click="Keep_Click"
+                        ToolTip="{l:T The game overwrites 00000000.rep after every match; this saves a copy with a readable name}"/>
+                <Button x:Name="WatchButton" Content="{l:T WATCH}" Style="{StaticResource GoldButtonStyle}" IsEnabled="False"
+                        Click="Watch_Click" ToolTip="{l:T Starts the game in replay mode (Enter)}"/>
+            </StackPanel>
+        </Grid>
     </Grid>
 </UserControl>
