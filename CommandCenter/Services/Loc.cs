@@ -78,7 +78,8 @@ namespace CommandCenter.Services
             string english = count == 1 ? one : other;
             if (Language == "en")
                 return Format(english, english, all);
-            if (_table.TryGetValue(other + FormMark + PluralForm(count), out var form) || _table.TryGetValue(other, out form))
+            if (_table.TryGetValue(other + FormMark + PluralForm(count), out var form) || _table.TryGetValue(other + FormMark + "other", out form)
+                || _table.TryGetValue(other, out form))
                 return Format(form, english, all);
             _missing.TryAdd(other, 0);
             return Format(english, english, all);
