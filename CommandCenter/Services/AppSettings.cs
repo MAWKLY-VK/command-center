@@ -14,6 +14,9 @@ namespace CommandCenter.Services
         // "en" or "ar"; empty means English unless Windows is in Arabic
         public string? Language { get; set; }
 
+        // Hotkey letters drawn on the unit and building pictures in the game (IconLettersService)
+        public bool IconLetters { get; set; }
+
         private static string FilePath => Path.Combine(GamePaths.AppData, "settings.json");
         private static AppSettings? _current;
 
