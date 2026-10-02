@@ -195,7 +195,7 @@ namespace CommandCenter.Services
                 {
                     string difficulty = f[0] switch { "E" => "Easy", "M" => "Medium", _ => "Hard" };
                     var (faction, general) = Template(f[2]);
-                    players.Add(new ReplayPlayer($"{difficulty} AI", false, difficulty, faction, general, Int(f[1]), Int(f[4])));
+                    players.Add(new ReplayPlayer($"{difficulty} Army", false, difficulty, faction, general, Int(f[1]), Int(f[4])));
                 }
             }
             return players;
