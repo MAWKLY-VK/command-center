@@ -16,7 +16,7 @@ pages with a sidebar.
 | --- | --- |
 | Home | Server numbers, a line when the health check finds something, Live / Test choice, Play |
 | Tools › Health | Game files, anti-cheat, wrapper and runtime DLLs, rule-changing archives, "Run as administrator" (error 740), compatibility modes, Visual C++, graphics driver, resolution, network; one-click fixes with Undo |
-| Tools › Map library | The online map library and the installed maps, with previews, player counts and start positions; install by click or by dropping a `.zip` / folder |
+| Tools › Map library | The online map library and the installed maps, with previews, player counts and sizes; install by click or by dropping a `.zip` / folder |
 | Tools › Replays | Every match from `Replays` and `ArchivedReplays` with map, players, armies, results and who left when; watch, keep, rename, copy, delete with Undo; turns the game's own *ArchiveReplays* option on or off |
 | Tools › Hotkeys | Unit and building buttons for all 12 armies drawn like the in-game bar, plus the game keys; checks duplicates and clashes before saving |
 | Tools › Add-ons | Control Bar Pro from TheSuperHackers in five sizes, checked against pinned SHA-256 hashes; hotkey letters on the button pictures |
@@ -59,7 +59,7 @@ The game folder is found automatically (current folder, the program's folder, th
 | `--lang ar` / `--lang en` | Show Command Center in Arabic (right to left) or English for this run only; the saved language is not changed. With `--capture`, untranslated strings are listed in `missing-ar.txt` |
 
 Command Center keeps its own files in `Documents\Command and Conquer Generals Zero Hour Data\CommandCenter`
-(backups, quarantine, starred replays, map cache, settings).
+(backups, quarantine, map cache, settings).
 
 ## License
 
