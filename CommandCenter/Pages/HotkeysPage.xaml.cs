@@ -26,12 +26,12 @@ namespace CommandCenter.Pages
         public required string Group { get; init; }
         public string Name => Key.Name;
         public string Shortcut => Key.Shortcut;
-        public string Default => Key.IsBuiltIn ? "Built in · read only" : "Default: " + Key.DefaultShortcut;
-        public Visibility DefaultVisibility => Key.Changed || Key.IsBuiltIn ? Visibility.Visible : Visibility.Collapsed;
+        public string Default => Key.CanChange ? "Default: " + Key.DefaultShortcut : "Built in · read only";
+        public Visibility DefaultVisibility => Key.Changed || !Key.CanChange ? Visibility.Visible : Visibility.Collapsed;
         public Mark Mark { get; set; }
         public string? MarkTip { get; set; }
         public Brush CapBorder => Key.Pending ? Views.Res("Info") : Views.Res("LineHi");
-        public Brush CapText => Key.IsBuiltIn ? Views.Res("Text3") : Views.Res("Text");
+        public Brush CapText => Key.CanChange ? Views.Res("Text") : Views.Res("Text3");
     }
 
     public partial class HotkeysPage : UserControl, IPage
@@ -71,7 +71,8 @@ namespace CommandCenter.Pages
         public string IconKey => "I.keys";
         public FrameworkElement? TopRight => _topRight;
         public FrameworkElement? Footer => _footer;
-        public bool HasPendingChanges => _hk?.HasUnsavedChanges == true;
+        // Only the user's own changes stop the window from closing; the team key repair just waits for the next Save
+        public bool HasPendingChanges => _hk is { DiscardableCount: > 0 };
 
         public void OnShown() => UpdateFooter();
 
@@ -107,9 +108,10 @@ namespace CommandCenter.Pages
             Loading.Visibility = Visibility.Collapsed;
             ButtonsView.Visibility = Visibility.Visible;
             Ui.SetBadge(TabButtons, _hk.ButtonCount.ToString());
-            Ui.SetBadge(TabKeys, _hk.GameKeys.Count.ToString());
+            Ui.SetBadge(TabKeys, _hk.ListedGameKeys.Count().ToString());
             FUsa.IsChecked = true;
             FillGameKeys();
+            UpdateFooter();
         }
 
         // ── Army and menus ──
@@ -191,7 +193,7 @@ namespace CommandCenter.Pages
 
             var image = _hk!.Images.Get(shown.Image);
             grid.Children.Add(new Image { Source = image, Stretch = Stretch.UniformToFill, Opacity = button == null ? 0.45 : 1, Margin = new Thickness(1) });
-            grid.ToolTip = button == null ? $"{shown.Name} · no hotkey" : $"{button.Name} · {_hk.KeyFor(button.Label)}";
+            grid.ToolTip = button == null ? $"{shown.Name} · no hotkey" : $"{button.Name} · {(_hk.KeyFor(button.Label) is var k && k != '\0' ? k.ToString() : "no key")}";
             if (button == null)
                 return grid;
 
@@ -252,7 +254,7 @@ namespace CommandCenter.Pages
                 KeyCap.BorderBrush = (Brush)new BrushConverter().ConvertFrom("#FFDC8F")!;
                 KeyCapText.Foreground = (Brush)new BrushConverter().ConvertFrom("#1D1405")!;
                 ListenTitle.Text = key == '\0' ? "No key" : $"Key {key}";
-                ListenHint.Text = key == def ? "The game's default key." : $"Changed from the default {(def == '\0' ? "(none)" : def.ToString())}.";
+                ListenHint.Text = key == def ? (def == '\0' ? "The game gives this button no key; pick one to add it." : "The game's default key.") : $"Changed from the default {(def == '\0' ? "(none)" : def.ToString())}.";
             }
             ResetBtn.Content = def == '\0' ? "Default" : $"Default ({def})";
             ResetBtn.IsEnabled = key != def;
@@ -377,8 +379,13 @@ namespace CommandCenter.Pages
                     KHint.Text = "The game cannot use that key. Try a letter, number, F-key or numpad key.";
                     return;
                 }
+                if (HotkeyService.CannotUse(_gameKey, name) is { } reason)
+                {
+                    KHint.Text = reason;
+                    return;
+                }
                 var mods = Keyboard.Modifiers;
-                _hk.SetGameKey(_gameKey, name, HotkeyService.ModifiersName(mods.HasFlag(ModifierKeys.Control), mods.HasFlag(ModifierKeys.Alt), mods.HasFlag(ModifierKeys.Shift)));
+                _hk.SetGameKey(_gameKey, name,HotkeyService.ModifiersName(mods.HasFlag(ModifierKeys.Control), mods.HasFlag(ModifierKeys.Alt), mods.HasFlag(ModifierKeys.Shift)));
                 _keyListening = false;
                 FillGameKeys(_gameKey);
                 UpdateFooter();
@@ -394,7 +401,7 @@ namespace CommandCenter.Pages
             var dupMenus = _army.Menus.Where(m => m.Buttons.Any(b => _hk.WorstIssue(m, b) == IssueLevel.Error)).ToList();
             var shared = _army.Menus.SelectMany(m => m.Buttons).Where(b => _hk.SharedGameKey(b) != null)
                 .GroupBy(b => _hk.KeyFor(b.Label)).ToList();
-            var badGameKeys = _hk.GameKeys.Where(k => _hk.GameKeyIssues(k).Any(i => i.Level == IssueLevel.Error)).ToList();
+            var badGameKeys = _hk.ListedGameKeys.Where(k => _hk.GameKeyIssues(k).Any(i => i.Level == IssueLevel.Error)).ToList();
 
             Rules.Children.Add(RuleRow(dupMenus.Count == 0 ? Mark.Ok : Mark.Danger,
                 dupMenus.Count == 0 ? "No key twice inside a menu" : $"{dupMenus.Count} {(dupMenus.Count == 1 ? "menu has" : "menus have")} a key twice",
@@ -404,8 +411,11 @@ namespace CommandCenter.Pages
                 shared.Count == 0 ? "Pressing a key does one thing" : string.Join(" · ", shared.Take(3).Select(g => $"{g.Key} = {_hk.PlainGlobalKey(g.Key)!.Name}"))));
             Rules.Children.Add(RuleRow(badGameKeys.Count == 0 ? Mark.Ok : Mark.Danger,
                 badGameKeys.Count == 0 ? "Game keys are unique" : $"{badGameKeys.Count} game keys clash",
-                badGameKeys.Count == 0 ? $"{_hk.GameKeys.Count(k => !k.IsBuiltIn)} commands, no shared combination" : string.Join(", ", badGameKeys.Take(3).Select(k => k.Name))));
-            Rules.Children.Add(RuleRow(Mark.Ok, "Built-in keys protected", "Ctrl + I idle worker, F12 screenshots, camera tilt and others"));
+                badGameKeys.Count == 0 ? $"{_hk.ListedGameKeys.Count()} commands, no shared combination" : string.Join(", ", badGameKeys.Take(3).Select(k => k.Name))));
+            int teams = _hk.ChangedTeamKeys;
+            Rules.Children.Add(RuleRow(teams == 0 ? Mark.Ok : Mark.Warn,
+                teams == 0 ? "Team keys on the game's defaults" : $"{teams} team {(teams == 1 ? "key was" : "keys were")} changed earlier",
+                teams == 0 ? "0–9 alone and with Ctrl, Shift or Alt stay for teams" : "Team keys always use the game's defaults; Save puts them back"));
         }
 
         private static FrameworkElement RuleRow(Mark mark, string title, string detail)
@@ -467,8 +477,7 @@ namespace CommandCenter.Pages
         {
             if (_hk == null) return;
             _hk.ApplyClassicLayout();
-            foreach (var k in _hk.GameKeys.Where(k => !k.IsBuiltIn))
-                _hk.ResetGameKey(k);
+            _hk.ResetGameKeys();
             Refresh();
             FillGameKeys(_gameKey);
             Views.Main.Toast("Game defaults loaded. Press Save to keep them.");
@@ -494,14 +503,14 @@ namespace CommandCenter.Pages
             return k.Category switch
             {
                 "SELECTION" => "Selection", "CONTROL" => "Unit orders", "INTERFACE" => "Interface", "CAMERA" => "Camera",
-                "CHAT" => "Chat and beacons", "BUILT-IN" => "Built into the game · read only", _ => k.Category,
+                "CHAT" => "Chat and beacons", "BUILT-IN" => "Built into the game", _ => k.Category,
             };
         }
 
         private void FillGameKeys(GameKey? keep = null)
         {
             if (_hk == null) return;
-            var rows = _hk.GameKeys
+            var rows = _hk.ListedGameKeys
                 .OrderBy(k => Array.IndexOf(CategoryOrder, k.Category) is int i && i >= 0 ? i : 50)
                 .ThenBy(k => k.Order)
                 .Select(k =>
@@ -541,9 +550,9 @@ namespace CommandCenter.Pages
             var k = _gameKey;
             KCategory.Text = GroupName(k);
             KName.Text = k.Name;
-            KChange.IsEnabled = !k.IsBuiltIn;
+            KChange.IsEnabled = k.CanChange;
             KReset.Content = "Default (" + k.DefaultShortcut + ")";
-            KReset.IsEnabled = !k.IsBuiltIn && k.Changed;
+            KReset.IsEnabled = k.CanChange && k.Changed;
             if (_keyListening)
             {
                 KCapText.Text = "Press the new keys…";
@@ -558,12 +567,13 @@ namespace CommandCenter.Pages
                 KCap.Background = (Brush)new BrushConverter().ConvertFrom("#1E2225")!;
                 KCap.BorderBrush = k.Pending ? Views.Res("Info") : Views.Res("LineHi");
                 KCapText.Foreground = Views.Res("Text");
-                KHint.Text = k.IsBuiltIn ? "The game adds this key by itself. It is listed so you do not pick it for something else."
-                    : k.Changed ? $"Changed from {k.DefaultShortcut}." : "The game's default.";
+                KHint.Text = k.IsFixed ? "The game adds this key by itself and cannot change it. It is listed so you do not pick it for something else."
+                    : k.Changed ? $"Changed from {k.DefaultShortcut}." + (k.IsBuiltIn ? " Only Generals Online reads this change." : "")
+                    : k.IsBuiltIn ? "The game adds this key by itself." : "The game's default.";
             }
             KIssues.Children.Clear();
             var issues = _hk.GameKeyIssues(k);
-            if (issues.Count == 0 && !k.IsBuiltIn)
+            if (issues.Count == 0 && k.CanChange)
                 issues.Add(new KeyIssue(IssueLevel.Ok, "No other command uses this combination."));
             foreach (var issue in issues)
                 KIssues.Children.Add(IssueRow(issue));
@@ -573,7 +583,7 @@ namespace CommandCenter.Pages
 
         private void KChange_Click(object sender, RoutedEventArgs e)
         {
-            if (_gameKey == null || _gameKey.IsBuiltIn) return;
+            if (_gameKey == null || !_gameKey.CanChange) return;
             _keyListening = true;
             _listening = false;
             ShowGameKey();
@@ -634,9 +644,14 @@ namespace CommandCenter.Pages
             int count = _hk.PendingCount;
             _footer.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
             _pendingText.Text = count == 1 ? "1 change not saved" : $"{count} changes not saved";
-            _whereText.Text = $"Will be saved to {_hk.CsfPath} and {_hk.CommandMapPath}. A backup is kept.";
+            int teams = _hk.ChangedTeamKeys, discardable = _hk.DiscardableCount;
+            _whereText.Text = (teams > 0 ? $"{teams} team {(teams == 1 ? "key goes" : "keys go")} back to the game's defaults. " : "")
+                + $"Will be saved to {string.Join(" and ", _hk.PendingFiles())}. A backup is kept.";
             if (_footer.Children.Count > 1 && _footer.Children[1] is Button discard)
-                discard.Content = count == 1 ? "Discard 1 change" : $"Discard {count} changes";
+            {
+                discard.Content = discardable == 1 ? "Discard 1 change" : $"Discard {discardable} changes";
+                discard.Visibility = discardable > 0 ? Visibility.Visible : Visibility.Collapsed;
+            }
             Views.Main.RefreshFooter();
         }
 
