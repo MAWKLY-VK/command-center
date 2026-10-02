@@ -82,7 +82,7 @@ namespace CommandCenter.Pages
             configDetailsPanel.Children.Clear();
             configDetailsPanel.Children.Add(new TextBlock 
             { 
-                Text = "(No plugin selected)",
+                Text = Loc.T("(No plugin selected)"),
                 Foreground = new SolidColorBrush(Color.FromRgb(0xA0, 0xA0, 0xC0)),
                 FontSize = 11
             });
@@ -165,9 +165,19 @@ namespace CommandCenter.Pages
             Loaded += OptionsPage_Loaded;
         }
 
+        // Opens a section by its sidebar name, e.g. "network" or "launcher" (used when taking screenshots)
+        public void ShowPart(string part)
+        {
+            var tab = new[] { rbCamera, rbChat, rbInput, rbGraphics, rbSocial, rbNetwork, rbDataPacks, rbPlugins, rbLauncher }
+                .FirstOrDefault(r => r.Name.Equals("rb" + part.Replace(" ", ""), StringComparison.OrdinalIgnoreCase));
+            if (tab != null)
+                tab.IsChecked = true;
+        }
+
         private void OptionsPage_Loaded(object sender, RoutedEventArgs e)
         {
             LoadGameSettings();
+            LoadLauncherOptions();
         }
 
         private void Tab_Checked(object sender, RoutedEventArgs e)
@@ -182,6 +192,7 @@ namespace CommandCenter.Pages
             PanelNetwork.Visibility = Visibility.Collapsed;
             PanelDataPacks.Visibility = Visibility.Collapsed;
             PanelPlugins.Visibility = Visibility.Collapsed;
+            PanelLauncher.Visibility = Visibility.Collapsed;
 
             if (ReferenceEquals(sender, rbCamera)) PanelCamera.Visibility = Visibility.Visible;
             else if (ReferenceEquals(sender, rbChat)) PanelChat.Visibility = Visibility.Visible;
@@ -195,6 +206,7 @@ namespace CommandCenter.Pages
                 PanelPlugins.Visibility = Visibility.Visible;
                 PopulateAnticheatPlugins();
             }
+            else if (ReferenceEquals(sender, rbLauncher)) PanelLauncher.Visibility = Visibility.Visible;
         }
 
         private void ChkLimitFramerate_Changed(object sender, RoutedEventArgs e)
@@ -227,7 +239,7 @@ namespace CommandCenter.Pages
             {
                 configDetailsPanel.Children.Add(new TextBlock 
                 { 
-                    Text = "(No plugin selected)",
+                    Text = Loc.T("(No plugin selected)"),
                     Foreground = new SolidColorBrush(Color.FromRgb(0xA0, 0xA0, 0xC0)),
                     FontSize = 11
                 });
@@ -240,7 +252,7 @@ namespace CommandCenter.Pages
             {
                 configDetailsPanel.Children.Add(new TextBlock 
                 { 
-                    Text = "(Invalid plugin folder)",
+                    Text = Loc.T("(Invalid plugin folder)"),
                     Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0x88, 0x88)),
                     FontSize = 11
                 });
@@ -255,7 +267,7 @@ namespace CommandCenter.Pages
                 {
                     configDetailsPanel.Children.Add(new TextBlock 
                     { 
-                        Text = $"(Plugin directory not found: {folderName})",
+                        Text = Loc.T("(Plugin folder not found: {0})", folderName),
                         Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0x88, 0x88)),
                         FontSize = 11
                     });
@@ -270,7 +282,7 @@ namespace CommandCenter.Pages
                 {
                     configDetailsPanel.Children.Add(new TextBlock 
                     { 
-                        Text = "(No JSON files found in plugin)",
+                        Text = Loc.T("(No JSON files found in plugin)"),
                         Foreground = new SolidColorBrush(Color.FromRgb(0xA0, 0xA0, 0xC0)),
                         FontSize = 11
                     });
@@ -296,7 +308,7 @@ namespace CommandCenter.Pages
                     {
                         configDetailsPanel.Children.Add(new TextBlock 
                         { 
-                            Text = $"Error parsing {fileName}: {ex.Message}",
+                            Text = Loc.T("Could not read {0}: {1}", fileName, ex.Message),
                             Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0x88, 0x88)),
                             FontSize = 10,
                             Margin = new Thickness(0, 8, 0, 8)
@@ -308,7 +320,7 @@ namespace CommandCenter.Pages
             {
                 configDetailsPanel.Children.Add(new TextBlock 
                 { 
-                    Text = $"(Error loading plugin details: {ex.Message})",
+                    Text = Loc.T("(Could not load the plugin details: {0})", ex.Message),
                     Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0x88, 0x88)),
                     FontSize = 11
                 });
@@ -526,8 +538,8 @@ namespace CommandCenter.Pages
             }
             catch
             {
-                MessageBox.Show("Your settings have been reset due to an update. Please reconfigure them.",
-                    "Notice", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(Loc.T("Your settings have been reset due to an update. Please reconfigure them."),
+                    "Command Center", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, Loc.MessageBoxOptions);
                 Views.Main.ShowHome();
             }
         }
@@ -646,15 +658,97 @@ namespace CommandCenter.Pages
             _settings.network.http_version = cmbHTTPVersion.SelectedIndex;
             _settings.network.use_alternative_endpoint = chkAlternativeEndpoint.IsChecked == true;
 
+            bool patchChanged = _settings.data_packs.use_community_data_patch != (chkUseCommunityDataPatch.IsChecked == true);
             _settings.data_packs.use_community_data_patch = chkUseCommunityDataPatch.IsChecked == true;
 
             if (cmbAnticheatPlugin.SelectedItem is ComboBoxItem pluginItem)
                 _settings.plugins.anticheat = pluginItem.Tag?.ToString() ?? "";
 
-            File.WriteAllText(SettingsFilePath, System.Text.Json.JsonSerializer.Serialize(
-                _settings, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+            WriteIfChanged("Generals Online settings", SettingsFilePath, Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(
+                _settings, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })));
 
             SaveIniSettings();
+            SaveLauncherOptions();
+
+            if (patchChanged)
+            {
+                // The hotkey letters on the pictures follow the buttons the game will show
+                AppState.ForgetHotkeys();
+                if (AppSettings.Current.IconLetters)
+                    _ = Task.Run(async () =>
+                    {
+                        if (await AppState.Hotkeys() is { } hotkeys)
+                            IconLettersService.RefreshIfEnabled(hotkeys);
+                    });
+            }
+        }
+
+        // ── LAUNCHER: Command Center's own preferences ──
+
+        private bool _loadingLauncher;
+
+        private void LoadLauncherOptions()
+        {
+            _loadingLauncher = true;
+            cmbLanguage.Items.Clear();
+            foreach (var (code, name) in Loc.Languages)
+            {
+                var item = new ComboBoxItem { Content = name, Tag = code };
+                cmbLanguage.Items.Add(item);
+                if (code == Loc.Language)
+                    cmbLanguage.SelectedItem = item;
+            }
+            txtMapLibrary.Text = AppSettings.Current.MapLibrary ?? "";
+            txtVersion.Text = "Command Center " + AppState.Version;
+            _loadingLauncher = false;
+        }
+
+        private void SaveLauncherOptions()
+        {
+            string source = txtMapLibrary.Text.Trim();
+            string? value = source.Length == 0 ? null : source;
+            if (value == AppSettings.Current.MapLibrary)
+                return;
+            AppSettings.Current.MapLibrary = value;
+            AppSettings.Current.Save();
+        }
+
+        private void BtnMapLibraryDefault_Click(object sender, RoutedEventArgs e) => txtMapLibrary.Text = "";
+
+        private void CmbLanguage_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_loadingLauncher || cmbLanguage.SelectedItem is not ComboBoxItem { Tag: string code } || code == Loc.Language)
+                return;
+            var answer = MessageBox.Show(Loc.T("Restart Command Center now to switch the language?"), "Command Center",
+                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes, Loc.MessageBoxOptions);
+            if (answer != MessageBoxResult.Yes)
+            {
+                LoadLauncherOptions();
+                return;
+            }
+            AppSettings.Current.Language = code;
+            AppSettings.Current.Save();
+            SaveGameSettings();
+
+            // Same arguments as this run, without a language given on the command line
+            var args = Environment.GetCommandLineArgs().Skip(1).ToList();
+            int lang = args.FindIndex(a => a.Equals("--lang", StringComparison.OrdinalIgnoreCase));
+            if (lang >= 0)
+                args.RemoveRange(lang, Math.Min(2, args.Count - lang));
+            var start = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false };
+            foreach (string arg in args)
+                start.ArgumentList.Add(arg);
+            System.Diagnostics.Process.Start(start)?.Dispose();
+            Application.Current.Shutdown();
+        }
+
+        private async void BtnCheckUpdates_Click(object sender, RoutedEventArgs e)
+        {
+            btnCheckUpdates.IsEnabled = false;
+            txtUpdateStatus.Text = Loc.T("Checking…");
+            bool found = await Views.Main.CheckForUpdateNowAsync();
+            txtUpdateStatus.Text = found ? "" : Loc.T("You have the latest version.");
+            btnCheckUpdates.IsEnabled = true;
         }
 
         // launcher.json is edited as a JSON tree, so the client choice and anything else in it stays as it was
@@ -703,7 +797,15 @@ namespace CommandCenter.Pages
             if (!wroteCursorFull) { lines.Add($"CursorCaptureEnabledInFullscreenGame = {Y(cursorFull)}"); lines.Add($"CursorCaptureEnabledInFullscreenMenu = {Y(cursorFull)}"); }
             if (!wroteCursorWin) { lines.Add($"CursorCaptureEnabledInWindowedGame = {Y(cursorWin)}"); lines.Add($"CursorCaptureEnabledInWindowedMenu = {Y(cursorWin)}"); }
 
-            File.WriteAllLines(IniFilePath, lines);
+            WriteIfChanged("Game options", IniFilePath, Encoding.UTF8.GetBytes(string.Join("\r\n", lines) + "\r\n"));
+        }
+
+        // Saving goes through the backup list, so the change can be undone; an unchanged file is left alone
+        private static void WriteIfChanged(string title, string path, byte[] content)
+        {
+            if (File.Exists(path) && File.ReadAllBytes(path).AsSpan().SequenceEqual(content))
+                return;
+            BackupService.WriteFile(title, path, content, "Saved from the Options page");
         }
 
         private static string Y(bool b) => b ? "yes" : "no";
@@ -716,7 +818,7 @@ namespace CommandCenter.Pages
             _diagCts = new CancellationTokenSource();
 
             btnRunDiagnostics.IsEnabled = false;
-            btnRunDiagnostics.Content   = "⟳  RUNNING...";
+            btnRunDiagnostics.Content   = Loc.T("⟳  RUNNING...");
             btnCopyDiag.IsEnabled       = false;
             panelDiagResults.Visibility = Visibility.Visible;
             ResetDiagnosticsUI();
@@ -734,7 +836,7 @@ namespace CommandCenter.Pages
             finally
             {
                 btnRunDiagnostics.IsEnabled = true;
-                btnRunDiagnostics.Content   = "▶  RUN DIAGNOSTICS";
+                btnRunDiagnostics.Content   = Loc.T("▶  RUN DIAGNOSTICS");
             }
         }
 
@@ -799,40 +901,40 @@ namespace CommandCenter.Pages
                 SetRow(dotGeo, valGeo, true, geoText, DiagGreen);
             }
             else
-                SetRow(dotGeo, valGeo, false, "Could not determine location", DiagGray);
+                SetRow(dotGeo, valGeo, false, Loc.T("Could not determine location"), DiagGray);
 
             // Cloudflare internet baseline
             SetRow(dotCF, valCF,
                 r.CloudflareSuccess,
                 r.CloudflareSuccess
-                    ? $"{r.CloudflareAvgMs}ms avg  {r.CloudflareLossPercent}% loss"
-                    : "Unreachable",
+                    ? Loc.T("{0} ms avg  {1}% loss", r.CloudflareAvgMs, r.CloudflareLossPercent)
+                    : Loc.T("Unreachable"),
                 r.CloudflareSuccess ? LossColor(r.CloudflareLossPercent) : DiagRed);
 
             // Download speed
             SetRow(dotDl, valDl,
                 r.SpeedTestSuccess && r.DownloadMbps > 0,
-                r.DownloadMbps > 0 ? $"{r.DownloadMbps:F1} Mbps" : "Failed",
+                r.DownloadMbps > 0 ? $"{r.DownloadMbps:F1} Mbps" : Loc.T("Failed"),
                 r.DownloadMbps > 0 ? SpeedColor(r.DownloadMbps) : DiagRed);
 
             // Upload speed
             SetRow(dotUl, valUl,
                 r.SpeedTestSuccess && r.UploadMbps > 0,
-                r.UploadMbps > 0 ? $"{r.UploadMbps:F1} Mbps" : "Failed",
+                r.UploadMbps > 0 ? $"{r.UploadMbps:F1} Mbps" : Loc.T("Failed"),
                 r.UploadMbps > 0 ? SpeedColor(r.UploadMbps) : DiagRed);
 
             // DNS
             SetRow(dotDns, valDns,
                 r.DnsSuccess,
-                r.DnsSuccess ? r.DnsAddresses : "Resolution failed",
+                r.DnsSuccess ? r.DnsAddresses : Loc.T("Resolution failed"),
                 r.DnsSuccess ? DiagGreen : DiagRed);
 
             // Ping
             SetRow(dotPing, valPing,
                 r.PingSuccess,
                 r.PingSuccess
-                    ? $"{r.PingAvgMs}ms avg  (min {r.PingMinMs} / max {r.PingMaxMs})  {r.PingLossPercent}% loss"
-                    : "Unreachable (ICMP may be blocked)",
+                    ? Loc.T("{0} ms avg  (min {1} / max {2})  {3}% loss", r.PingAvgMs, r.PingMinMs, r.PingMaxMs, r.PingLossPercent)
+                    : Loc.T("Unreachable (ICMP may be blocked)"),
                 r.PingSuccess ? LatencyColor(r.PingAvgMs) : DiagRed);
 
             // Protocol
@@ -842,33 +944,33 @@ namespace CommandCenter.Pages
             // HTTP latency
             SetRow(dotHttp, valHttp,
                 r.HttpSuccess,
-                r.HttpSuccess ? $"{r.HttpLatencyMs}ms" : "Request failed",
+                r.HttpSuccess ? $"{r.HttpLatencyMs}ms" : Loc.T("Request failed"),
                 r.HttpSuccess ? LatencyColor(r.HttpLatencyMs) : DiagRed);
 
             // Server status
             if (r.ServerOnline)
                 SetRow(dotServer, valServer, true,
-                    $"Online — {r.PlayersOnline} players  •  {r.Lobbies} lobbies", DiagGreen);
+                    Loc.T("Online — {0} players  •  {1} lobbies", r.PlayersOnline, r.Lobbies), DiagGreen);
             else
                 SetRow(dotServer, valServer, false,
-                    r.HttpSuccess ? "Degraded (HTTP error)" : "Offline / Unreachable", DiagRed);
+                    r.HttpSuccess ? Loc.T("Degraded (HTTP error)") : Loc.T("Offline / Unreachable"), DiagRed);
 
             // CDN
             SetRow(dotCdn, valCdn,
                 r.CdnSuccess,
-                r.CdnSuccess ? $"{r.CdnLatencyMs}ms" : "Unreachable",
+                r.CdnSuccess ? $"{r.CdnLatencyMs}ms" : Loc.T("Unreachable"),
                 r.CdnSuccess ? LatencyColor(r.CdnLatencyMs) : DiagRed);
 
             // STUN
             SetRow(dotStun, valStun,
                 r.StunSuccess,
-                r.StunSuccess ? $"{r.StunLatencyMs}ms  ({RedactEndpoint(r.StunExternalEndpoint)})" : "Unreachable",
+                r.StunSuccess ? $"{r.StunLatencyMs}ms  ({RedactEndpoint(r.StunExternalEndpoint)})" : Loc.T("Unreachable"),
                 r.StunSuccess ? LatencyColor(r.StunLatencyMs) : DiagRed);
 
             // TURN
             SetRow(dotTurn, valTurn,
                 r.TurnSuccess,
-                r.TurnSuccess ? $"{r.TurnLatencyMs}ms  ({r.TurnEndpoint})" : "Unreachable",
+                r.TurnSuccess ? $"{r.TurnLatencyMs}ms  ({r.TurnEndpoint})" : Loc.T("Unreachable"),
                 r.TurnSuccess ? LatencyColor(r.TurnLatencyMs) : DiagRed);
 
             // NAT type
@@ -877,10 +979,10 @@ namespace CommandCenter.Pages
                 NatType.Open or NatType.FullCone or NatType.RestrictedCone
                     => (DiagGreen,  $"{NatTypeLabel(r.NatType)} — {r.NatTypeDetail}"),
                 NatType.PortRestrictedCone
-                    => (DiagYellow, $"Port Restricted Cone — {r.NatTypeDetail}"),
+                    => (DiagYellow, Loc.T("Port Restricted Cone") + $" — {r.NatTypeDetail}"),
                 NatType.Symmetric
-                    => (DiagRed,    $"Symmetric — {r.NatTypeDetail}"),
-                _   => (DiagGray,   $"Unknown — {r.NatTypeDetail}")
+                    => (DiagRed,    Loc.T("Symmetric") + $" — {r.NatTypeDetail}"),
+                _   => (DiagGray,   Loc.T("Unknown") + $" — {r.NatTypeDetail}")
             };
             SetRow(dotNat, valNat, r.NatType != NatType.Unknown, natText, natColor);
         }
@@ -932,12 +1034,12 @@ namespace CommandCenter.Pages
 
         private static string NatTypeLabel(NatType t) => t switch
         {
-            NatType.Open              => "Open",
-            NatType.FullCone          => "Full Cone",
-            NatType.RestrictedCone    => "Restricted",
-            NatType.PortRestrictedCone => "Port Restr.",
-            NatType.Symmetric         => "Symmetric",
-            _                         => "Unknown"
+            NatType.Open              => Loc.T("Open"),
+            NatType.FullCone          => Loc.T("Full Cone"),
+            NatType.RestrictedCone    => Loc.T("Restricted"),
+            NatType.PortRestrictedCone => Loc.T("Port Restr."),
+            NatType.Symmetric         => Loc.T("Symmetric"),
+            _                         => Loc.T("Unknown")
         };
 
         private static string RedactIp(string ip)

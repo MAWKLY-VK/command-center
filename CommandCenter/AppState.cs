@@ -59,6 +59,9 @@ namespace CommandCenter
             return _hotkeys;
         }
 
+        // The community data patch changes which buttons and keys the game has, so the hotkeys are read again
+        public static void ForgetHotkeys() => _hotkeys = null;
+
         private static IEnumerable<HealthResult> SampleIssues()
         {
             yield return new HealthResult

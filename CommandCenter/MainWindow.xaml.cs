@@ -29,9 +29,8 @@ namespace CommandCenter
             ShowHome();
 
             // Screenshots skip the update check unless a manifest is given
-            string? updateSource = App.Arg("--update-url");
-            if (updateSource != null || !App.HasArg("--capture"))
-                _updateCheck = CheckUpdateAsync(updateSource ?? UpdateService.ManifestUrl);
+            if (App.Arg("--update-url") != null || !App.HasArg("--capture"))
+                _updateCheck = CheckUpdateAsync();
         }
 
         // ── Navigation ──
@@ -118,13 +117,24 @@ namespace CommandCenter
 
         // ── Mandatory update ──
 
-        private async Task CheckUpdateAsync(string source)
+        private static string UpdateSource => App.Arg("--update-url") ?? UpdateService.ManifestUrl;
+
+        private async Task CheckUpdateAsync()
         {
-            if (await UpdateService.CheckAsync(source) is not { } update)
+            if (await UpdateService.CheckAsync(UpdateSource) is not { } update)
                 return;
             UpdateOverlay.Open(update);
             if (App.HasArg("--update-auto"))
                 await UpdateOverlay.InstallAsync();
+        }
+
+        // The Options page's check: true when a newer version was found (the update screen is then shown)
+        public async Task<bool> CheckForUpdateNowAsync()
+        {
+            if (await UpdateService.CheckAsync(UpdateSource) is not { } update)
+                return false;
+            UpdateOverlay.Open(update);
+            return true;
         }
 
         // ── Screenshots for review (--capture <folder>) ──
@@ -158,6 +168,11 @@ namespace CommandCenter
                 {
                     case "options":
                         ShowOptions();
+                        if (id.Length > 1)
+                        {
+                            await Task.Delay(300);
+                            _options!.ShowPart(id[1]);
+                        }
                         break;
                     case "tools":
                         ShowTools(id.Length > 1 ? id[1] : null);
@@ -167,6 +182,9 @@ namespace CommandCenter
                         break;
                     default:
                         ShowHome();
+                        // The stats line and the health notice arrive in the background
+                        for (int wait = 0; wait < 40 && (AppState.Stats == null || AppState.HealthCheckedAt == null); wait++)
+                            await Task.Delay(500);
                         break;
                 }
                 await Task.Delay(900);
