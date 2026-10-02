@@ -1,0 +1,12 @@
+# Build output
+bin/
+obj/
+publish/
+*.user
+*.suo
+.vs/
+.vscode/
+
+# Local test output
+captures/
+*.log

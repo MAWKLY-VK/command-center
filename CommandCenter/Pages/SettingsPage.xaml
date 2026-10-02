@@ -1,0 +1,28 @@
+<UserControl x:Class="CommandCenter.Pages.SettingsPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:CommandCenter.Controls">
+    <Grid Margin="30,24,30,24">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="20"/>
+            <ColumnDefinition Width="*" MaxWidth="980"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Section list: plain text with a thin bar, so it does not compete with the main navigation -->
+        <StackPanel x:Name="Sections"/>
+
+        <ui:Chamfer Grid.Column="2" Style="{StaticResource Panel}">
+            <DockPanel>
+                <HeaderedContentControl x:Name="SectionHead" DockPanel.Dock="Top" Style="{StaticResource PanelHead}" ui:Ui.Icon="{StaticResource I.gear}">
+                    <Button x:Name="ResetSection" Style="{StaticResource BtnSm}" Content="Reset this page" ui:Ui.Icon="{StaticResource I.undo}" Click="ResetSection_Click"
+                            ToolTip="Sets every option on this page back to its default. Nothing is saved until you press Save."/>
+                </HeaderedContentControl>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+                    <StackPanel x:Name="Rows" Margin="0,4,0,16"/>
+                </ScrollViewer>
+            </DockPanel>
+        </ui:Chamfer>
+    </Grid>
+</UserControl>

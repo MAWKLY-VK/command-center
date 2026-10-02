@@ -1,0 +1,9 @@
+<Project>
+  <!-- Reproducible builds: the same source gives the same program, and no folder names from the build PC end up in it -->
+  <PropertyGroup>
+    <Deterministic>true</Deterministic>
+    <PathMap>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)'))=/src/</PathMap>
+    <DebugType>embedded</DebugType>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+</Project>
