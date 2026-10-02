@@ -23,6 +23,8 @@ namespace CommandCenter
 
             if (Arg("--library-folder") is { } library)
                 AppState.LibraryFolder = library;
+            if (Arg("--map-library") is { } mapLibrary)
+                MapLibraryClient.SourceOverride = mapLibrary;
             AppState.Samples = HasArg("--samples");
 
             var window = new MainWindow();

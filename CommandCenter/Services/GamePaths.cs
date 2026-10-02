@@ -30,11 +30,20 @@ namespace CommandCenter.Services
 
         private static string? _userData;
 
+        // The game's folder in Documents; --user-data <folder> points it elsewhere for tests
         public static string UserData
         {
-            get => _userData ?? Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                "Command and Conquer Generals Zero Hour Data");
+            get
+            {
+                if (_userData != null)
+                    return _userData;
+                string[] args = Environment.GetCommandLineArgs();
+                int index = Array.FindIndex(args, a => a.Equals("--user-data", StringComparison.OrdinalIgnoreCase));
+                _userData = index >= 0 && index + 1 < args.Length
+                    ? Path.GetFullPath(args[index + 1])
+                    : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Command and Conquer Generals Zero Hour Data");
+                return _userData;
+            }
             set => _userData = value;
         }
 

@@ -8,6 +8,9 @@ namespace CommandCenter.Services
     {
         public string? LibraryFolder { get; set; }
 
+        // Where the Maps page's Library tab reads from: a web address or a folder; empty means the online library
+        public string? MapLibrary { get; set; }
+
         private static string FilePath => Path.Combine(GamePaths.AppData, "settings.json");
         private static AppSettings? _current;
 
