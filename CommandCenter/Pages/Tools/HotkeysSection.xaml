@@ -1,13 +1,336 @@
 <UserControl x:Class="CommandCenter.Pages.Tools.HotkeysSection"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:l="clr-namespace:CommandCenter.Services">
+             xmlns:l="clr-namespace:CommandCenter.Services"
+             Focusable="True" FocusVisualStyle="{x:Null}"
+             PreviewKeyDown="Section_PreviewKeyDown" IsKeyboardFocusedChanged="Section_FocusChanged">
+    <UserControl.Resources>
+        <!-- Lists without the system look: the selected row fills blue, like the sidebar tabs -->
+        <Style x:Key="PlainList" TargetType="ListBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.CanContentScroll" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBox">
+                        <ScrollViewer Focusable="False" Padding="{TemplateBinding Padding}">
+                            <ItemsPresenter/>
+                        </ScrollViewer>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="Row" TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd" Background="Transparent" BorderBrush="Transparent" BorderThickness="2,0,0,0" Padding="10,0,10,0">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#020830"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#040C52"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#2980FF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <DataTemplate x:Key="GroupHeader">
+            <TextBlock Text="{Binding Name}" Style="{StaticResource GroupLabelStyle}" Foreground="#5A5A90" Margin="12,10,10,4"/>
+        </DataTemplate>
+
+        <DataTemplate x:Key="MenuRow">
+            <DockPanel Height="26">
+                <Ellipse DockPanel.Dock="Right" Width="7" Height="7" Margin="8,0,0,0" VerticalAlignment="Center"
+                         Fill="{Binding Mark}" Visibility="{Binding MarkVisibility}" ToolTip="{Binding MarkTip}"/>
+                <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="KeyRow">
+            <!-- On wide windows the shortcut stays near its name; the last column takes the rest -->
+            <Grid Height="28">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MaxWidth="360"/>
+                    <ColumnDefinition Width="Auto" MinWidth="110"/>
+                    <ColumnDefinition Width="17"/>
+                    <ColumnDefinition Width="0.001*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding Name}" Foreground="{Binding NameBrush}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                <Border Grid.Column="1" MinWidth="34" Padding="7,1,7,2" Margin="10,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
+                        Background="#0B0F33" BorderBrush="{Binding CapBrush}" BorderThickness="1">
+                    <TextBlock Text="{Binding Shortcut}" Foreground="{Binding NameBrush}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                </Border>
+                <Ellipse Grid.Column="2" Width="7" Height="7" HorizontalAlignment="Right" VerticalAlignment="Center"
+                         Fill="{Binding Mark}" Visibility="{Binding MarkVisibility}" ToolTip="{Binding MarkTip}"/>
+            </Grid>
+        </DataTemplate>
+
+        <Style TargetType="ToolTip">
+            <Setter Property="Background" Value="#07091C"/>
+            <Setter Property="BorderBrush" Value="#2A2A55"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="MaxWidth" Value="340"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToolTip">
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
+                            <TextBlock Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" FontSize="12" TextWrapping="Wrap"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="KeyChip" TargetType="Button" BasedOn="{StaticResource SmallButtonStyle}">
+            <Setter Property="MinWidth" Value="28"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="0,0,5,0"/>
+        </Style>
+    </UserControl.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <TextBlock Text="{l:T HOTKEYS}" Style="{StaticResource SectionHeaderStyle}" HorizontalAlignment="Left"/>
-        <TextBlock Grid.Row="1" Text="Being rebuilt." Style="{StaticResource HintStyle}"/>
+
+        <!-- Title, unsaved changes and Save -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{l:T HOTKEYS}" Style="{StaticResource SectionHeaderStyle}"/>
+            <DockPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="16,0,0,0">
+                <Ellipse x:Name="StatusDot" DockPanel.Dock="Left" Width="7" Height="7" Fill="#FFAA00" Margin="0,1,8,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+                <TextBlock x:Name="StatusText" FontSize="12" Foreground="#8888AA" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+            <Button x:Name="DiscardButton" Grid.Column="2" Content="{l:T DISCARD}" Style="{StaticResource DiagButtonStyle}"
+                    Margin="12,0,0,0" Visibility="Collapsed" Click="Discard_Click"/>
+            <Button x:Name="SaveButton" Grid.Column="3" Content="{l:T SAVE}" Style="{StaticResource GoldButtonStyle}" MinWidth="84"
+                    Margin="10,0,0,0" IsEnabled="False" Click="Save_Click"/>
+        </Grid>
+
+        <!-- Views and layouts -->
+        <Grid Grid.Row="1" Margin="0,10,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.ColumnSpan="3" Height="1" Background="#14143A" VerticalAlignment="Bottom"/>
+            <StackPanel Orientation="Horizontal">
+                <RadioButton x:Name="TabButtons" GroupName="HotkeyViews" Style="{StaticResource SubTabStyle}"
+                             Content="{l:T UNIT &amp; BUILDING BUTTONS}" IsChecked="True" Checked="Tab_Checked"/>
+                <RadioButton x:Name="TabKeys" GroupName="HotkeyViews" Style="{StaticResource SubTabStyle}"
+                             Content="{l:T GAME KEYS}" Checked="Tab_Checked"/>
+            </StackPanel>
+            <StackPanel x:Name="LayoutButtons" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,2" Visibility="Collapsed">
+                <Button x:Name="GridButton" Content="{l:T GRID LAYOUT}" Style="{StaticResource SmallButtonStyle}" Click="Grid_Click">
+                    <Button.ToolTip>
+                        <l:T Text="Each key follows its place on the bar: QWERTYU on the top row, ASDFGHJ below. Buttons the game gives no key, such as Sell, keep theirs."/>
+                    </Button.ToolTip>
+                </Button>
+                <Button Content="{l:T GAME DEFAULTS}" Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0" Click="Defaults_Click">
+                    <Button.ToolTip>
+                        <l:T Text="Puts every button and game key back on the game's own keys. Nothing is saved until you press Save."/>
+                    </Button.ToolTip>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <TextBlock x:Name="LoadingText" Grid.Row="2" Style="{StaticResource HintStyle}" Margin="0,4,0,0">
+            <TextBlock.Text>
+                <l:T Text="Reading the game's buttons…"/>
+            </TextBlock.Text>
+        </TextBlock>
+
+        <!-- Unit and building buttons -->
+        <Grid x:Name="ButtonsView" Grid.Row="2" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="MenuColumn" Width="190"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <DockPanel>
+                <ComboBox x:Name="ArmyBox" DockPanel.Dock="Top" Height="28" FontSize="12" MaxDropDownHeight="380" SelectionChanged="Army_Changed">
+                    <ComboBox.ToolTip>
+                        <l:T Text="Each general has its own buttons"/>
+                    </ComboBox.ToolTip>
+                </ComboBox>
+                <Border Style="{StaticResource ResultBoxStyle}" Padding="0,0,0,6" Margin="0,8,0,0">
+                    <ListBox x:Name="MenuList" Style="{StaticResource PlainList}" ItemContainerStyle="{StaticResource Row}"
+                             ItemTemplate="{StaticResource MenuRow}" SelectionChanged="Menu_Changed">
+                        <ListBox.GroupStyle>
+                            <GroupStyle HeaderTemplate="{StaticResource GroupHeader}"/>
+                        </ListBox.GroupStyle>
+                    </ListBox>
+                </Border>
+            </DockPanel>
+
+            <!-- Bar above the selected button; side by side when the window is wide (see Fit) -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="8"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="BarColumn" Width="*"/>
+                    <ColumnDefinition x:Name="GapColumn" Width="0"/>
+                    <ColumnDefinition x:Name="EditColumn" Width="0"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- The command bar as the game shows it; always left to right -->
+                <Border x:Name="BarBox" Style="{StaticResource ResultBoxStyle}" Padding="8,8,8,7" VerticalAlignment="Top">
+                    <StackPanel>
+                        <Viewbox x:Name="BarView" Stretch="Uniform" StretchDirection="Both" HorizontalAlignment="Left" FlowDirection="LeftToRight">
+                            <UniformGrid x:Name="Slots" Columns="7"/>
+                        </Viewbox>
+                        <WrapPanel Margin="2,6,0,0">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
+                                <Border Width="11" Height="11" BorderBrush="#FF4444" BorderThickness="2" VerticalAlignment="Center"/>
+                                <TextBlock Text="{l:T Same key twice in this menu}" FontSize="11" Foreground="#8888AA" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
+                                <Ellipse Width="7" Height="7" Fill="#FFAA00" VerticalAlignment="Center"/>
+                                <TextBlock Text="{l:T Also a game key}" FontSize="11" Foreground="#8888AA" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse Width="7" Height="7" Fill="#5BA4FF" VerticalAlignment="Center"/>
+                                <TextBlock Text="{l:T Changed from default}" FontSize="11" Foreground="#8888AA" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- The selected button -->
+                <Border x:Name="EditBox" Grid.Row="2" Style="{StaticResource ResultBoxStyle}" Padding="0" VerticalAlignment="Top">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+                        <StackPanel Margin="12,10,12,6">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Width="60" Height="48" Background="#050720" BorderBrush="#2A2A55" BorderThickness="1" VerticalAlignment="Top">
+                                    <Image x:Name="BigIcon" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                </Border>
+                                <StackPanel Grid.Column="1" Margin="12,0,12,0" VerticalAlignment="Top">
+                                    <TextBlock x:Name="ButtonName" FontSize="14" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock x:Name="ButtonWhere" FontSize="11" Foreground="#8888AA" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock x:Name="KeyHint" FontSize="11" Foreground="#A0A0C0" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <Border x:Name="KeyCap" Grid.Column="2" Width="48" Height="48" Background="#01031A" BorderThickness="2"
+                                        Cursor="Hand" VerticalAlignment="Top" MouseLeftButtonUp="KeyCap_Click">
+                                    <Border.ToolTip>
+                                        <l:T Text="Click, then press a letter"/>
+                                    </Border.ToolTip>
+                                    <TextBlock x:Name="KeyCapText" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </Grid>
+
+                            <WrapPanel Margin="0,10,0,0">
+                                <Button x:Name="ChangeButton" Content="{l:T CHANGE KEY}" Style="{StaticResource SmallButtonStyle}" Margin="0,0,8,6" Click="Change_Click"/>
+                                <Button x:Name="DefaultButton" Content="{l:T DEFAULT}" Style="{StaticResource SmallButtonStyle}" Margin="0,0,8,6" Click="ResetKey_Click"/>
+                                <Button x:Name="ClearButton" Content="{l:T NO KEY}" Style="{StaticResource SmallButtonStyle}" Margin="0,0,20,6" Click="Clear_Click">
+                                    <Button.ToolTip>
+                                        <l:T Text="Removes the hotkey from this button"/>
+                                    </Button.ToolTip>
+                                </Button>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <TextBlock Text="{l:T FREE KEYS}" Style="{StaticResource GroupLabelStyle}" Foreground="#5A5A90"
+                                               VerticalAlignment="Center" Margin="0,0,8,0">
+                                        <TextBlock.ToolTip>
+                                            <l:T Text="Letters that no other button in this menu uses and that are not game keys"/>
+                                        </TextBlock.ToolTip>
+                                    </TextBlock>
+                                    <StackPanel x:Name="FreeKeys" Orientation="Horizontal" FlowDirection="LeftToRight"/>
+                                </StackPanel>
+                            </WrapPanel>
+
+                            <StackPanel x:Name="Issues" Margin="0,4,0,0"/>
+
+                            <TextBlock x:Name="SameText" FontSize="11" Foreground="#8888AA" TextWrapping="Wrap" Margin="16,0,0,2"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- Game keys (CommandMap.ini) -->
+        <Grid x:Name="KeysView" Grid.Row="2" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition x:Name="DetailColumn" Width="250"/>
+            </Grid.ColumnDefinitions>
+
+            <DockPanel>
+                <Grid DockPanel.Dock="Top">
+                    <TextBox x:Name="KeySearch" Style="{StaticResource TextBoxStyle}" Width="Auto" Height="28" FontSize="12"
+                             TextChanged="KeySearch_Changed"/>
+                    <TextBlock x:Name="KeySearchHint" Text="{l:T Search commands or keys}" FontSize="12" Foreground="#5A5A80"
+                               Margin="11,0" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                </Grid>
+                <Border x:Name="TeamNotice" DockPanel.Dock="Top" Margin="0,8,0,0" Padding="10,7" Background="#141005" BorderBrush="#6A5010"
+                        BorderThickness="1" Visibility="Collapsed">
+                    <DockPanel>
+                        <Ellipse DockPanel.Dock="Left" Width="7" Height="7" Fill="#FFAA00" Margin="0,5,9,0" VerticalAlignment="Top"/>
+                        <TextBlock x:Name="TeamNoticeText" FontSize="12" TextWrapping="Wrap"/>
+                    </DockPanel>
+                </Border>
+                <Border Style="{StaticResource ResultBoxStyle}" Padding="0,0,0,6" Margin="0,8,0,0">
+                    <ListBox x:Name="KeyList" Style="{StaticResource PlainList}" ItemContainerStyle="{StaticResource Row}"
+                             ItemTemplate="{StaticResource KeyRow}" SelectionChanged="KeyList_Changed">
+                        <ListBox.GroupStyle>
+                            <GroupStyle HeaderTemplate="{StaticResource GroupHeader}"/>
+                        </ListBox.GroupStyle>
+                    </ListBox>
+                </Border>
+            </DockPanel>
+
+            <Border Grid.Column="2" Style="{StaticResource ResultBoxStyle}" Padding="0" VerticalAlignment="Top">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+                    <StackPanel Margin="14,12,14,10">
+                        <TextBlock x:Name="KCategory" Style="{StaticResource GroupLabelStyle}" Foreground="#5A5A90" Margin="0"/>
+                        <TextBlock x:Name="KName" FontSize="15" FontWeight="Bold" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                        <Border x:Name="KCap" Height="40" Margin="0,10,0,0" Background="#01031A" BorderThickness="2" MouseLeftButtonUp="KCap_Click">
+                            <TextBlock x:Name="KCapText" FontSize="15" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <TextBlock x:Name="KHint" FontSize="11" Foreground="#A0A0C0" TextWrapping="Wrap" Margin="0,8,0,0"/>
+                        <WrapPanel x:Name="KButtons" Margin="0,10,0,0">
+                            <Button x:Name="KChange" Content="{l:T CHANGE}" Style="{StaticResource SmallButtonStyle}" Margin="0,0,8,0" Click="KChange_Click"/>
+                            <Button x:Name="KReset" Content="{l:T DEFAULT}" Style="{StaticResource SmallButtonStyle}" Click="KReset_Click"/>
+                        </WrapPanel>
+                        <StackPanel x:Name="KIssues" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>

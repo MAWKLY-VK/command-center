@@ -278,24 +278,24 @@ namespace CommandCenter.Services
             var others = menu.Buttons.Where(b => b != button && b.Label != button.Label && KeyFor(b.Label) == key).ToList();
             if (others.Count > 0)
             {
-                string names = string.Join(", ", others.Select(o => o.Name));
+                string names = string.Join(Loc.T(", "), others.Select(o => o.Name));
                 issues.Add(first == button
-                    ? new KeyIssue(IssueLevel.Error, $"{names} also uses {key} in this menu, so that button stops working.")
-                    : new KeyIssue(IssueLevel.Error, $"{first.Name} already uses {key} in this menu; the game only runs the first one."));
+                    ? new KeyIssue(IssueLevel.Error, Loc.T("{0} also uses {1} in this menu, so that button stops working.", names, key))
+                    : new KeyIssue(IssueLevel.Error, Loc.T("{0} already uses {1} in this menu; the game only runs the first one.", first.Name, key)));
             }
 
             if (SharedGameKey(button) is { } global)
-                issues.Add(new KeyIssue(IssueLevel.Warn, $"{key} is also the game key for {global.Name}. Pressing {key} does both."));
+                issues.Add(new KeyIssue(IssueLevel.Warn, Loc.T("{0} is also the game key for {1}. Pressing {0} does both.", key, global.Name)));
 
             if (key == 'F')
-                issues.Add(new KeyIssue(IssueLevel.Info, "In replays F also turns fast forward on and off."));
+                issues.Add(new KeyIssue(IssueLevel.Info, Loc.T("In replays F also turns fast forward on and off.")));
 
             // WithHotkey appends " (X)" when the name has no such letter; the tooltip shows it that way
             if (!CsfFile.WithoutHotkey(_originalCsf.Get(button.Label) ?? "").Contains(key, StringComparison.OrdinalIgnoreCase))
-                issues.Add(new KeyIssue(IssueLevel.Info, $"The name has no {key}, so the game shows it as \"{ShownName(button.Label)}\"."));
+                issues.Add(new KeyIssue(IssueLevel.Info, Loc.T("The name has no {0}, so the game shows it as \"{1}\".", key, ShownName(button.Label))));
 
             if (!issues.Any(i => i.Level is IssueLevel.Error or IssueLevel.Warn))
-                issues.Insert(0, new KeyIssue(IssueLevel.Ok, $"No other button in this menu uses {key}."));
+                issues.Insert(0, new KeyIssue(IssueLevel.Ok, Loc.T("No other button in this menu uses {0}.", key)));
             return issues;
         }
 
@@ -564,7 +564,7 @@ namespace CommandCenter.Services
                 string originalKey = origin.Values.GetValueOrDefault("Key", key).ToUpperInvariant();
                 string originalMods = origin.Values.GetValueOrDefault("Modifiers", "NONE").ToUpperInvariant();
                 bool team = TeamCommand.IsMatch(command);
-                string name = CommandNames.TryGetValue(command, out var known) ? known
+                string name = CommandNames.TryGetValue(command, out var known) ? Loc.T(known)
                     : block.Values.TryGetValue("DisplayName", out var display) && _originalCsf.Get(display) is { } text ? text.Replace("&", "")
                     : Readable(command);
 
@@ -607,7 +607,7 @@ namespace CommandCenter.Services
                 }
                 GameKeys.Add(new GameKey
                 {
-                    Command = command, Name = name, Category = "BUILT-IN", Block = -1, IsBuiltIn = true, IsFixed = isFixed,
+                    Command = command, Name = Loc.T(name), Category = "BUILT-IN", Block = -1, IsBuiltIn = true, IsFixed = isFixed,
                     OriginalKey = key, OriginalModifiers = mods, Transition = "DOWN", UseableIn = usable, Order = 10000 + order++,
                     FileKey = fileKey, FileModifiers = fileMods, Key = fileKey, Modifiers = fileMods,
                     BuiltInCategory = category,
@@ -654,10 +654,11 @@ namespace CommandCenter.Services
             {
                 if (!UsableTogether(gameKey.UseableIn, other.UseableIn))
                     continue;
+                string shortcut = Loc.Ltr(gameKey.Shortcut);
                 issues.Add(new KeyIssue(IssueLevel.Error,
-                    other.IsTeam ? $"{gameKey.Shortcut} is the team key {other.Name}, and team keys cannot change. Pick another key."
-                    : other.IsBuiltIn ? $"{gameKey.Shortcut} is built into the game for {other.Name}; only one of them will work."
-                    : $"{gameKey.Shortcut} is also set for {other.Name}; only one of them will work."));
+                    other.IsTeam ? Loc.T("{0} is the team key {1}, and team keys cannot change. Pick another key.", shortcut, other.Name)
+                    : other.IsBuiltIn ? Loc.T("{0} is built into the game for {1}; only one of them will work.", shortcut, other.Name)
+                    : Loc.T("{0} is also set for {1}; only one of them will work.", shortcut, other.Name)));
             }
 
             if (gameKey.Modifiers == "NONE" && gameKey.Key.Length == 5 && gameKey.Key.StartsWith("KEY_"))
@@ -667,7 +668,7 @@ namespace CommandCenter.Services
                     .Where(b => KeyFor(b.Label) == letter && !b.Action.Equals(gameKey.Command, StringComparison.OrdinalIgnoreCase))
                     .Select(b => b.Name).Distinct().Take(3).ToList();
                 if (buttons.Count > 0)
-                    issues.Add(new KeyIssue(IssueLevel.Warn, $"{letter} is also a button key ({string.Join(", ", buttons)}…). Pressing it does both."));
+                    issues.Add(new KeyIssue(IssueLevel.Warn, Loc.T("{0} is also a button key ({1}…). Pressing it does both.", letter, string.Join(Loc.T(", "), buttons))));
             }
             return issues;
         }
@@ -681,11 +682,11 @@ namespace CommandCenter.Services
         public static string? CannotUse(GameKey gameKey, string key)
         {
             if (gameKey.IsTeam)
-                return "Team keys always use the game's defaults.";
+                return Loc.T("Team keys always use the game's defaults.");
             if (gameKey.IsFixed)
-                return "The game adds this key by itself and cannot read a new one for it.";
+                return Loc.T("The game adds this key by itself and cannot read a new one for it.");
             if (!gameKey.IsBuiltIn && NewKeyNames.Contains(key))
-                return $"{Describe(key, "NONE")} only works in Generals Online; the original game would not start with it in CommandMap.ini.";
+                return Loc.T("{0} only works in Generals Online; the original game would not start with it in CommandMap.ini.", Loc.Ltr(Describe(key, "NONE")));
             return null;
         }
 
