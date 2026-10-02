@@ -8,6 +8,9 @@ namespace CommandCenter.Services
     {
         public string? LibraryFolder { get; set; }
 
+        // "en" or "ar"; empty means English unless Windows is in Arabic
+        public string? Language { get; set; }
+
         private static string FilePath => Path.Combine(GamePaths.AppData, "settings.json");
         private static AppSettings? _current;
 

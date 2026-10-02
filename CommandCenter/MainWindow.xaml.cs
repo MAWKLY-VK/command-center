@@ -318,7 +318,21 @@ namespace CommandCenter
             var dpi = VisualTreeHelper.GetDpi(this);
             int w = (int)Math.Round(Root.ActualWidth * dpi.DpiScaleX), h = (int)Math.Round(Root.ActualHeight * dpi.DpiScaleY);
             var bitmap = new RenderTargetBitmap(w, h, dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
-            bitmap.Render(Root);
+            if (FlowDirection == FlowDirection.RightToLeft)
+            {
+                // The right-to-left mirror sits on the window, not on Root; add it so the picture matches the screen
+                var size = Root.RenderSize;
+                var mirrored = new DrawingVisual();
+                using (var dc = mirrored.RenderOpen())
+                {
+                    dc.PushTransform(new MatrixTransform(-1, 0, 0, 1, size.Width, 0));
+                    dc.DrawRectangle(new VisualBrush(Root) { Stretch = Stretch.None, ViewboxUnits = BrushMappingMode.Absolute, Viewbox = new Rect(size),
+                        AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top }, null, new Rect(size));
+                }
+                bitmap.Render(mirrored);
+            }
+            else
+                bitmap.Render(Root);
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(bitmap));
             using var stream = File.Create(path);
