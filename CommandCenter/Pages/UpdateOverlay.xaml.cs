@@ -2,7 +2,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
-using CommandCenter.Controls;
 using CommandCenter.Services;
 
 namespace CommandCenter.Pages
@@ -27,8 +26,8 @@ namespace CommandCenter.Pages
         public void Open(UpdateInfo update)
         {
             _update = update;
-            Message.Text = $"Version {update.VersionText} is ready. This version stops working until you update.";
-            Versions.Text = $"Installed {UpdateService.Current.ToString(3)} · New {update.Version.ToString(3)}";
+            Message.Text = Loc.T("Version {0} is ready. This version stops working until you update.", update.VersionText);
+            Versions.Text = Loc.T("Installed {0} · New {1}", UpdateService.Current.ToString(3), update.Version.ToString(3));
             Notes.Text = update.Notes;
             NotesBox.Visibility = update.Notes.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
@@ -61,7 +60,7 @@ namespace CommandCenter.Pages
                 return;
             _busy = true;
             UpdateNow.IsEnabled = false;
-            ErrorBox.Visibility = Visibility.Collapsed;
+            Error.Visibility = Visibility.Collapsed;
             DownloadPage.Visibility = Visibility.Collapsed;
             ProgressBox.Visibility = Visibility.Visible;
             try
@@ -71,18 +70,18 @@ namespace CommandCenter.Pages
                     ShowProgress((0, -1));
                     UpdateService.CheckFolder();
                     string file = await UpdateService.DownloadAsync(_update, new Progress<(long Done, long Total)>(ShowProgress));
-                    Stage.Text = "Installing";
+                    Stage.Text = Loc.T("Installing");
                     UpdateService.Install(file);
                     _installed = true;
                 }
-                Stage.Text = "Restarting";
+                Stage.Text = Loc.T("Restarting");
                 try
                 {
                     UpdateService.Restart();
                 }
                 catch (Exception ex)
                 {
-                    throw new InvalidOperationException($"The new version is installed but did not start ({ex.Message}). Close this window and start Command Center again.");
+                    throw new InvalidOperationException(Loc.T("The new version is installed but did not start ({0}). Close this window and start Command Center again.", ex.Message));
                 }
                 Restarting = true;
                 Application.Current.Shutdown();
@@ -90,11 +89,10 @@ namespace CommandCenter.Pages
             catch (Exception ex)
             {
                 ProgressBox.Visibility = Visibility.Collapsed;
-                Error.Text = "Update failed. " + ex.Message;
-                ErrorBox.Visibility = Visibility.Visible;
+                Error.Text = Loc.T("Update failed. {0}", ex.Message);
+                Error.Visibility = Visibility.Visible;
                 DownloadPage.Visibility = Visibility.Visible;
-                UpdateNow.Content = "Try again";
-                Ui.SetIcon(UpdateNow, Views.Icon("refresh"));
+                UpdateNow.Content = Loc.T("TRY AGAIN");
                 UpdateNow.IsEnabled = true;
                 Keyboard.Focus(UpdateNow);
             }
@@ -110,31 +108,19 @@ namespace CommandCenter.Pages
             {
                 Bar.Value = (double)p.Done / p.Total;
                 Percent.Text = $"{p.Done * 100 / p.Total}%";
-                Stage.Text = $"Downloading · {Views.Size(p.Done)} of {Views.Size(p.Total)}";
+                Stage.Text = Loc.T("Downloading · {0} of {1}", Views.Size(p.Done), Views.Size(p.Total));
             }
             else
             {
                 Bar.Value = 0;
                 Percent.Text = "";
-                Stage.Text = p.Done > 0 ? $"Downloading · {Views.Size(p.Done)}" : "Downloading";
+                Stage.Text = p.Done > 0 ? Loc.T("Downloading · {0}", Views.Size(p.Done)) : Loc.T("Downloading");
             }
         }
 
         private void UpdateNow_Click(object sender, RoutedEventArgs e) => _ = InstallAsync();
 
         private void DownloadPage_Click(object sender, RoutedEventArgs e) => Views.Open(UpdateService.ReleasePage);
-
-        private void Min_Click(object sender, RoutedEventArgs e)
-        {
-            if (Window.GetWindow(this) is { } window)
-                window.WindowState = WindowState.Minimized;
-        }
-
-        private void Max_Click(object sender, RoutedEventArgs e)
-        {
-            if (Window.GetWindow(this) is { } window)
-                window.WindowState = window.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
-        }
 
         private void Close_Click(object sender, RoutedEventArgs e) => Window.GetWindow(this)?.Close();
     }

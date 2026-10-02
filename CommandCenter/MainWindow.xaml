@@ -1,186 +1,108 @@
-<Window x:Class="CommandCenter.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:ui="clr-namespace:CommandCenter.Controls"
-        xmlns:pages="clr-namespace:CommandCenter.Pages"
-        xmlns:l="clr-namespace:CommandCenter.Services"
-        Title="Command Center" Width="1440" Height="900" MinWidth="1180" MinHeight="700"
-        WindowStartupLocation="CenterScreen" Background="{StaticResource Bg0}"
-        FontFamily="{StaticResource UiFont}" FontSize="14" Foreground="{StaticResource Text}"
-        UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal" ResizeMode="CanResize">
-    <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="64" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
-    </WindowChrome.WindowChrome>
+<Window
+    x:Class="CommandCenter.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+    xmlns:pages="clr-namespace:CommandCenter.Pages"
+    xmlns:l="clr-namespace:CommandCenter.Services"
+    Title="Command Center"
+    Width="900" Height="480" MinWidth="900" MinHeight="480"
+    WindowStyle="None"
+    ResizeMode="CanResize"
+    WindowStartupLocation="CenterScreen"
+    Background="#01031A"
+    FontFamily="Segoe UI"
+    UseLayoutRounding="True">
 
-    <Grid x:Name="Root" ClipToBounds="True">
-        <!-- Backdrop: Steam's hero art for Zero Hour, darkened toward the sidebar and the bottom -->
-        <Image x:Name="Hero" Stretch="UniformToFill" HorizontalAlignment="Right" VerticalAlignment="Top" Opacity="1"/>
-        <Rectangle x:Name="ShadeLeft">
-            <Rectangle.Fill>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                    <GradientStop Color="#F5060708" Offset="0"/>
-                    <GradientStop Color="#EB060708" Offset="0.2"/>
-                    <GradientStop Color="#8C060708" Offset="0.5"/>
-                    <GradientStop Color="#59060708" Offset="1"/>
-                </LinearGradientBrush>
-            </Rectangle.Fill>
-        </Rectangle>
-        <Rectangle>
-            <Rectangle.Fill>
-                <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
-                    <GradientStop Color="#F2060708" Offset="0"/>
-                    <GradientStop Color="#00060708" Offset="0.5"/>
-                </LinearGradientBrush>
-            </Rectangle.Fill>
-        </Rectangle>
-        <Rectangle x:Name="ShadeHeavy" Opacity="0">
-            <Rectangle.Fill>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                    <GradientStop Color="#F8060708" Offset="0"/>
-                    <GradientStop Color="#EE060708" Offset="0.2"/>
-                    <GradientStop Color="#DB08090A" Offset="1"/>
-                </LinearGradientBrush>
-            </Rectangle.Fill>
-        </Rectangle>
-        <!-- Faint map grid, like the in-game radar -->
-        <Rectangle Opacity="0.06" IsHitTestVisible="False">
-            <Rectangle.Fill>
-                <DrawingBrush TileMode="Tile" Viewport="0,0,48,48" ViewportUnits="Absolute" Viewbox="0,0,48,48" ViewboxUnits="Absolute">
-                    <DrawingBrush.Drawing>
-                        <GeometryDrawing Brush="White">
-                            <GeometryDrawing.Geometry>
-                                <GeometryGroup>
-                                    <RectangleGeometry Rect="0,0,48,1"/>
-                                    <RectangleGeometry Rect="0,0,1,48"/>
-                                </GeometryGroup>
-                            </GeometryDrawing.Geometry>
-                        </GeometryDrawing>
-                    </DrawingBrush.Drawing>
-                </DrawingBrush>
-            </Rectangle.Fill>
-            <Rectangle.OpacityMask>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                    <GradientStop Color="#00000000" Offset="0.18"/>
-                    <GradientStop Color="#FF000000" Offset="0.4"/>
-                </LinearGradientBrush>
-            </Rectangle.OpacityMask>
-        </Rectangle>
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome
+            CaptionHeight="32"
+            ResizeBorderThickness="5"
+            GlassFrameThickness="0"
+            UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
 
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="264"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+    <Window.Resources>
+        <Style x:Key="CaptionButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Opacity" Value="0.6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#20FFFFFF"/>
+                                <Setter Property="Opacity" Value="1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="CloseButtonStyle" TargetType="Button" BasedOn="{StaticResource CaptionButtonStyle}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#C42B1C"/>
+                                <Setter Property="Opacity" Value="1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
 
-            <!-- ── Sidebar ── -->
-            <Border Background="{StaticResource SideFill}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
-                <DockPanel LastChildFill="False">
-                    <StackPanel DockPanel.Dock="Top" Margin="0,20,0,0">
-                        <Image x:Name="Logo" Width="214" Height="88" Stretch="Uniform" HorizontalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
-                        <TextBlock x:Name="LogoFallback" Text="ZERO HOUR" FontSize="34" FontWeight="Bold" FontStretch="Condensed" Foreground="{StaticResource Accent}" HorizontalAlignment="Center" Visibility="Collapsed"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
-                            <ui:TrackedText Text="Command Center" FontSize="11.5" Tracking="0.3" Foreground="{StaticResource Text3}"/>
-                            <ui:TrackedText Text=" · Test" FontSize="11.5" Tracking="0.3" Foreground="{StaticResource Accent}"/>
-                        </StackPanel>
-                    </StackPanel>
+    <Grid x:Name="Root">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="32"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-                    <StackPanel DockPanel.Dock="Top" Margin="0,22,0,0">
-                        <RadioButton x:Name="NavHome" Style="{StaticResource NavItem}" Content="{l:T Home}" ui:Ui.Icon="{StaticResource I.home}" Tag="home" Checked="Nav_Checked"/>
-                        <ui:TrackedText Style="{StaticResource Lbl}" Text="{l:T Library}" Margin="20,18,0,6"/>
-                        <RadioButton x:Name="NavMaps" Style="{StaticResource NavItem}" Content="{l:T Maps}" ui:Ui.Icon="{StaticResource I.map}" Tag="maps" Checked="Nav_Checked"/>
-                        <RadioButton x:Name="NavReplays" Style="{StaticResource NavItem}" Content="{l:T Replays}" ui:Ui.Icon="{StaticResource I.replay}" Tag="replays" Checked="Nav_Checked"/>
-                        <ui:TrackedText Style="{StaticResource Lbl}" Text="{l:T Tools}" Margin="20,18,0,6"/>
-                        <RadioButton x:Name="NavHotkeys" Style="{StaticResource NavItem}" Content="{l:T Hotkeys}" ui:Ui.Icon="{StaticResource I.keys}" Tag="hotkeys" Checked="Nav_Checked"/>
-                        <RadioButton x:Name="NavHealth" Style="{StaticResource NavItem}" Content="{l:T Health}" ui:Ui.Icon="{StaticResource I.shield}" Tag="health" Checked="Nav_Checked"/>
-                        <RadioButton x:Name="NavAddons" Style="{StaticResource NavItem}" Content="{l:T Add-ons}" ui:Ui.Icon="{StaticResource I.cube}" Tag="addons" Checked="Nav_Checked"/>
-                    </StackPanel>
+        <!-- Title bar -->
+        <DockPanel Grid.Row="0" Background="#01031A" LastChildFill="False">
+            <TextBlock Text="Command Center" Foreground="White" VerticalAlignment="Center" Margin="16,0"
+                       FontSize="12" Opacity="0.7" DockPanel.Dock="Left"/>
+            <Button DockPanel.Dock="Right" Content="✕" Style="{StaticResource CloseButtonStyle}" Click="Close_Click"
+                    ToolTip="{l:T Close}"/>
+            <Button DockPanel.Dock="Right" Style="{StaticResource CaptionButtonStyle}" Click="Minimize_Click"
+                    ToolTip="{l:T Minimize}">
+                <Rectangle Width="10" Height="1" Fill="White"/>
+            </Button>
+        </DockPanel>
 
-                    <StackPanel x:Name="SideFooter" DockPanel.Dock="Bottom" Margin="16,0,16,16">
-                        <Button x:Name="SidePlay" Style="{StaticResource BtnLg}" ui:Ui.Variant="Primary" ui:Ui.Icon="{StaticResource I.play}" ui:Ui.IconFilled="True"
-                                Content="Play" FontSize="18" Height="52" Click="SidePlay_Click" ToolTip="Start Generals Online (Ctrl+Enter)"/>
-                        <ui:Chamfer Style="{StaticResource Tile}" Margin="0,12,0,0" Padding="14,12">
-                            <StackPanel>
-                                <DockPanel>
-                                    <ui:StatusMark x:Name="ServerMark" Mark="Info" Width="12" Height="12" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Generals Online" FontSize="13" Foreground="{StaticResource Text2}" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="ServerState" Text="Checking" FontSize="13" FontWeight="SemiBold" FontStretch="Condensed" Foreground="{StaticResource Text}" HorizontalAlignment="Right"/>
-                                </DockPanel>
-                                <DockPanel Margin="0,8,0,0">
-                                    <ui:Icon Data="{StaticResource I.users}" Width="15" Height="15" Foreground="{StaticResource IconIdle}" Margin="0,0,9,0"/>
-                                    <TextBlock Text="Players" FontSize="13" Foreground="{StaticResource Text2}"/>
-                                    <TextBlock x:Name="ServerPlayers" Text="—" FontSize="14" FontWeight="SemiBold" FontStretch="Condensed" HorizontalAlignment="Right"/>
-                                </DockPanel>
-                                <DockPanel Margin="0,6,0,0">
-                                    <ui:Icon Data="{StaticResource I.door}" Width="15" Height="15" Foreground="{StaticResource IconIdle}" Margin="0,0,9,0"/>
-                                    <TextBlock Text="Open lobbies" FontSize="13" Foreground="{StaticResource Text2}"/>
-                                    <TextBlock x:Name="ServerLobbies" Text="—" FontSize="14" FontWeight="SemiBold" FontStretch="Condensed" HorizontalAlignment="Right"/>
-                                </DockPanel>
-                            </StackPanel>
-                        </ui:Chamfer>
-                        <DockPanel Margin="2,10,2,0">
-                            <TextBlock x:Name="ClientVersion" FontSize="11.5" Foreground="{StaticResource Text3}"/>
-                            <TextBlock x:Name="AppVersion" FontSize="11.5" Foreground="{StaticResource Text3}" HorizontalAlignment="Right"/>
-                        </DockPanel>
-                    </StackPanel>
+        <!-- Pages -->
+        <Frame x:Name="ContentFrame" Grid.Row="1" Background="#01031A" NavigationUIVisibility="Hidden"
+               Navigated="ContentFrame_Navigated" Focusable="False"/>
 
-                    <RadioButton x:Name="NavSettings" DockPanel.Dock="Bottom" Style="{StaticResource NavItem}" Content="{l:T Settings}" ui:Ui.Icon="{StaticResource I.gear}" Tag="settings" Checked="Nav_Checked" Margin="0,0,0,14"/>
-                </DockPanel>
-            </Border>
-
-            <!-- ── Main column ── -->
-            <Grid Grid.Column="1">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="64"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-
-                <Border Background="{StaticResource TopFill}" BorderBrush="#993E4549" BorderThickness="0,0,0,1">
-                    <DockPanel Margin="28,0,10,0">
-                        <Grid Width="34" Height="34" VerticalAlignment="Center">
-                            <Path Data="M17,0 L34,8.5 L34,25.5 L17,34 L0,25.5 L0,8.5 Z" Stroke="#4A3A16" StrokeThickness="1">
-                                <Path.Fill>
-                                    <RadialGradientBrush GradientOrigin="0.5,0.35" Center="0.5,0.4">
-                                        <GradientStop Color="#3A2A0C" Offset="0"/>
-                                        <GradientStop Color="#140F06" Offset="1"/>
-                                    </RadialGradientBrush>
-                                </Path.Fill>
-                            </Path>
-                            <ui:Icon x:Name="TitleIcon" Width="17" Height="17" Foreground="{StaticResource Accent}"/>
-                        </Grid>
-                        <ui:TrackedText x:Name="TitleText" FontSize="23" FontWeight="Bold" Tracking="0.1" Foreground="{StaticResource Steel}" VerticalAlignment="Center" Margin="14,0,0,0"/>
-                        <ui:TrackedText x:Name="CrumbText" Style="{StaticResource Lbl}" FontSize="12" Tracking="0.14" VerticalAlignment="Center" Margin="12,3,0,0"/>
-
-                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True">
-                            <Button Style="{StaticResource IconBtn}" ui:Ui.Icon="{StaticResource I.min}" Click="Min_Click" ToolTip="Minimize"/>
-                            <Button Style="{StaticResource IconBtn}" ui:Ui.Icon="{StaticResource I.max}" Click="Max_Click" ToolTip="Maximize"/>
-                            <Button Style="{StaticResource CloseBtn}" ui:Ui.Icon="{StaticResource I.close}" Click="Close_Click" ToolTip="Close"/>
-                        </StackPanel>
-                        <ContentControl x:Name="TopRight" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="0,0,14,0" Focusable="False" WindowChrome.IsHitTestVisibleInChrome="True"/>
-                        <Border/>
-                    </DockPanel>
-                </Border>
-
-                <ContentControl x:Name="PageHost" Grid.Row="1" Focusable="False"/>
-
-                <Border x:Name="FooterBar" Grid.Row="2" Background="{StaticResource BarFill}" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" MinHeight="72" Visibility="Collapsed">
-                    <ContentControl x:Name="FooterHost" Margin="28,0" VerticalAlignment="Center" Focusable="False"/>
-                </Border>
-            </Grid>
-        </Grid>
-
-        <!-- Toast with an optional Undo button -->
-        <ui:Chamfer x:Name="ToastBox" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="264,0,0,96" Cut="10"
-                    Background="#F2181B1D" BorderBrush="{StaticResource LineHi}" BorderThickness="1" Padding="16,10" Visibility="Collapsed" Opacity="0">
+        <!-- Short message after an action, with Undo when the action can be taken back -->
+        <Border x:Name="ToastBox" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,18"
+                Background="#07091C" BorderBrush="#2980FF" BorderThickness="1" Padding="14,8" Visibility="Collapsed"
+                MaxWidth="640">
             <StackPanel Orientation="Horizontal">
-                <ui:StatusMark x:Name="ToastMark" Mark="Ok" Width="16" Height="16" VerticalAlignment="Center"/>
-                <TextBlock x:Name="ToastText" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Text}" MaxWidth="560" TextWrapping="Wrap"/>
-                <Button x:Name="ToastAction" Style="{StaticResource BtnXs}" Margin="16,0,0,0" Content="Undo" ui:Ui.Icon="{StaticResource I.undo}" Click="ToastAction_Click" Visibility="Collapsed"/>
-                <Button Style="{StaticResource IconBtn}" Width="28" Height="28" Margin="8,0,-6,0" ui:Ui.Icon="{StaticResource I.close}" Click="ToastClose_Click"/>
+                <TextBlock x:Name="ToastText" Foreground="White" FontSize="13" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="460"/>
+                <Button x:Name="ToastAction" Style="{StaticResource SmallButtonStyle}" Margin="14,0,0,0" Content="UNDO"
+                        Click="ToastAction_Click" Visibility="Collapsed"/>
+                <Button Style="{StaticResource SmallButtonStyle}" BorderThickness="0" Margin="6,0,0,0" Content="✕"
+                        Click="ToastClose_Click"/>
             </StackPanel>
-        </ui:Chamfer>
+        </Border>
 
-        <!-- Mandatory update: stays last so it covers everything, sidebar included -->
-        <pages:UpdateOverlay x:Name="UpdateOverlay"/>
+        <!-- Mandatory update: covers everything until the new version is installed -->
+        <pages:UpdateOverlay x:Name="UpdateOverlay" Grid.RowSpan="2"/>
     </Grid>
 </Window>

@@ -1,0 +1,73 @@
+<Page
+    x:Class="CommandCenter.Pages.LauncherPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l="clr-namespace:CommandCenter.Services"
+    Background="#01031A">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="100"/>
+        </Grid.RowDefinitions>
+
+        <!-- Logo: a shield with a star and two rank chevrons, and the name in two lines -->
+        <Viewbox Grid.Row="0" MaxHeight="190" Margin="20,10" HorizontalAlignment="Center" VerticalAlignment="Center" FlowDirection="LeftToRight">
+            <StackPanel Orientation="Horizontal">
+                <Canvas Width="200" Height="220">
+                    <Path Data="M100,6 L190,34 L190,104 C190,160 150,196 100,214 C50,196 10,160 10,104 L10,34 Z" Fill="#2980FF"/>
+                    <Path Data="M100,20 L176,44 L176,104 C176,150 142,182 100,198 C58,182 24,150 24,104 L24,44 Z">
+                        <Path.Fill>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#0A1660" Offset="0"/>
+                                <GradientStop Color="#020618" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Path.Fill>
+                    </Path>
+                    <Path Data="M100,52 L109.4,78 L137,79 L115.2,96 L123,122.5 L100,107 L77,122.5 L84.8,96 L63,79 L90.6,78 Z" Fill="#FECD03"/>
+                    <Path Data="M60,136 L100,154 L140,136 L140,149 L100,167 L60,149 Z" Fill="#C8D0DA"/>
+                    <Path Data="M66,158 L100,173 L134,158 L134,169 L100,184 L66,169 Z" Fill="#C8D0DA"/>
+                </Canvas>
+                <StackPanel Margin="28,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="COMMAND" FontFamily="Bahnschrift" FontWeight="Bold" FontStretch="Condensed" FontSize="104"
+                               Foreground="White" LineHeight="96" LineStackingStrategy="BlockLineHeight"/>
+                    <TextBlock Text="CENTER" FontFamily="Bahnschrift" FontWeight="Bold" FontStretch="Condensed" FontSize="104"
+                               Foreground="#FECD03" LineHeight="96" LineStackingStrategy="BlockLineHeight"/>
+                </StackPanel>
+            </StackPanel>
+        </Viewbox>
+
+        <!-- Server stats and health notice -->
+        <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,0,0,8">
+            <TextBlock x:Name="StatsLabel" HorizontalAlignment="Center" Foreground="#7A9CC4" FontSize="13"/>
+            <TextBlock x:Name="HealthNotice" HorizontalAlignment="Center" Foreground="#E0A030" FontSize="12" Margin="0,6,0,0"
+                       Cursor="Hand" Visibility="Collapsed" MouseLeftButtonUp="HealthNotice_Click">
+                <Run x:Name="HealthNoticeText"/><Run Text="{l:T REVIEW}" FontWeight="Bold" TextDecorations="Underline"/>
+            </TextBlock>
+        </StackPanel>
+
+        <!-- Client selector (shown when the test client is installed) -->
+        <StackPanel x:Name="ClientSelectorPanel" Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right"
+                    Margin="12,0,12,6" Visibility="Collapsed">
+            <RadioButton x:Name="rbLiveClient" Content="{l:T Live Client}" GroupName="ClientSelector" IsChecked="True"
+                         Checked="ClientSelector_Changed" Margin="0,0,20,0"/>
+            <RadioButton x:Name="rbTestEnv" Content="{l:T Test Environment}" GroupName="ClientSelector" Checked="ClientSelector_Changed"/>
+        </StackPanel>
+
+        <!-- Action buttons -->
+        <Grid Grid.Row="3" Margin="12,10,12,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" Content="{l:T EXIT}" Style="{StaticResource ActionButtonStyle}" Margin="0,0,6,0" Click="BtnExit_Click"/>
+            <Button Grid.Column="1" Content="{l:T TOOLS}" Style="{StaticResource ActionButtonStyle}" Margin="3,0" Click="BtnTools_Click"/>
+            <Button Grid.Column="2" Content="{l:T OPTIONS}" Style="{StaticResource ActionButtonStyle}" Margin="3,0" Click="BtnOptions_Click"/>
+            <Button x:Name="PlayButton" Grid.Column="3" Content="{l:T PLAY}" Style="{StaticResource PlayButtonStyle}" Margin="6,0,0,0" Click="BtnPlay_Click"/>
+        </Grid>
+    </Grid>
+</Page>
