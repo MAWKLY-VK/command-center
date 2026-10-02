@@ -18,13 +18,15 @@ namespace CommandCenter.Pages
         private BitmapSource? _preview;
         private bool _checked, _selected;
 
-        public MapCard(MapInfo info, bool library)
+        public MapCard(MapInfo info, bool library, MapLibraryClient? client = null)
         {
             Info = info;
             IsLibrary = library;
+            Client = client;
         }
 
         public MapInfo Info { get; }
+        public MapLibraryClient? Client { get; }   // where a catalog map's preview and zip come from
         public bool IsLibrary { get; }
         public string Name => Info.Name;
         public string PlayersText => Info.Players > 0 ? Info.Players.ToString() : "?";
@@ -120,22 +122,30 @@ namespace CommandCenter.Pages
             await Task.Delay(1500);
         }
 
-        private static string? LibraryFolder => AppState.LibraryFolder ?? AppSettings.Current.LibraryFolder;
+        private MapLibraryClient? _client;
+        private CatalogResult? _catalog;
 
         private async Task LoadAsync()
         {
             _fill?.Cancel();
-            string? library = LibraryFolder;
+            // A web library or a folder with catalog.json is read through the client; any other folder as map folders
+            var client = MapLibraryClient.ForCurrentSource();
+            var catalog = client != null ? await client.LoadCatalogAsync() : null;
+            _client = client;
+            _catalog = catalog;
+            string? library = client == null ? MapLibraryClient.CurrentSource : null;
             var (lib, inst) = await Task.Run(() =>
             {
                 var installed = MapCatalog.Scan(GamePaths.Maps);
                 var names = installed.Select(m => m.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                if (catalog?.Catalog != null)
+                    return (MapCatalog.FromCatalog(catalog.Catalog), installed);
                 var libraryMaps = library != null ? MapCatalog.Scan(library) : new List<MapInfo>();
                 foreach (var m in libraryMaps)
                     m.Installed = names.Contains(m.Name);
                 return (libraryMaps, installed);
             });
-            _library = lib.Select(m => new MapCard(m, library: true)).ToList();
+            _library = lib.Select(m => new MapCard(m, library: true, client)).ToList();
             _installed = inst.Select(m => { m.Installed = true; return new MapCard(m, library: false); }).ToList();
             Ui.SetBadge(TabLibrary, _library.Count.ToString("N0"));
             Ui.SetBadge(TabInstalled, _installed.Count.ToString("N0"));
@@ -176,13 +186,23 @@ namespace CommandCenter.Pages
             ShowMore();
             Scroller.ScrollToTop();
 
-            bool noLibrary = library && LibraryFolder == null;
+            // The library could not be read (offline, 404, damaged catalog), or the chosen folder holds no maps
+            bool noLibrary = library && source.Count == 0 && (_catalog is { Catalog: null } || _client == null);
             Empty.Visibility = _filtered.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             ChooseLibrary.Visibility = noLibrary ? Visibility.Visible : Visibility.Collapsed;
-            EmptyTitle.Text = noLibrary ? "No map library yet" : source.Count == 0 ? "No maps installed" : "Nothing matches";
-            EmptyText.Text = noLibrary
-                ? "Pick a folder that holds map folders (each with a .map file). The online library comes in a later test."
-                : source.Count == 0 ? "Install maps from the Library tab, or drop a .zip or a map folder anywhere on this page." : "Try another search or player count.";
+            ChooseLibrary.Content = _client == null ? "Choose another folder" : "Use a local folder";
+            if (_catalog is { Catalog: null } failed && library)
+            {
+                EmptyTitle.Text = failed.Problem ?? "The map library can't be read";
+                EmptyText.Text = failed.Detail + " You can also install maps from a folder on this PC.";
+            }
+            else
+            {
+                EmptyTitle.Text = noLibrary ? "No maps in this folder" : source.Count == 0 ? "No maps installed" : "Nothing matches";
+                EmptyText.Text = noLibrary
+                    ? "Pick a folder that holds map folders (each with a .map file)."
+                    : source.Count == 0 ? "Install maps from the Library tab, or drop a .zip or a map folder anywhere on this page." : "Try another search or player count.";
+            }
 
             if (_selected == null || !_filtered.Contains(_selected))
                 Select(_filtered.FirstOrDefault());
@@ -228,10 +248,25 @@ namespace CommandCenter.Pages
         {
             foreach (var card in _previewQueue.GetConsumingEnumerable())
             {
-                if (card.Info.PreviewPath == null)
+                BitmapSource? image = null;
+                if (card.Client != null && card.Info.Entry != null)
+                {
+                    // Catalog maps: a PNG from the library folder or the download cache
+                    string? file = card.Client.PreviewFileAsync(card.Info.Entry).GetAwaiter().GetResult();
+                    image = file != null ? MainWindow.LoadBitmap(file) : null;
+                }
+                else if (card.Info.PreviewPath != null)
+                {
+                    image = TgaImage.Load(card.Info.PreviewPath);
+                }
+                if (image == null)
                     continue;
-                var image = TgaImage.Load(card.Info.PreviewPath);
-                Dispatcher.BeginInvoke(() => card.Preview = image);
+                Dispatcher.BeginInvoke(() =>
+                {
+                    card.Preview = image;
+                    if (card == _selected)
+                        BigImage.Source = image;
+                });
             }
         }
 
@@ -318,6 +353,11 @@ namespace CommandCenter.Pages
 
         private async void Install(IReadOnlyList<MapCard> cards)
         {
+            if (cards.Count > 0 && cards[0].Client is { } client)
+            {
+                await InstallFromCatalogAsync(client, cards);
+                return;
+            }
             int done = 0, skipped = 0;
             var failed = new List<string>();
             await Task.Run(() =>
@@ -341,6 +381,38 @@ namespace CommandCenter.Pages
             if (skipped > 0) message += $" {skipped} were already installed.";
             if (failed.Count > 0)
                 Views.Main.Toast(message + " Failed: " + string.Join("; ", failed.Take(3)), isError: true);
+            else
+                Views.Main.Toast(message);
+            await LoadAsync();
+        }
+
+        // Downloads, checks and installs catalog maps one by one; the footer shows the progress
+        private bool _installing;
+
+        private async Task InstallFromCatalogAsync(MapLibraryClient client, IReadOnlyList<MapCard> cards)
+        {
+            if (_installing)
+                return;
+            _installing = true;
+            InstallBtn.IsEnabled = _installSelected.IsEnabled = false;
+            InstallReport report;
+            try
+            {
+                report = await client.InstallAsync(cards.Select(c => c.Info.Entry!).ToList(), new Progress<string>(text => _footerText.Text = text));
+            }
+            finally
+            {
+                _installing = false;
+                InstallBtn.IsEnabled = _installSelected.IsEnabled = true;
+            }
+            foreach (var card in cards)
+                card.Checked = false;
+            string message = report.Installed.Count == 1 && cards.Count == 1
+                ? $"Installed {report.Installed[0]}. It shows up in Skirmish and online games."
+                : $"Installed {report.Installed.Count} maps.";
+            if (report.Skipped > 0) message += $" {report.Skipped} were already installed.";
+            if (report.Failed.Count > 0)
+                Views.Main.Toast(message + " Failed: " + string.Join("; ", report.Failed.Take(3)), isError: true);
             else
                 Views.Main.Toast(message);
             await LoadAsync();
@@ -379,8 +451,7 @@ namespace CommandCenter.Pages
             var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Choose the folder that holds your maps" };
             if (dialog.ShowDialog(Window.GetWindow(this)) != true)
                 return;
-            AppSettings.Current.LibraryFolder = dialog.FolderName;
-            AppSettings.Current.Save();
+            MapLibraryClient.UseSource(dialog.FolderName);
             _ = LoadAsync();
         }
 

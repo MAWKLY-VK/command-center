@@ -18,6 +18,9 @@ namespace CommandCenter.Services
         public int Players { get; set; }
         public List<Point> Starts { get; set; } = new();   // 0..1 across the map, top-left origin
         public bool Installed { get; set; }
+        public LibraryMap? Entry { get; init; }    // set for maps from a library catalog
+        public bool CustomRules => Entry?.CustomRules == true;   // its map.ini changes rules on this map
+        public bool Scripts => Entry?.Scripts == true;
     }
 
     // Lists map folders and reads player counts and start positions, first from the game's own
@@ -75,6 +78,45 @@ namespace CommandCenter.Services
             return maps;
         }
 
+        // Every map of a library catalog; a map counts as installed when the Maps folder has a folder with its name
+        public static List<MapInfo> FromCatalog(LibraryCatalog catalog)
+        {
+            var folders = InstalledFolders();
+            return (catalog.Maps ?? new List<LibraryMap>()).Select(m => FromLibrary(m, folders.Contains(m.Name), catalog.Published)).ToList();
+        }
+
+        public static HashSet<string> InstalledFolders()
+        {
+            try
+            {
+                return Directory.Exists(GamePaths.Maps)
+                    ? Directory.EnumerateDirectories(GamePaths.Maps).Select(Path.GetFileName).OfType<string>().ToHashSet(StringComparer.OrdinalIgnoreCase)
+                    : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            }
+        }
+
+        // A map from a library catalog. Folder and MapFile are where it lands once installed.
+        public static MapInfo FromLibrary(LibraryMap map, bool installed, DateTime published)
+        {
+            string folder = Path.Combine(GamePaths.Maps, map.Name);
+            return new MapInfo
+            {
+                Name = map.Name,
+                Folder = folder,
+                MapFile = Path.Combine(folder, map.Name + ".map"),
+                SizeBytes = map.SizeBytes,
+                Modified = published,
+                Players = map.Players,
+                Starts = (map.Starts ?? new List<double[]>()).Select(s => new Point(s[0], s[1])).ToList(),
+                Installed = installed,
+                Entry = map,
+            };
+        }
+
         private static long SafeLength(string file)
         {
             try { return new FileInfo(file).Length; }
@@ -85,7 +127,8 @@ namespace CommandCenter.Services
         public static void FillMissing(IEnumerable<MapInfo> maps, Action<MapInfo> updated, CancellationToken ct)
         {
             bool changed = false;
-            foreach (var map in maps.Where(m => m.Players == 0))
+            // Catalog maps take their counts from the catalog; their map file is not on this PC yet
+            foreach (var map in maps.Where(m => m.Players == 0 && m.Entry == null && File.Exists(m.MapFile)))
             {
                 if (ct.IsCancellationRequested)
                     break;
