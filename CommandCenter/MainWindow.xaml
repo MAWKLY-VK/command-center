@@ -6,6 +6,7 @@
     xmlns:pages="clr-namespace:CommandCenter.Pages"
     xmlns:l="clr-namespace:CommandCenter.Services"
     Title="Command Center"
+    Icon="Assets/app.ico"
     Width="900" Height="480" MinWidth="900" MinHeight="480"
     WindowStyle="None"
     ResizeMode="CanResize"

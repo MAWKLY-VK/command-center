@@ -11,10 +11,12 @@
     <Version>0.1.0</Version>
     <Product>Command Center</Product>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
     <Resource Include="Assets\**\*.jpg" />
+    <Resource Include="Assets\app.ico" />
     <EmbeddedResource Include="Localization\*.json" LogicalName="Localization.%(Filename)%(Extension)" />
   </ItemGroup>
 

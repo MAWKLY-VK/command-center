@@ -9,19 +9,22 @@ game's own rules, control bar add-ons and the settings the in-game menu cannot r
 
 ## Pages
 
+The layout follows the official Generals Online launcher: a home screen with four buttons, and Tools and Options
+pages with a sidebar.
+
 | Page | What it does |
 | --- | --- |
-| Home | Play online (Live / Test channel), server numbers, game health summary, last match, recent changes with Undo |
-| Maps | Library and installed maps with previews, player counts and start positions; install by click or by dropping a `.zip` / folder |
-| Replays | Every match from `Replays` and `ArchivedReplays` with map, players, armies and teams; watch, keep, rename, star, copy, delete with Undo; turns the game's own *ArchiveReplays* option on or off |
-| Hotkeys | Unit and building buttons for all 12 armies drawn like the in-game bar, plus every game key; checks duplicates, clashes with game keys and built-in keys before saving |
-| Health | Game files, anti-cheat, wrapper and runtime DLLs, rule-changing archives, "Run as administrator" (error 740), compatibility modes, Visual C++, graphics driver, resolution, network |
-| Add-ons | Control Bar Pro and the Observer bar from TheSuperHackers, checked against pinned SHA-256 hashes |
-| Settings | Generals Online's `settings.json`, the launcher's window mode and Options.ini keys the game menu does not show |
+| Home | Server numbers, a line when the health check finds something, Live / Test choice, Play |
+| Tools › Health | Game files, anti-cheat, wrapper and runtime DLLs, rule-changing archives, "Run as administrator" (error 740), compatibility modes, Visual C++, graphics driver, resolution, network; one-click fixes with Undo |
+| Tools › Map library | The online map library and the installed maps, with previews, player counts and start positions; install by click or by dropping a `.zip` / folder |
+| Tools › Replays | Every match from `Replays` and `ArchivedReplays` with map, players, armies, results and who left when; watch, keep, rename, copy, delete with Undo; turns the game's own *ArchiveReplays* option on or off |
+| Tools › Hotkeys | Unit and building buttons for all 12 armies drawn like the in-game bar, plus the game keys; checks duplicates and clashes before saving |
+| Tools › Add-ons | Control Bar Pro and the Observer bar from TheSuperHackers, checked against pinned SHA-256 hashes; hotkey letters on the button pictures |
+| Options | The official launcher's sections (camera, chat, input, graphics, social, network with diagnostics, data packs, plugins) plus Launcher: language, map library source and updates |
 
 ## Ground rules
 
-- Every change is backed up first and can be undone (Home › Recent changes, Health › Fix history).
+- Every change is backed up first and can be undone.
 - Fixes move files to a quarantine folder instead of deleting them.
 - Nothing is written into the game folder except what you ask for: hotkey files, control bar archives and quarantine moves.
 - No DLL injection, no handles opened to the game process, no changes to Generals Online's own files.
@@ -49,7 +52,8 @@ The game folder is found automatically (current folder, the program's folder, th
 | --- | --- |
 | `--game <folder>` | Use this game folder |
 | `--library-folder <folder>` | Use a local folder of maps as the map library |
-| `--capture <folder> --size 1600x1000 --pages home,maps,hotkeys:keys` | Save screenshots of pages without showing the window |
+| `--user-data <folder>` | Use this folder instead of `DocumentsCommand and Conquer Generals Zero Hour Data` (for testing) |
+| `--capture <folder> --size 900x480 --pages home,tools:maps:library,options:launcher` | Save screenshots of pages without showing the window |
 | `--samples` | Add sample health problems to review the layout (their fixes do nothing) |
 | `--update-url <url or file>` | Read the update manifest (`update.json`) from here instead of the latest GitHub release; a local file works for testing |
 | `--lang ar` / `--lang en` | Show Command Center in Arabic (right to left) or English for this run only; the saved language is not changed. With `--capture`, untranslated strings are listed in `missing-ar.txt` |
@@ -64,6 +68,7 @@ Copyright (C) 2026 Command Center contributors.
 
 ## Credits
 
+- The interface, the Options page and the network diagnostics are based on the [Generals Online Launcher](https://github.com/GeneralsOnlineDevelopmentTeam/Launcher) by the GeneralsOnline Development Team (GPL-3.0).
 - Control Bar Pro and Observer control bar: [TheSuperHackers/GeneralsControlBar](https://github.com/TheSuperHackers/GeneralsControlBar) (MIT).
 - Map previews, icons and artwork are read at run time from the player's own game and Steam installation.
 
