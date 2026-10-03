@@ -94,10 +94,24 @@ namespace CommandCenter.Services
         // The Visual C++ 2015-2022 runtime version Generals Online is built against (14.44.35211)
         private const int MinVcMinor = 44;
 
+        public const string DownloadPage = "https://www.playgenerals.online/";
+
         public static List<HealthResult> Run()
         {
             string game = GamePaths.Game;
             var results = new List<HealthResult>();
+
+            // Without a Zero Hour folder there is nothing to check: never look at (or fix) some other folder instead
+            if (!GamePaths.ZeroHourFound)
+            {
+                results.Add(new HealthResult
+                {
+                    Id = "files", Group = GroupFiles, Title = "Zero Hour was not found", Status = HealthStatus.Problem,
+                    Detail = "Command Center looks in its own folder and in the Steam libraries. Press Play to choose the game folder",
+                });
+                return results;
+            }
+
             void Add(Func<HealthResult?> check)
             {
                 try
@@ -125,13 +139,15 @@ namespace CommandCenter.Services
             AddMany(() => CheckWrappers(game));
             AddMany(() => CheckExtraArchives(game));
             Add(() => CheckReadOnlyGameFiles(game));
-            Add(() => CheckEacSettings(game));
+            if (GamePaths.GameFound)
+                Add(() => CheckEacSettings(game));
 
             AddMany(() => CheckAdminFlag(game));
             Add(() => CheckCompatibilityMode(game));
             AddMany(() => CheckDpiOverride(game));
             Add(CheckVisualCpp);
-            Add(CheckEasyAntiCheat);
+            if (GamePaths.GameFound)
+                Add(CheckEasyAntiCheat);
             Add(CheckGraphics);
 
             // Before the Options.ini fixes, so "Fix all" can write to a file that was read-only
@@ -139,7 +155,8 @@ namespace CommandCenter.Services
             Add(CheckOptionsFile);
             Add(CheckResolution);
             Add(CheckNetworkAddress);
-            Add(CheckGoSettings);
+            if (GamePaths.GameFound)
+                Add(CheckGoSettings);
             Add(CheckDocumentsFolder);
             Add(CheckDataFolderName);
             Add(() => CheckDocumentsPath(game));
@@ -153,6 +170,15 @@ namespace CommandCenter.Services
             string[] required = { "GeneralsOnlineZH_60.exe", "EAC_LaunchGeneralsOnline.exe", "xaudio2_9redist.dll", "INIZH.big", "EnglishZH.big", "W3DZH.big", "WindowZH.big" };
             var missing = required.Where(f => !File.Exists(Path.Combine(game, f))).ToList();
             bool steam = File.Exists(Path.Combine(game, "steam_appid.txt"));
+
+            // Zero Hour without Generals Online, for example after Generals Online was uninstalled
+            if (missing.Contains("GeneralsOnlineZH_60.exe") && missing.Contains("EAC_LaunchGeneralsOnline.exe"))
+                return new HealthResult
+                {
+                    Id = "files", Group = GroupFiles, Title = "Generals Online is not installed", Status = HealthStatus.Problem,
+                    Detail = "This Zero Hour folder has no Generals Online files. Install Generals Online, then open Command Center again",
+                    GuideLabel = "Download", GuideTarget = DownloadPage,
+                };
 
             return missing.Count == 0
                 ? new HealthResult { Id = "files", Group = GroupFiles, Title = "Generals Online files complete", Detail = "GeneralsOnlineZH_60.exe, the anti-cheat launcher and xaudio2_9redist.dll are in place", Status = HealthStatus.Passed }

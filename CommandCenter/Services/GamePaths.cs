@@ -12,21 +12,35 @@ namespace CommandCenter.Services
 
         private static string? _game;
 
-        // The game folder: --game argument, then the working folder, then the folder of this program,
-        // then the Steam library that holds Zero Hour.
+        // The game folder: --game, then the folder chosen in Command Center, then the working folder and the folder of
+        // this program, then the Steam libraries. A Zero Hour folder with Generals Online comes first, one without it
+        // next (Generals Online not installed). No other folder is ever taken for the game, because fixes and add-ons
+        // change files inside it: when nothing is found it stays empty and ZeroHourFound is false.
         public static string Game
         {
-            get
-            {
-                if (_game != null)
-                    return _game;
-                _game = Detect() ?? Directory.GetCurrentDirectory();
-                return _game;
-            }
+            get => _game ??= Detect() ?? "";
             set => _game = value;
         }
 
-        public static bool GameFound => File.Exists(Path.Combine(Game, GameExe));
+        // Zero Hour is there, with Generals Online
+        public static bool GameFound => ZeroHourFound && File.Exists(Path.Combine(Game, GameExe));
+
+        // Zero Hour is there, with or without Generals Online
+        public static bool ZeroHourFound => Game.Length > 0 && IsZeroHour(Game);
+
+        // Zero Hour's own archives, present in every installation with or without Generals Online
+        public static bool IsZeroHour(string folder)
+        {
+            try
+            {
+                return Path.IsPathFullyQualified(folder)
+                       && File.Exists(Path.Combine(folder, "WindowZH.big")) && File.Exists(Path.Combine(folder, "INIZH.big"));
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
         private static string? _userData;
 
@@ -60,27 +74,40 @@ namespace CommandCenter.Services
 
         private static string? Detect()
         {
-            string[] args = Environment.GetCommandLineArgs();
-            int index = Array.FindIndex(args, a => a.Equals("--game", StringComparison.OrdinalIgnoreCase));
-            if (index >= 0 && index + 1 < args.Length && IsGame(args[index + 1]))
-                return args[index + 1];
-
-            foreach (string candidate in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
-            {
-                if (IsGame(candidate))
-                    return candidate;
-            }
-
-            foreach (string library in SteamLibraries())
-            {
-                string path = Path.Combine(library, "steamapps", "common", "Command & Conquer Generals - Zero Hour");
-                if (IsGame(path))
-                    return path;
-            }
-            return null;
+            var candidates = Candidates().Where(IsZeroHour).ToList();
+            return candidates.FirstOrDefault(c => File.Exists(Path.Combine(c, GameExe))) ?? candidates.FirstOrDefault();
         }
 
-        private static bool IsGame(string folder) => File.Exists(Path.Combine(folder, GameExe));
+        private static IEnumerable<string> Candidates()
+        {
+            string[] args = Environment.GetCommandLineArgs();
+            int index = Array.FindIndex(args, a => a.Equals("--game", StringComparison.OrdinalIgnoreCase));
+            if (index >= 0 && index + 1 < args.Length)
+                yield return Full(args[index + 1]);
+            if (AppSettings.Current.GameFolder is { Length: > 0 } chosen)
+                yield return chosen;
+            yield return Directory.GetCurrentDirectory();
+            yield return AppContext.BaseDirectory.TrimEnd('\\');
+            foreach (string library in SteamLibraries())
+                yield return Path.Combine(library, "steamapps", "common", "Command & Conquer Generals - Zero Hour");
+        }
+
+        private static string Full(string path)
+        {
+            try { return Path.GetFullPath(path); }
+            catch { return ""; }
+        }
+
+        // Remembers a folder the player picked; false when it is not a Zero Hour folder
+        public static bool UseGameFolder(string folder)
+        {
+            if (!IsZeroHour(folder))
+                return false;
+            _game = folder;
+            AppSettings.Current.GameFolder = folder;
+            AppSettings.Current.Save();
+            return true;
+        }
 
         public static string? SteamFolder()
         {

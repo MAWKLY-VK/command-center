@@ -49,14 +49,14 @@ namespace CommandCenter.Pages.Tools
             }
             LettersOnButton.Visibility = on ? Visibility.Collapsed : Visibility.Visible;
             LettersOffButton.Visibility = LettersUpdateButton.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
-            LettersOnButton.IsEnabled = LettersOffButton.IsEnabled = LettersUpdateButton.IsEnabled = GamePaths.GameFound && !_lettersBusy;
+            LettersOnButton.IsEnabled = LettersOffButton.IsEnabled = LettersUpdateButton.IsEnabled = GamePaths.ZeroHourFound && !_lettersBusy;
             if (_lettersBusy)
                 return;
 
-            if (!GamePaths.GameFound)
+            if (!GamePaths.ZeroHourFound)
             {
                 LettersState.Text = Loc.T("Folder not found");
-                LettersDetail.Text = Loc.T("Generals Online was not found. Start Command Center from the game folder or pass --game <folder>.");
+                LettersDetail.Text = Loc.T("Zero Hour was not found. Press Play on the home page to choose the game folder.");
                 return;
             }
             LettersState.Text = on ? Loc.T("Hotkey letters are on") : Loc.T("Hotkey letters are off");
@@ -124,7 +124,7 @@ namespace CommandCenter.Pages.Tools
             HotkeyService? hotkeys = null;
             try
             {
-                hotkeys = GamePaths.GameFound ? await AppState.Hotkeys() : null;
+                hotkeys = GamePaths.ZeroHourFound ? await AppState.Hotkeys() : null;
             }
             catch { }
             if (hotkeys == null || hotkeys.Armies.Count == 0)

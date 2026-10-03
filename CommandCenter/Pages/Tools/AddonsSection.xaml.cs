@@ -85,7 +85,7 @@ namespace CommandCenter.Pages.Tools
         {
             try
             {
-                _installed = GamePaths.GameFound ? AddonService.Installed() : (BarKind.Original, null);
+                _installed = GamePaths.ZeroHourFound ? AddonService.Installed() : (BarKind.Original, null);
             }
             catch
             {
@@ -95,7 +95,7 @@ namespace CommandCenter.Pages.Tools
             ProInstalled.Visibility = _installed.Kind == BarKind.Pro ? Visibility.Visible : Visibility.Collapsed;
             try
             {
-                _goManaged = GamePaths.GameFound && AddonService.ManagedByGo().Count > 0;
+                _goManaged = GamePaths.ZeroHourFound && AddonService.ManagedByGo().Count > 0;
             }
             catch
             {
@@ -150,7 +150,7 @@ namespace CommandCenter.Pages.Tools
         private BarKind Chosen => ChoicePro.IsChecked == true ? BarKind.Pro : ChoiceOriginal.IsChecked == true ? BarKind.Original : BarKind.Other;
         private string? ChosenResolution => Chosen == BarKind.Pro ? (Resolution.SelectedItem as ComboBoxItem)?.Tag as string : null;
 
-        private bool Pending => GamePaths.GameFound && !_goManaged && (Chosen != _installed.Kind || (Chosen == BarKind.Pro && ChosenResolution != _installed.Resolution));
+        private bool Pending => GamePaths.ZeroHourFound && !_goManaged && (Chosen != _installed.Kind || (Chosen == BarKind.Pro && ChosenResolution != _installed.Resolution));
 
         private void Choice_Checked(object sender, RoutedEventArgs e)
         {
@@ -186,10 +186,10 @@ namespace CommandCenter.Pages.Tools
 
         private void ShowChange()
         {
-            if (!GamePaths.GameFound)
+            if (!GamePaths.ZeroHourFound)
             {
                 ChangeText.Text = Loc.T("Folder not found");
-                ChangeDetail.Text = Loc.T("Generals Online was not found. Start Command Center from the game folder or pass --game <folder>.");
+                ChangeDetail.Text = Loc.T("Zero Hour was not found. Press Play on the home page to choose the game folder.");
                 ApplyButton.IsEnabled = false;
                 DiscardButton.Visibility = Visibility.Collapsed;
                 return;

@@ -9,6 +9,8 @@
 - New red eagle icon and home logo, made from the Generals Online launcher icon.
 - Options: Language has its own tab, first in the list; the map library source setting is gone (the library always comes from the internet).
 - Hotkey letters moved from Add-ons to Hotkeys; Add-ons now holds only the control bar, without the HD textures and GitHub links.
+- Safety: Command Center changes files only inside the Zero Hour folder and the game's Documents folder, and never takes another folder for the game. Before, when the game was not found it used the current folder (which can be `Windows\System32`) for the health checks and fixes; Windows refused those changes, and now Command Center refuses them itself.
+- When Generals Online is not installed (for example after uninstalling it), the health check and Play say so and offer the download page; when Zero Hour is not found, Play lets you choose its folder.
 - About 3 MB instead of 65 MB: runs on the .NET 10 Desktop Runtime (x86) that the Generals Online launcher already installs.
 
 ## 0.1.0 – first test build

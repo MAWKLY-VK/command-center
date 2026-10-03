@@ -176,10 +176,14 @@ namespace CommandCenter.Pages
         {
             if (_playing)
                 return;
+            if (!GamePaths.ZeroHourFound && !LocateGame())
+                return;
             if (!GamePaths.GameFound)
             {
-                MessageBox.Show(Loc.T("Generals Online was not found in {0}.", GamePaths.Game), "Command Center",
-                    MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK, Loc.MessageBoxOptions);
+                var answer = MessageBox.Show(Loc.T("Generals Online is not installed in the game folder:\n{0}\n\nInstall it, then press Play again. Open the Generals Online download page?", GamePaths.Game),
+                    "Command Center", MessageBoxButton.YesNo, MessageBoxImage.Information, MessageBoxResult.Yes, Loc.MessageBoxOptions);
+                if (answer == MessageBoxResult.Yes)
+                    Views.Open(HealthService.DownloadPage);
                 return;
             }
             if (GameLauncher.IsGameRunning())
@@ -226,6 +230,27 @@ namespace CommandCenter.Pages
                 _playing = false;
                 ShowGameState(false);
             }
+        }
+
+        // Zero Hour was not found by itself: the player picks its folder, which is remembered
+        private bool LocateGame()
+        {
+            var answer = MessageBox.Show(Loc.T("Command & Conquer Generals - Zero Hour was not found. Choose its folder now?"), "Command Center",
+                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes, Loc.MessageBoxOptions);
+            if (answer != MessageBoxResult.Yes)
+                return false;
+            var dialog = new Microsoft.Win32.OpenFolderDialog { Title = Loc.T("Choose the Zero Hour folder") };
+            if (dialog.ShowDialog(Window.GetWindow(this)) != true)
+                return false;
+            if (!GamePaths.UseGameFolder(dialog.FolderName))
+            {
+                MessageBox.Show(Loc.T("That folder does not hold Zero Hour. Choose the folder with WindowZH.big and INIZH.big in it."), "Command Center",
+                    MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, Loc.MessageBoxOptions);
+                return false;
+            }
+            AppState.ForgetHotkeys();
+            _ = AppState.RefreshHealthAsync();
+            return true;
         }
 
         // PLAY waits while the game runs, whoever started it (the official launcher does the same)

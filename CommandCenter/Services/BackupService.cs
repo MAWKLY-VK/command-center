@@ -56,8 +56,30 @@ namespace CommandCenter.Services
             Changed?.Invoke();
         }
 
+        public const string OutsideMessage = "Command Center only changes files in the game folder and in the game's Documents folder.";
+
+        // Command Center changes files only inside the Zero Hour folder and the game's Documents folder. Anything else
+        // (Windows, Program Files, a folder mistaken for the game) is refused here, whatever asked for the change.
+        public static void EnsureAllowed(string path)
+        {
+            string full;
+            try
+            {
+                full = Path.GetFullPath(path);
+            }
+            catch
+            {
+                throw new InvalidOperationException(OutsideMessage);
+            }
+            bool Inside(string root) => root.Length > 0 && full.StartsWith(root.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase);
+            if (Inside(Environment.GetFolderPath(Environment.SpecialFolder.Windows))
+                || !((GamePaths.ZeroHourFound && Inside(GamePaths.Game)) || Inside(GamePaths.UserData)))
+                throw new InvalidOperationException(OutsideMessage);
+        }
+
         public static BackupEntry WriteFile(string title, string target, byte[] content, string detail = "")
         {
+            EnsureAllowed(target);
             Directory.CreateDirectory(Root);
             var entry = new BackupEntry
             {
@@ -89,11 +111,20 @@ namespace CommandCenter.Services
         // Moves a file into the launcher's quarantine folder; undo moves it back.
         public static BackupEntry MoveToQuarantine(string title, string path, string detail = "")
         {
+            EnsureAllowed(path);
             string id = NewId();
             string folder = Path.Combine(Root, "Quarantine", id);
             Directory.CreateDirectory(folder);
             string destination = Path.Combine(folder, Path.GetFileName(path));
-            File.Move(path, destination);
+            try
+            {
+                File.Move(path, destination);
+            }
+            catch
+            {
+                try { Directory.Delete(folder); } catch { }
+                throw;
+            }
 
             var entry = new BackupEntry { Id = id, Title = title, Detail = detail, Kind = "move", Target = path, BackupFile = destination, When = DateTime.Now };
             var entries = Load();
@@ -138,6 +169,7 @@ namespace CommandCenter.Services
             {
                 foreach (string path in paths)
                 {
+                    EnsureAllowed(path);
                     var attributes = File.GetAttributes(path);
                     if (!attributes.HasFlag(FileAttributes.ReadOnly))
                         continue;

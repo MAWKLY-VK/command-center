@@ -879,6 +879,12 @@
 
   // ── Working next to the official launcher ──
   "RUNNING": "قيد التشغيل",
+  "Generals Online is not installed in the game folder:\n{0}\n\nInstall it, then press Play again. Open the Generals Online download page?": "Generals Online غير مثبّت في مجلد اللعبة:\n{0}\n\nثبّته ثم اضغط «العب» من جديد. هل تريد فتح صفحة تنزيل Generals Online؟",
+  "Command & Conquer Generals - Zero Hour was not found. Choose its folder now?": "لم يُعثر على Command & Conquer Generals - Zero Hour. هل تريد اختيار مجلدها الآن؟",
+  "Choose the Zero Hour folder": "اختر مجلد Zero Hour",
+  "That folder does not hold Zero Hour. Choose the folder with WindowZH.big and INIZH.big in it.": "هذا المجلد لا يحوي Zero Hour. اختر المجلد الذي فيه WindowZH.big و INIZH.big.",
+  "Zero Hour was not found. Press Play on the home page to choose the game folder.": "لم يُعثر على Zero Hour. اضغط «العب» في الصفحة الرئيسية لتختار مجلد اللعبة.",
+  "Command Center only changes files in the game folder and in the game's Documents folder.": "لا يغيّر Command Center إلا الملفات الموجودة في مجلد اللعبة وفي مجلدها داخل Documents.",
   "You can still drop a .zip or a map folder on this page to install it.": "ويمكنك تثبيت خريطة بإفلات ملف .zip أو مجلد خريطة على هذه الصفحة.",
   "Close the game first; it reads these settings only when it starts.": "أغلق اللعبة أولًا؛ فهي لا تقرأ هذه الإعدادات إلا عند بدئها.",
   "Close the game first; it keeps its archives open.": "أغلق اللعبة أولًا؛ فهي تُبقي ملفاتها مفتوحة.",

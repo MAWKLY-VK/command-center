@@ -421,7 +421,10 @@ namespace CommandCenter.Services
                 if (!IsGeneratedFile(target))
                     return !entries.Any(e => e.Title == Title);
                 if (entries.Count == 0 || entries[0].BackupFile == null)
+                {
+                    BackupService.EnsureAllowed(target);
                     File.Delete(target);
+                }
             }
             if (entries.Count > 0)
                 BackupService.RestoreOriginal(target);
@@ -431,6 +434,8 @@ namespace CommandCenter.Services
         // Files with our marker in the game's texture folders that no backup entry covers
         private static IEnumerable<string> Strays()
         {
+            if (!GamePaths.ZeroHourFound)
+                yield break;
             string data = Path.Combine(GamePaths.Game, "Data");
             if (!Directory.Exists(data))
                 yield break;

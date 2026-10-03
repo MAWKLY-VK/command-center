@@ -6,6 +6,9 @@ namespace CommandCenter.Services
     // Command Center's own preferences, kept apart from the game's and Generals Online's files.
     public sealed class AppSettings
     {
+        // The game folder the player chose when it was not found by itself
+        public string? GameFolder { get; set; }
+
         // "en" or "ar"; empty means English unless Windows is in Arabic
         public string? Language { get; set; }
 
