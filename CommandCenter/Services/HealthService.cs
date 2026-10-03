@@ -107,7 +107,7 @@ namespace CommandCenter.Services
                 results.Add(new HealthResult
                 {
                     Id = "files", Group = GroupFiles, Title = "Zero Hour was not found", Status = HealthStatus.Problem,
-                    Detail = "Command Center looks in its own folder and in the Steam libraries. Press Play to choose the game folder",
+                    Detail = "Command Center looks where Generals Online and the game's installer recorded it (Steam, EA app or another copy), in the Steam libraries and in its own folder. Press Play to choose the game folder",
                 });
                 return results;
             }

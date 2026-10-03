@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Finds the game and its Documents folder in any installation, not only Steam: it reads where Generals Online and the game's own installer recorded them (EA, the original discs and other copies write the same keys), and follows the data folder name the game is set to use.
+
 ## 0.2.0
 
 - Play no longer leaves the game on the taskbar: Command Center stays open under the game while it starts and puts it back in front when the focus leaves it (the anti-cheat splash closing, another program taking the focus); afterwards it steps aside without taking the focus. Each launch is logged to `play.log`.

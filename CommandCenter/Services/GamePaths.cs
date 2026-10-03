@@ -55,7 +55,7 @@ namespace CommandCenter.Services
                 int index = Array.FindIndex(args, a => a.Equals("--user-data", StringComparison.OrdinalIgnoreCase));
                 _userData = index >= 0 && index + 1 < args.Length
                     ? Path.GetFullPath(args[index + 1])
-                    : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Command and Conquer Generals Zero Hour Data");
+                    : DetectUserData();
                 return _userData;
             }
             set => _userData = value;
@@ -86,6 +86,14 @@ namespace CommandCenter.Services
                 yield return Full(args[index + 1]);
             if (AppSettings.Current.GameFolder is { Length: > 0 } chosen)
                 yield return chosen;
+            // Where Generals Online was installed, then where the game's own installer put it (Steam, EA app, the
+            // original discs and other copies all write that key)
+            if (ReadRegistry(RegistryHive.CurrentUser, GoKey, "InstallPath") is { } go)
+                yield return Full(go);
+            if (ReadRegistry(RegistryHive.LocalMachine, ZeroHourKey, "InstallPath") is { } installed)
+                yield return Full(installed);
+            if (ReadRegistry(RegistryHive.CurrentUser, ZeroHourKey, "InstallPath") is { } installedForUser)
+                yield return Full(installedForUser);
             yield return Directory.GetCurrentDirectory();
             yield return AppContext.BaseDirectory.TrimEnd('\\');
             foreach (string library in SteamLibraries())
@@ -94,8 +102,41 @@ namespace CommandCenter.Services
 
         private static string Full(string path)
         {
-            try { return Path.GetFullPath(path); }
+            try { return Path.GetFullPath(path).TrimEnd('\\'); }
             catch { return ""; }
+        }
+
+        private const string GoKey = @"Software\GeneralsOnline";
+        private const string ZeroHourKey = @"SOFTWARE\Electronic Arts\EA Games\Command and Conquer Generals Zero Hour";
+
+        // The game's own keys live in the 32-bit view (WOW6432Node on 64-bit Windows)
+        private static string? ReadRegistry(RegistryHive hive, string key, string name)
+        {
+            try
+            {
+                using var root = RegistryKey.OpenBaseKey(hive, RegistryView.Registry32);
+                using var sub = root.OpenSubKey(key);
+                return sub?.GetValue(name) is string value && value.Trim().Length > 0 ? value.Trim() : null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        // Where the game keeps settings, maps and replays: the folder Generals Online records, else the name the game
+        // itself is set to use (UserDataLeafName; copies in other languages and some repacks change it), else the usual one
+        private static string DetectUserData()
+        {
+            string documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            if (ReadRegistry(RegistryHive.CurrentUser, GoKey, "DataPath") is { } data && Path.IsPathFullyQualified(data) && Directory.Exists(data))
+                return data.TrimEnd('\\');
+            string? leaf = ReadRegistry(RegistryHive.CurrentUser, ZeroHourKey, "UserDataLeafName")
+                           ?? ReadRegistry(RegistryHive.LocalMachine, ZeroHourKey, "UserDataLeafName");
+            leaf = leaf?.Trim().TrimEnd('\\');
+            if (leaf is { Length: > 0 } && leaf.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 && leaf != "." && leaf != "..")
+                return Path.Combine(documents, leaf);
+            return Path.Combine(documents, "Command and Conquer Generals Zero Hour Data");
         }
 
         // Remembers a folder the player picked; false when it is not a Zero Hour folder
