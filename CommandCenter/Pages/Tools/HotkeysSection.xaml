@@ -38,10 +38,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#020830"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#0FFFFFFF"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#040C52"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#262980FF"/>
                                 <Setter TargetName="Bd" Property="BorderBrush" Value="#2980FF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -83,7 +83,7 @@
 
         <Style TargetType="ToolTip">
             <Setter Property="Background" Value="#07091C"/>
-            <Setter Property="BorderBrush" Value="#2A2A55"/>
+            <Setter Property="BorderBrush" Value="#1FFFFFFF"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="8,5"/>
             <Setter Property="MaxWidth" Value="340"/>
@@ -126,7 +126,7 @@
             <TextBlock Text="{l:T HOTKEYS}" Style="{StaticResource SectionHeaderStyle}"/>
             <DockPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="16,0,0,0">
                 <Ellipse x:Name="StatusDot" DockPanel.Dock="Left" Width="7" Height="7" Fill="#FFAA00" Margin="0,1,8,0" VerticalAlignment="Center" Visibility="Collapsed"/>
-                <TextBlock x:Name="StatusText" FontSize="12" Foreground="#8888AA" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                <TextBlock x:Name="StatusText" FontSize="12" Foreground="#A7AECB" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
             </DockPanel>
             <Button x:Name="DiscardButton" Grid.Column="2" Content="{l:T DISCARD}" Style="{StaticResource DiagButtonStyle}"
                     Margin="12,0,0,0" Visibility="Collapsed" Click="Discard_Click"/>
@@ -216,15 +216,15 @@
                         <WrapPanel Margin="2,6,0,0">
                             <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
                                 <Border Width="11" Height="11" BorderBrush="#FF4444" BorderThickness="2" VerticalAlignment="Center"/>
-                                <TextBlock Text="{l:T Same key twice in this menu}" FontSize="11" Foreground="#8888AA" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{l:T Same key twice in this menu}" FontSize="11" Foreground="#A7AECB" Margin="6,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,16,0">
                                 <Ellipse Width="7" Height="7" Fill="#FFAA00" VerticalAlignment="Center"/>
-                                <TextBlock Text="{l:T Also a game key}" FontSize="11" Foreground="#8888AA" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{l:T Also a game key}" FontSize="11" Foreground="#A7AECB" Margin="6,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal">
                                 <Ellipse Width="7" Height="7" Fill="#5BA4FF" VerticalAlignment="Center"/>
-                                <TextBlock Text="{l:T Changed from default}" FontSize="11" Foreground="#8888AA" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{l:T Changed from default}" FontSize="11" Foreground="#A7AECB" Margin="6,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                         </WrapPanel>
                     </StackPanel>
@@ -240,15 +240,15 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <Border Width="60" Height="48" Background="#050720" BorderBrush="#2A2A55" BorderThickness="1" VerticalAlignment="Top">
+                                <Border Width="60" Height="48" Background="#050720" BorderBrush="#1FFFFFFF" BorderThickness="1" VerticalAlignment="Top">
                                     <Image x:Name="BigIcon" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
                                 </Border>
                                 <StackPanel Grid.Column="1" Margin="12,0,12,0" VerticalAlignment="Top">
                                     <TextBlock x:Name="ButtonName" Style="{StaticResource NameTextStyle}" FontSize="14" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock x:Name="ButtonWhere" FontSize="11" Foreground="#8888AA" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock x:Name="ButtonWhere" FontSize="11" Foreground="#A7AECB" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"/>
                                     <TextBlock x:Name="KeyHint" FontSize="11" Foreground="#A0A0C0" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                 </StackPanel>
-                                <Border x:Name="KeyCap" Grid.Column="2" Width="48" Height="48" Background="#01031A" BorderThickness="2"
+                                <Border x:Name="KeyCap" Grid.Column="2" Width="48" Height="48" Background="#B30A0E20" BorderThickness="2"
                                         Cursor="Hand" VerticalAlignment="Top" MouseLeftButtonUp="KeyCap_Click">
                                     <Border.ToolTip>
                                         <l:T Text="Click, then press a letter"/>
@@ -278,7 +278,7 @@
 
                             <StackPanel x:Name="Issues" Margin="0,4,0,0"/>
 
-                            <TextBlock x:Name="SameText" FontSize="11" Foreground="#8888AA" TextWrapping="Wrap" Margin="16,0,0,2"/>
+                            <TextBlock x:Name="SameText" FontSize="11" Foreground="#A7AECB" TextWrapping="Wrap" Margin="16,0,0,2"/>
                         </StackPanel>
                     </ScrollViewer>
                 </Border>
@@ -325,7 +325,7 @@
                     <StackPanel Margin="14,12,14,10">
                         <TextBlock x:Name="KCategory" Style="{StaticResource GroupLabelStyle}" Foreground="#5A5A90" Margin="0"/>
                         <TextBlock x:Name="KName" FontSize="15" FontWeight="Bold" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                        <Border x:Name="KCap" Height="40" Margin="0,10,0,0" Background="#01031A" BorderThickness="2" MouseLeftButtonUp="KCap_Click">
+                        <Border x:Name="KCap" Height="40" Margin="0,10,0,0" Background="#B30A0E20" BorderThickness="2" MouseLeftButtonUp="KCap_Click">
                             <TextBlock x:Name="KCapText" FontSize="15" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <TextBlock x:Name="KHint" FontSize="11" Foreground="#A0A0C0" TextWrapping="Wrap" Margin="0,8,0,0"/>

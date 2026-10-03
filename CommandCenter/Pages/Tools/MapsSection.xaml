@@ -7,18 +7,18 @@
         <!-- One map: preview with a tick box, then the name and what it holds -->
         <DataTemplate x:Key="TileTemplate">
             <Border x:Name="Tile" Width="{Binding TileWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                    Margin="0,0,8,8" Background="#01031A" BorderBrush="#2A2A55" BorderThickness="1"
+                    Margin="0,0,8,8" Background="#B30A0E20" BorderBrush="#1FFFFFFF" BorderThickness="1"
                     Cursor="{Binding Cursor}" ToolTip="{Binding Tip}"
                     MouseLeftButtonUp="Tile_Click" Loaded="Tile_Loaded" Unloaded="Tile_Unloaded">
                 <StackPanel>
                     <Grid Height="{Binding TileWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                          Background="#00020F" ClipToBounds="True">
+                          Background="#0A0E20" ClipToBounds="True">
                         <Image Source="{Binding Preview}" Stretch="UniformToFill" Opacity="{Binding ImageOpacity}"
                                FlowDirection="LeftToRight" RenderOptions.BitmapScalingMode="HighQuality"/>
-                        <TextBlock Text="{l:T NO PREVIEW}" FontSize="9" FontWeight="Bold" Foreground="#404070"
+                        <TextBlock Text="{l:T NO PREVIEW}" FontSize="9" FontWeight="Bold" Foreground="#40FFFFFF"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="{Binding NoPreviewVisibility}"/>
                         <Border x:Name="Box" Width="16" Height="16" Margin="6" HorizontalAlignment="Left" VerticalAlignment="Top"
-                                Background="#CC01031A" BorderBrush="#8888AA" BorderThickness="1" Visibility="{Binding CheckVisibility}">
+                                Background="#CC01031A" BorderBrush="#A7AECB" BorderThickness="1" Visibility="{Binding CheckVisibility}">
                             <Path x:Name="Mark" Data="M2.5,7 L5.5,10 L11.5,3.5" Stroke="White" StrokeThickness="2"
                                   FlowDirection="LeftToRight" Visibility="Collapsed"/>
                         </Border>
@@ -29,17 +29,17 @@
                     </Grid>
                     <StackPanel Margin="7,5,7,7">
                         <TextBlock Text="{Binding Name}" Style="{StaticResource NameTextStyle}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                        <TextBlock Text="{Binding Detail}" FontSize="10" Foreground="#8888AA" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding Detail}" FontSize="10" Foreground="#A7AECB" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
                 </StackPanel>
             </Border>
             <DataTemplate.Triggers>
                 <Trigger SourceName="Tile" Property="IsMouseOver" Value="True">
-                    <Setter TargetName="Tile" Property="BorderBrush" Value="#404070"/>
+                    <Setter TargetName="Tile" Property="BorderBrush" Value="#40FFFFFF"/>
                 </Trigger>
                 <DataTrigger Binding="{Binding Checked}" Value="True">
                     <Setter TargetName="Tile" Property="BorderBrush" Value="#2980FF"/>
-                    <Setter TargetName="Tile" Property="Background" Value="#040C52"/>
+                    <Setter TargetName="Tile" Property="Background" Value="#262980FF"/>
                     <Setter TargetName="Box" Property="Background" Value="#2980FF"/>
                     <Setter TargetName="Box" Property="BorderBrush" Value="#2980FF"/>
                     <Setter TargetName="Mark" Property="Visibility" Value="Visible"/>
@@ -65,7 +65,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ProgressBar">
                         <Grid>
-                            <Border x:Name="PART_Track" Background="#2A2A55"/>
+                            <Border x:Name="PART_Track" Background="#1FFFFFFF"/>
                             <Border x:Name="PART_Indicator" Background="#2980FF" HorizontalAlignment="Left"/>
                         </Grid>
                     </ControlTemplate>
@@ -109,7 +109,7 @@
                          DockPanel.Dock="Left" Checked="Tab_Checked"/>
             <RadioButton x:Name="TabInstalled" GroupName="MapTabs" Style="{StaticResource SubTabStyle}"
                          DockPanel.Dock="Left" Checked="Tab_Checked"/>
-            <TextBlock x:Name="Summary" DockPanel.Dock="Right" Foreground="#8888AA" FontSize="12" Margin="16,0,0,0"
+            <TextBlock x:Name="Summary" DockPanel.Dock="Right" Foreground="#A7AECB" FontSize="12" Margin="16,0,0,0"
                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
         </DockPanel>
 

@@ -18,10 +18,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#020830"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#0FFFFFFF"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#040C52"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#262980FF"/>
                                 <Setter TargetName="Bd" Property="BorderBrush" Value="#2980FF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -41,7 +41,7 @@
                         <ColumnDefinition Width="62"/>
                         <ColumnDefinition Width="84"/>
                     </Grid.ColumnDefinitions>
-                    <Border Width="40" Height="40" HorizontalAlignment="Left" Background="#00020F" BorderBrush="#2A2A55" BorderThickness="1">
+                    <Border Width="40" Height="40" HorizontalAlignment="Left" Background="#0A0E20" BorderBrush="#1FFFFFFF" BorderThickness="1">
                         <Image Source="{Binding Preview}" Stretch="UniformToFill" FlowDirection="LeftToRight"
                                RenderOptions.BitmapScalingMode="HighQuality"/>
                     </Border>
@@ -53,7 +53,7 @@
                                    ToolTip="{Binding PlayersTip}"/>
                     <StackPanel Grid.Column="3" VerticalAlignment="Center" Margin="0,0,10,0">
                         <TextBlock Text="{Binding Day}" FontSize="12" TextTrimming="CharacterEllipsis"/>
-                        <TextBlock Text="{Binding Time}" FontSize="11" Foreground="#8888AA" Margin="0,2,0,0"/>
+                        <TextBlock Text="{Binding Time}" FontSize="11" Foreground="#A7AECB" Margin="0,2,0,0"/>
                     </StackPanel>
                     <TextBlock Grid.Column="4" Text="{Binding Length}" FontSize="12" VerticalAlignment="Center"/>
                     <TextBlock Grid.Column="5" Text="{Binding ResultText}" Foreground="{Binding ResultBrush}" FontSize="12" FontWeight="SemiBold"
@@ -95,7 +95,7 @@
             <CheckBox x:Name="Archive" Margin="0" VerticalAlignment="Center" Click="Archive_Click"
                       Content="{l:T Archive every match}" ToolTip="{l:T Sets ArchiveReplays in Options.ini}"/>
             <TextBlock Text="{l:T The game then keeps a copy of each match in ArchivedReplays, so the next one does not replace it.}"
-                       Foreground="#8888AA" FontSize="12" Margin="12,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                       Foreground="#A7AECB" FontSize="12" Margin="12,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
         </StackPanel>
 
         <!-- The list -->
@@ -151,7 +151,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
-            <TextBlock x:Name="Status" Foreground="#8888AA" FontSize="12" VerticalAlignment="Center" Margin="0,0,14,0"
+            <TextBlock x:Name="Status" Foreground="#A7AECB" FontSize="12" VerticalAlignment="Center" Margin="0,0,14,0"
                        TextTrimming="CharacterEllipsis"/>
             <StackPanel Grid.Column="1" Orientation="Horizontal">
                 <Button x:Name="KeepButton" Content="{l:T KEEP THIS MATCH}" Style="{StaticResource DiagButtonStyle}" Margin="0,0,10,0"

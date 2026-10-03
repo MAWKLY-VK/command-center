@@ -66,8 +66,8 @@ namespace CommandCenter.Pages.Tools
         private static readonly SolidColorBrush Muted = Views.Hint;
         private static readonly SolidColorBrush Soft = Views.Brush("#A0A0C0");
         private static readonly SolidColorBrush Line = Views.Brush("#2A2A55");
-        private static readonly SolidColorBrush Page = Views.Brush("#01031A");
-        private static readonly SolidColorBrush SelectedFill = Views.Brush("#040C52");
+        private static readonly SolidColorBrush Page = Views.Brush("#0A0E20");
+        private static readonly SolidColorBrush SelectedFill = Views.Brush("#262980FF");
         private static readonly SolidColorBrush SlotFill = Views.Brush("#050720");
         private static readonly SolidColorBrush SlotLine = Views.Brush("#161640");
         private static readonly SolidColorBrush BadgeFill = Views.Brush("#E0000000");

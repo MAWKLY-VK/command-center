@@ -26,7 +26,7 @@
                          DockPanel.Dock="Left" Checked="View_Checked"/>
             <RadioButton x:Name="TabHistory" GroupName="HealthViews" Style="{StaticResource SubTabStyle}"
                          DockPanel.Dock="Left" Checked="View_Checked"/>
-            <TextBlock x:Name="CheckedAt" DockPanel.Dock="Right" Foreground="#8888AA" FontSize="12" VerticalAlignment="Center"/>
+            <TextBlock x:Name="CheckedAt" DockPanel.Dock="Right" Foreground="#A7AECB" FontSize="12" VerticalAlignment="Center"/>
         </DockPanel>
 
         <Border Grid.Row="3" Style="{StaticResource ResultBoxStyle}" Padding="14,12,6,12">
@@ -45,7 +45,7 @@
                     Click="Report_Click"/>
             <Button x:Name="BackupsButton" DockPanel.Dock="Right" Content="{l:T OPEN BACKUPS}" Style="{StaticResource DiagButtonStyle}"
                     Margin="10,0,0,0" Visibility="Collapsed" Click="Backups_Click"/>
-            <TextBlock x:Name="FooterHint" Foreground="#8888AA" FontSize="11.5" TextWrapping="Wrap" VerticalAlignment="Center"/>
+            <TextBlock x:Name="FooterHint" Foreground="#A7AECB" FontSize="11.5" TextWrapping="Wrap" VerticalAlignment="Center"/>
         </DockPanel>
     </Grid>
 </UserControl>

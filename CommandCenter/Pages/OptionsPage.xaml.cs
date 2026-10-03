@@ -625,6 +625,13 @@ namespace CommandCenter.Pages
             chkEdgeScrollingWindowed.IsChecked = false;
         }
 
+        // Saves what was set on this page; the window calls it when the page is left by a tab or closed
+        public void Commit()
+        {
+            if (IsLoaded)
+                SaveGameSettings();
+        }
+
         private void SaveGameSettings()
         {
             _settings.camera.max_height_only_when_lobby_host = ParseInt(txtMaxCameraHeight, 310);

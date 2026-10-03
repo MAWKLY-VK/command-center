@@ -41,7 +41,7 @@ namespace CommandCenter.Pages.Tools
 
         // Replays keep the map path in lower case: an installed map takes its folder's name, a map that comes
         // with the game gets capitals ("tournament desert" becomes "Tournament Desert")
-        private static string MapName(ReplayEntry entry, HashSet<string> installedMaps)
+        public static string MapName(ReplayEntry entry, HashSet<string> installedMaps)
         {
             if (entry.Map.Length == 0)
                 return "";

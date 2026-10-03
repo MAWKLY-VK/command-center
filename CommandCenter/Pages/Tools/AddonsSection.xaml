@@ -11,7 +11,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="Card" Background="#07091C" BorderBrush="#2A2A55" BorderThickness="1" Padding="12,10,12,12">
+                        <Border x:Name="Card" Background="#07091C" BorderBrush="#1FFFFFFF" BorderThickness="1" Padding="12,10,12,12">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -26,11 +26,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Card" Property="BorderBrush" Value="#404070"/>
+                                <Setter TargetName="Card" Property="BorderBrush" Value="#40FFFFFF"/>
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="Card" Property="BorderBrush" Value="#2980FF"/>
-                                <Setter TargetName="Card" Property="Background" Value="#040C52"/>
+                                <Setter TargetName="Card" Property="Background" Value="#262980FF"/>
                                 <Setter TargetName="Ring" Property="Stroke" Value="#2980FF"/>
                                 <Setter TargetName="Mark" Property="Visibility" Value="Visible"/>
                             </Trigger>
@@ -47,7 +47,7 @@
         </Style>
         <Style x:Key="ChoiceText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11.5"/>
-            <Setter Property="Foreground" Value="#8888AA"/>
+            <Setter Property="Foreground" Value="#A7AECB"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="Margin" Value="0,3,0,0"/>
         </Style>
@@ -78,7 +78,7 @@
         <!-- Control bar -->
         <ScrollViewer x:Name="BarsView" Grid.Row="2" VerticalScrollBarVisibility="Auto" Focusable="False">
             <StackPanel x:Name="BarsPanel" Margin="0,0,8,0" SizeChanged="BarsPanel_SizeChanged">
-                <Border BorderBrush="#2A2A55" BorderThickness="1" HorizontalAlignment="Center">
+                <Border BorderBrush="#1FFFFFFF" BorderThickness="1" HorizontalAlignment="Center">
                     <Grid x:Name="CompareBox" ClipToBounds="True" Cursor="SizeWE" Background="Black" FlowDirection="LeftToRight"
                           Height="120" MouseLeftButtonDown="Compare_Down" MouseMove="Compare_Move" MouseLeftButtonUp="Compare_Up"
                           LostMouseCapture="Compare_LostCapture" SizeChanged="Compare_SizeChanged">
@@ -94,10 +94,10 @@
                         </Border>
                     </Grid>
                 </Border>
-                <TextBlock x:Name="CompareNote" Foreground="#8888AA" FontSize="11.5" TextWrapping="Wrap" Margin="0,6,0,12"/>
+                <TextBlock x:Name="CompareNote" Foreground="#A7AECB" FontSize="11.5" TextWrapping="Wrap" Margin="0,6,0,12"/>
 
                 <!-- Bar archives that are not offered here, added by hand -->
-                <Border x:Name="OtherNotice" BorderBrush="#2A2A55" BorderThickness="1" Background="#07091C" Padding="12,9" Margin="0,0,0,10"
+                <Border x:Name="OtherNotice" BorderBrush="#1FFFFFFF" BorderThickness="1" Background="#07091C" Padding="12,9" Margin="0,0,0,10"
                         Visibility="Collapsed">
                     <DockPanel>
                         <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Fill="#FFAA00" VerticalAlignment="Top" Margin="0,5,10,0"/>
@@ -151,7 +151,7 @@
                     Visibility="Collapsed" Click="Discard_Click"/>
             <StackPanel VerticalAlignment="Center">
                 <TextBlock x:Name="ChangeText" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                <TextBlock x:Name="ChangeDetail" FontSize="11.5" Foreground="#8888AA" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                <TextBlock x:Name="ChangeDetail" FontSize="11.5" Foreground="#A7AECB" TextWrapping="Wrap" Margin="0,2,0,0"/>
             </StackPanel>
         </DockPanel>
     </Grid>

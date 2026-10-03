@@ -3,6 +3,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Threading;
@@ -19,6 +21,10 @@ namespace CommandCenter
         private readonly DispatcherTimer _toastTimer = new() { Interval = TimeSpan.FromSeconds(6) };
         private Action? _toastAction;
         private Task? _updateCheck;
+        private bool _selectingTab;
+        private readonly bool _still = App.HasArg("--capture");
+        private readonly List<Storyboard> _ambient = new();
+        private int _shownPlayers;
 
         public MainWindow()
         {
@@ -26,6 +32,15 @@ namespace CommandCenter
             _toastTimer.Tick += (_, _) => HideToast();
             PreviewKeyDown += OnPreviewKeyDown;
             Closing += OnClosing;
+            // Near the smallest size the tabs need the room, so the player count drops its word
+            SizeChanged += (_, e) => OnlineLabel.Visibility = e.NewSize.Width < 1060 ? Visibility.Collapsed : Visibility.Visible;
+            LoadBackdrop();
+            AppState.StatsChanged += () => Dispatcher.Invoke(ShowOnline);
+            AppState.HealthChanged += () => Dispatcher.Invoke(ShowHealthBadge);
+            ShowOnline();
+            ShowHealthBadge();
+            if (!_still)
+                StartAmbient();
             ShowHome();
 
             // Screenshots skip the update check unless a manifest is given
@@ -35,27 +50,205 @@ namespace CommandCenter
 
         // ── Navigation ──
 
-        public void ShowHome() => ContentFrame.Navigate(_home ??= new LauncherPage());
+        public void ShowHome()
+        {
+            SelectTab(TabHome);
+            Navigate(_home ??= new LauncherPage());
+        }
 
         public void ShowTools(string? section = null)
         {
             _tools ??= new ToolsPage();
             if (section != null)
                 _tools.Select(section);
-            ContentFrame.Navigate(_tools);
+            SelectTab(_tools.Current switch
+            {
+                "maps" => TabMaps,
+                "replays" => TabReplays,
+                "hotkeys" => TabHotkeys,
+                "addons" => TabAddons,
+                _ => TabHealth,
+            });
+            Navigate(_tools);
         }
 
-        public void ShowOptions() => ContentFrame.Navigate(_options ??= new OptionsPage());
+        public void ShowOptions()
+        {
+            SelectTab(null);
+            Navigate(_options ??= new OptionsPage());
+        }
+
+        private void Navigate(Page page)
+        {
+            // Leaving the Options page by a tab keeps what was set there, as its own Save button does
+            if (ContentFrame.Content is OptionsPage options && !ReferenceEquals(options, page))
+                options.Commit();
+            if (ReferenceEquals(ContentFrame.Content, page))
+            {
+                ShowBackdropFor(page);
+                return;
+            }
+            ContentFrame.Navigate(page);
+        }
+
+        private void SelectTab(RadioButton? tab)
+        {
+            _selectingTab = true;
+            foreach (var other in new[] { TabHome, TabHealth, TabMaps, TabReplays, TabHotkeys, TabAddons })
+                other.IsChecked = ReferenceEquals(other, tab);
+            _selectingTab = false;
+            if (tab == null)
+                OptionsButton.BorderBrush = new SolidColorBrush(Color.FromArgb(0x99, 0xFE, 0xCD, 0x03));
+            else
+                OptionsButton.ClearValue(BorderBrushProperty);
+        }
+
+        private void Tab_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_selectingTab || sender is not RadioButton { Tag: string id })
+                return;
+            if (id == "home")
+                ShowHome();
+            else
+                ShowTools(id);
+        }
+
+        private void Options_Click(object sender, RoutedEventArgs e) => ShowOptions();
 
         // A Frame does not pass FlowDirection on to its pages, so each page gets it here
         private void ContentFrame_Navigated(object sender, NavigationEventArgs e)
         {
             if (e.Content is FrameworkElement page)
+            {
                 page.FlowDirection = Loc.FlowDirection;
+                ShowBackdropFor(page);
+                Enter(page);
+            }
             if (e.Content is ToolsPage tools)
                 tools.OnShown();
             while (ContentFrame.CanGoBack)
                 ContentFrame.RemoveBackEntry();
+        }
+
+        // ── Backdrop and motion ──
+
+        // The game's art from the Steam library; other copies get the drawn background
+        private void LoadBackdrop()
+        {
+            try
+            {
+                // --drawn-backdrop shows the background other copies get, for screenshots
+                if (!App.HasArg("--drawn-backdrop") && GamePaths.SteamArt("library_hero.jpg") is { } hero)
+                {
+                    var image = new BitmapImage();
+                    image.BeginInit();
+                    image.UriSource = new Uri(hero);
+                    image.DecodePixelWidth = 1920;
+                    image.CacheOption = BitmapCacheOption.OnLoad;
+                    image.EndInit();
+                    image.Freeze();
+                    HeroArt.Source = image;
+                    return;
+                }
+            }
+            catch { }
+            HeroArt.Visibility = Visibility.Collapsed;
+            DrawnBackdrop.Visibility = Visibility.Visible;
+        }
+
+        // The art shows in full on the home page and steps back, blurred and dimmed, behind the tools
+        private void ShowBackdropFor(FrameworkElement page)
+        {
+            bool home = page is LauncherPage;
+            var time = _still ? TimeSpan.Zero : TimeSpan.FromMilliseconds(450);
+            ToolScrim.BeginAnimation(OpacityProperty, new DoubleAnimation(home ? 0 : 1, time));
+            HeroBlur.BeginAnimation(BlurEffect.RadiusProperty, new DoubleAnimation(home ? 0 : 10, time));
+        }
+
+        // Pages slide up a little as they appear
+        private void Enter(FrameworkElement page)
+        {
+            if (_still)
+                return;
+            var move = new TranslateTransform(0, 14);
+            page.RenderTransform = move;
+            var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+            move.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(420)) { EasingFunction = ease });
+            page.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(320)));
+        }
+
+        private void StartAmbient()
+        {
+            var zoom = new Storyboard { RepeatBehavior = RepeatBehavior.Forever, AutoReverse = true };
+            foreach (string axis in new[] { "ScaleX", "ScaleY" })
+            {
+                var grow = new DoubleAnimation(1.03, 1.12, TimeSpan.FromSeconds(26)) { EasingFunction = new SineEase() };
+                Storyboard.SetTarget(grow, HeroArt);
+                Storyboard.SetTargetProperty(grow, new PropertyPath("RenderTransform." + axis));
+                zoom.Children.Add(grow);
+            }
+            var pulse = new Storyboard { RepeatBehavior = RepeatBehavior.Forever };
+            foreach (string axis in new[] { "ScaleX", "ScaleY" })
+            {
+                var spread = new DoubleAnimation(1, 2.4, TimeSpan.FromSeconds(1.6)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
+                Storyboard.SetTarget(spread, PulseRing);
+                Storyboard.SetTargetProperty(spread, new PropertyPath("RenderTransform." + axis));
+                pulse.Children.Add(spread);
+            }
+            var fade = new DoubleAnimation(0.6, 0, TimeSpan.FromSeconds(1.6));
+            Storyboard.SetTarget(fade, PulseRing);
+            Storyboard.SetTargetProperty(fade, new PropertyPath(OpacityProperty));
+            pulse.Children.Add(fade);
+            _ambient.Add(zoom);
+            _ambient.Add(pulse);
+            foreach (var storyboard in _ambient)
+                storyboard.Begin(this, true);
+        }
+
+        // Nothing moves while the window is minimized (during a match)
+        private void PauseAmbient(bool pause)
+        {
+            foreach (var storyboard in _ambient)
+            {
+                if (pause)
+                    storyboard.Pause(this);
+                else
+                    storyboard.Resume(this);
+            }
+        }
+
+        // Players online, counted up to the new number
+        private void ShowOnline()
+        {
+            if (AppState.Stats is not { } stats)
+                return;
+            OnlinePill.Visibility = Visibility.Visible;
+            int from = _shownPlayers, to = stats.Players;
+            _shownPlayers = to;
+            if (_still || from == to)
+            {
+                OnlineCount.Text = to.ToString("N0");
+                return;
+            }
+            var start = DateTime.Now;
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(30) };
+            timer.Tick += (_, _) =>
+            {
+                double t = Math.Min(1, (DateTime.Now - start).TotalMilliseconds / 1100);
+                double eased = 1 - Math.Pow(1 - t, 3);
+                OnlineCount.Text = ((int)Math.Round(from + (to - from) * eased)).ToString("N0");
+                if (t >= 1)
+                    timer.Stop();
+            };
+            timer.Start();
+        }
+
+        private void ShowHealthBadge()
+        {
+            int count = AppState.ProblemCount + AppState.WarningCount;
+            HealthBadge.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            HealthBadge.Background = new SolidColorBrush(AppState.ProblemCount > 0 ? Color.FromRgb(0xFF, 0x5A, 0x5A) : Color.FromRgb(0xFF, 0xB0, 0x20));
+            HealthBadgeText.Text = count.ToString();
         }
 
         private void OnPreviewKeyDown(object sender, KeyEventArgs e)
@@ -66,6 +259,8 @@ namespace CommandCenter
 
         private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
+            if (ContentFrame.Content is OptionsPage options)
+                options.Commit();
             if (UpdateOverlay.Restarting || _tools == null || !_tools.HasPendingChanges)
                 return;
             var answer = MessageBox.Show(this, Loc.T("You have unsaved changes. Close without saving?"), "Command Center",
@@ -82,6 +277,7 @@ namespace CommandCenter
             base.OnStateChanged(e);
             // A maximized borderless window overhangs the screen by the resize border
             Root.Margin = WindowState == WindowState.Maximized ? new Thickness(7) : new Thickness(0);
+            PauseAmbient(WindowState == WindowState.Minimized);
         }
 
         // ── Toast ──

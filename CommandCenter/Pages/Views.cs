@@ -23,7 +23,7 @@ namespace CommandCenter.Pages
         public static readonly SolidColorBrush Passed = Brush("#55CC55");
         public static readonly SolidColorBrush Warning = Brush("#FFAA00");
         public static readonly SolidColorBrush Problem = Brush("#FF4444");
-        public static readonly SolidColorBrush Hint = Brush("#8888AA");
+        public static readonly SolidColorBrush Hint = Brush("#A7AECB");
         public static readonly SolidColorBrush Blue = Brush("#2980FF");
         public static readonly SolidColorBrush Gold = Brush("#FECD03");
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- New look: tabs along the top (Home, Health, Maps, Replays, Hotkeys, Add-ons) with the player count and Options beside them, the game's Steam art behind the home page (a drawn background for other copies), glass panels and short transitions between pages.
+- New home page: a large Play button, the client version, anti-cheat and which copy of the game is in use, the server card (players, lobbies, ping), the last match with its result and a Watch button, and tiles into the tools; health problems show as one line under Play.
+- Options are saved when you leave them by a tab, the same as their Save button.
+
 ## 0.2.1
 
 - Checks the game's 35 original archives against the fingerprints of Zero Hour 1.04 and names the damaged, missing or changed ones (those holding the game rules cause mismatches online); on Steam a button makes Steam download only the broken files again. Fingerprints only, no game files are shipped. After the first check it takes no time.

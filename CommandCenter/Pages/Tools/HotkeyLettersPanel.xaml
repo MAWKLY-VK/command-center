@@ -30,7 +30,7 @@
 
                 <Border Style="{StaticResource ResultBoxStyle}">
                     <StackPanel>
-                        <TextBlock x:Name="PreviewMessage" Foreground="#8888AA" FontSize="12" TextWrapping="Wrap" Text="{l:T Loading…}"/>
+                        <TextBlock x:Name="PreviewMessage" Foreground="#A7AECB" FontSize="12" TextWrapping="Wrap" Text="{l:T Loading…}"/>
                         <StackPanel x:Name="PreviewRows" Visibility="Collapsed">
                             <TextBlock Text="{l:T WITHOUT LETTERS}" Style="{StaticResource GroupLabelStyle}"/>
                             <WrapPanel x:Name="BeforeIcons" FlowDirection="LeftToRight" HorizontalAlignment="Left"/>
@@ -55,7 +55,7 @@
                     Click="LettersUpdate_Click"/>
             <StackPanel VerticalAlignment="Center">
                 <TextBlock x:Name="LettersState" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                <TextBlock x:Name="LettersDetail" FontSize="11.5" Foreground="#8888AA" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                <TextBlock x:Name="LettersDetail" FontSize="11.5" Foreground="#A7AECB" TextWrapping="Wrap" Margin="0,2,0,0"/>
             </StackPanel>
         </DockPanel>
     </Grid>
