@@ -8,7 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>CommandCenter</AssemblyName>
     <RootNamespace>CommandCenter</RootNamespace>
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
     <Product>Command Center</Product>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
@@ -24,6 +24,7 @@
     <Resource Include="Assets\app.ico" />
     <Resource Include="Assets\logo.png" />
     <EmbeddedResource Include="Localization\*.json" Exclude="Localization\pending-*.json" LogicalName="Localization.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Data\game-files.json" LogicalName="GameFiles.json" />
   </ItemGroup>
 
 </Project>

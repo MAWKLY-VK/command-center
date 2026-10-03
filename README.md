@@ -15,7 +15,7 @@ pages with a sidebar.
 | Page | What it does |
 | --- | --- |
 | Home | Server numbers, a line when the health check finds something, Live / Test choice, Play |
-| Tools › Health | Game files, anti-cheat, wrapper and runtime DLLs, rule-changing archives, "Run as administrator" (error 740), compatibility modes, Visual C++, graphics driver, resolution, network; one-click fixes with Undo |
+| Tools › Health | Game files, original archives checked against Zero Hour 1.04 fingerprints, anti-cheat, wrapper and runtime DLLs, rule-changing archives, "Run as administrator" (error 740), compatibility modes, Visual C++, graphics driver, resolution, network; one-click fixes with Undo |
 | Tools › Map library | The online map library and the installed maps, with previews, player counts and sizes; install by click or by dropping a `.zip` / folder |
 | Tools › Replays | Every match from `Replays` and `ArchivedReplays` with map, players, armies, results and who left when; watch, keep, rename, copy, delete with Undo; turns the game's own *ArchiveReplays* option on or off |
 | Tools › Hotkeys | Unit and building buttons for all 12 armies drawn like the in-game bar, the game keys, and hotkey letters on the button pictures; checks duplicates and clashes before saving |

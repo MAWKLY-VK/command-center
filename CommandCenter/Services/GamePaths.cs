@@ -72,13 +72,17 @@ namespace CommandCenter.Services
         // Our own files stay in a folder of their own so nothing of Generals Online is touched
         public static string AppData => Path.Combine(UserData, "CommandCenter");
 
+        // A folder given with --game or picked by the player wins; among the folders found by themselves, one with
+        // Generals Online comes first
         private static string? Detect()
         {
-            var candidates = Candidates().Where(IsZeroHour).ToList();
-            return candidates.FirstOrDefault(c => File.Exists(Path.Combine(c, GameExe))) ?? candidates.FirstOrDefault();
+            if (Chosen().FirstOrDefault(IsZeroHour) is { } chosen)
+                return chosen;
+            var found = Found().Where(IsZeroHour).ToList();
+            return found.FirstOrDefault(c => File.Exists(Path.Combine(c, GameExe))) ?? found.FirstOrDefault();
         }
 
-        private static IEnumerable<string> Candidates()
+        private static IEnumerable<string> Chosen()
         {
             string[] args = Environment.GetCommandLineArgs();
             int index = Array.FindIndex(args, a => a.Equals("--game", StringComparison.OrdinalIgnoreCase));
@@ -86,6 +90,10 @@ namespace CommandCenter.Services
                 yield return Full(args[index + 1]);
             if (AppSettings.Current.GameFolder is { Length: > 0 } chosen)
                 yield return chosen;
+        }
+
+        private static IEnumerable<string> Found()
+        {
             // Where Generals Online was installed, then where the game's own installer put it (Steam, EA app, the
             // original discs and other copies all write that key)
             if (ReadRegistry(RegistryHive.CurrentUser, GoKey, "InstallPath") is { } go)

@@ -131,6 +131,7 @@ namespace CommandCenter.Services
             }
 
             Add(() => CheckGameFiles(game));
+            Add(() => CheckGameArchives(game));
             Add(() => CheckInstallPath(game));
             Add(() => CheckWritable(game));
             Add(CheckGameRunning);
@@ -165,9 +166,137 @@ namespace CommandCenter.Services
 
         // ── GAME FILES ──
 
+        private static readonly string[] RequiredFiles = { "GeneralsOnlineZH_60.exe", "EAC_LaunchGeneralsOnline.exe", "xaudio2_9redist.dll", "INIZH.big", "EnglishZH.big", "W3DZH.big", "WindowZH.big" };
+
+        // ── Original archives ──
+
+        private sealed record ArchiveEntry(string Path, long Size, string Sha256, string Group, bool Rules);
+
+        private sealed record CachedHash(long Size, long Ticks, string Sha256);
+
+        private static string HashCachePath => Path.Combine(GamePaths.AppData, "cache", "game-hashes.json");
+
+        // Fingerprints of Zero Hour 1.04's original archives (Data/game-files.json, made by tools/make-file-manifest.ps1)
+        private static List<ArchiveEntry> ArchiveManifest()
+        {
+            var entries = new List<ArchiveEntry>();
+            using var stream = typeof(HealthService).Assembly.GetManifestResourceStream("GameFiles.json");
+            if (stream == null)
+                return entries;
+            using var doc = System.Text.Json.JsonDocument.Parse(stream);
+            foreach (var file in doc.RootElement.GetProperty("files").EnumerateArray())
+                entries.Add(new ArchiveEntry(file.GetProperty("path").GetString() ?? "", file.GetProperty("size").GetInt64(),
+                    file.GetProperty("sha256").GetString() ?? "", file.GetProperty("group").GetString() ?? "", file.GetProperty("rules").GetBoolean()));
+            return entries;
+        }
+
+        // Compares the game's original archives with a clean installation's fingerprints. A file is hashed again only when
+        // its size or date changed since the last check, so after the first run this takes no time.
+        private static HealthResult? CheckGameArchives(string game)
+        {
+            var manifest = ArchiveManifest();
+            if (manifest.Count == 0)
+                return null;
+            bool english = File.Exists(Path.Combine(game, "EnglishZH.big"));
+            bool steam = File.Exists(Path.Combine(game, "steam_appid.txt"));
+            var cache = LoadHashCache();
+            var missing = new List<ArchiveEntry>();
+            var changed = new List<ArchiveEntry>();
+            int matched = 0;
+
+            foreach (var entry in manifest)
+            {
+                // Other languages ship their own language archives
+                if (entry.Group == "english" && !english)
+                    continue;
+                var info = new FileInfo(Path.Combine(game, entry.Path));
+                if (!info.Exists)
+                {
+                    // The basic files check already names these
+                    if (!RequiredFiles.Contains(entry.Path, StringComparer.OrdinalIgnoreCase))
+                        missing.Add(entry);
+                    continue;
+                }
+                if (info.Length != entry.Size)
+                {
+                    changed.Add(entry);
+                    continue;
+                }
+                long ticks = info.LastWriteTimeUtc.Ticks;
+                string sha = cache.TryGetValue(info.FullName, out var known) && known.Size == info.Length && known.Ticks == ticks
+                    ? known.Sha256
+                    : HashFile(info.FullName);
+                cache[info.FullName] = new CachedHash(info.Length, ticks, sha);
+                if (sha.Equals(entry.Sha256, StringComparison.OrdinalIgnoreCase))
+                    matched++;
+                else
+                    changed.Add(entry);
+            }
+            SaveHashCache(cache);
+
+            if (missing.Count == 0 && changed.Count == 0)
+                return new HealthResult
+                {
+                    Id = "archives", Group = GroupFiles, Title = "Original game archives are intact", Status = HealthStatus.Passed,
+                    Detail = $"{matched} archives match Zero Hour 1.04",
+                };
+
+            static string Names(List<ArchiveEntry> list) =>
+                string.Join(", ", list.Take(5).Select(e => e.Path)) + (list.Count > 5 ? $" and {list.Count - 5} more" : "");
+            var parts = new List<string>();
+            if (missing.Count > 0)
+                parts.Add("Missing: " + Names(missing));
+            if (changed.Count > 0)
+                parts.Add((steam ? "Damaged or changed: " : "Different from the Steam release: ") + Names(changed));
+            var rules = missing.Concat(changed).Where(e => e.Rules).Select(e => e.Path).ToList();
+            string? note = rules.Count > 0
+                ? $"{string.Join(", ", rules)} {(rules.Count == 1 ? "holds" : "hold")} the game rules: when missing or changed, online games end with a mismatch."
+                : null;
+            if (!steam)
+                note = (note == null ? "" : note + " ") + "Copies in other languages or editions can differ on purpose. If the game crashes or mismatches online, repair or reinstall it from where you got it.";
+
+            return new HealthResult
+            {
+                Id = "archives", Group = GroupFiles, Status = steam || missing.Count > 0 ? HealthStatus.Problem : HealthStatus.Warning,
+                Title = missing.Count > 0 ? "Original game archives are missing" : steam ? "Original game archives are damaged or changed" : "Game archives differ from the Steam release",
+                Detail = string.Join(". ", parts),
+                Note = note,
+                GuideLabel = steam ? "Verify in Steam" : null,
+                GuideTarget = steam ? "steam://validate/" + GamePaths.SteamAppId : null,
+            };
+        }
+
+        private static string HashFile(string path)
+        {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 1 << 20, FileOptions.SequentialScan);
+            return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(stream)).ToLowerInvariant();
+        }
+
+        private static Dictionary<string, CachedHash> LoadHashCache()
+        {
+            try
+            {
+                if (File.Exists(HashCachePath))
+                    return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, CachedHash>>(File.ReadAllText(HashCachePath))
+                           ?? new();
+            }
+            catch { }
+            return new();
+        }
+
+        private static void SaveHashCache(Dictionary<string, CachedHash> cache)
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(HashCachePath)!);
+                File.WriteAllText(HashCachePath, System.Text.Json.JsonSerializer.Serialize(cache));
+            }
+            catch { }
+        }
+
         private static HealthResult CheckGameFiles(string game)
         {
-            string[] required = { "GeneralsOnlineZH_60.exe", "EAC_LaunchGeneralsOnline.exe", "xaudio2_9redist.dll", "INIZH.big", "EnglishZH.big", "W3DZH.big", "WindowZH.big" };
+            string[] required = RequiredFiles;
             var missing = required.Where(f => !File.Exists(Path.Combine(game, f))).ToList();
             bool steam = File.Exists(Path.Combine(game, "steam_appid.txt"));
 

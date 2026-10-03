@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.2.1
 
-- Finds the game and its Documents folder in any installation, not only Steam: it reads where Generals Online and the game's own installer recorded them (EA, the original discs and other copies write the same keys), and follows the data folder name the game is set to use.
+- Checks the game's 35 original archives against the fingerprints of Zero Hour 1.04 and names the damaged, missing or changed ones (those holding the game rules cause mismatches online); on Steam a button makes Steam download only the broken files again. Fingerprints only, no game files are shipped. After the first check it takes no time.
+- Finds the game and its Documents folder in any installation, not only Steam: it reads where Generals Online and the game's own installer recorded them (EA, the original discs and other copies write the same keys), and follows the data folder name the game is set to use. A folder given with --game or chosen by the player always wins.
 
 ## 0.2.0
 

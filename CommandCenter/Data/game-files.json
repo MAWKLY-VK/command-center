@@ -1,0 +1,250 @@
+{
+    "source":  "Zero Hour 1.04 (Steam)",
+    "files":  [
+                  {
+                      "path":  "AudioZH.big",
+                      "size":  23965542,
+                      "sha256":  "6fbd05e43491bfd5f56c9250c3f9c30fc3061cd5867cb912c46486fc78f5e8c7",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "gensecZH.big",
+                      "size":  787464,
+                      "sha256":  "ac2aaf5536a2f748dc99178aa431280f26d9d85179e6c2abedf5adfabc971b15",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "INIZH.big",
+                      "size":  18764687,
+                      "sha256":  "1a6d41a7a2cb31e67ad2f868aca9264ad069c275e0074f8a0d970a336071e9a0",
+                      "group":  "core",
+                      "rules":  true
+                  },
+                  {
+                      "path":  "MapsZH.big",
+                      "size":  39749312,
+                      "sha256":  "35cc8947f34f363d69f5045b9ac65f6ee164b8d5a382a1f7af213dbc2a744b96",
+                      "group":  "core",
+                      "rules":  true
+                  },
+                  {
+                      "path":  "Music.big",
+                      "size":  786724,
+                      "sha256":  "3f2af9c6dcc2b35852556bdc020c95e43c2f43127c50dbff018e12a2bed6116f",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "MusicZH.big",
+                      "size":  34741916,
+                      "sha256":  "5aa7b8408e5cf61fd53633f6e6310c76d79e74d75dd3286b6e9b9c718d9c5b5e",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "PatchData.big",
+                      "size":  127,
+                      "sha256":  "90952433efe55a774ed3f8375b7700b0a16c8206a760b5cdb3d8707a0e66fc0b",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "PatchINI.big",
+                      "size":  53717,
+                      "sha256":  "16028d315c8c4d279beed15f1836a8998ff5c9a4d0d621d4a3d37213a0d9fe62",
+                      "group":  "core",
+                      "rules":  true
+                  },
+                  {
+                      "path":  "PatchWindow.big",
+                      "size":  260789,
+                      "sha256":  "385767596cf1ff114c530ff73f83d63257c8d509dbcb8ef9f18858b1dcabbc89",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "PatchZH.big",
+                      "size":  118822,
+                      "sha256":  "450276fbabd19f79dc0143f70fe755e44a99b22c552bc00c5854fc810e615722",
+                      "group":  "core",
+                      "rules":  true
+                  },
+                  {
+                      "path":  "ShadersZH.big",
+                      "size":  996,
+                      "sha256":  "6246a6906f93261669c8c19e021c8d3484a6f7449bd5e253c8e998c1a9d31d6e",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "SpeechZH.big",
+                      "size":  6174552,
+                      "sha256":  "4498097a3c294bc638e72e09e967bb417b0c9b171b4eee95e2c6c0bffef68fa2",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "TerrainZH.big",
+                      "size":  8660432,
+                      "sha256":  "501ef71d12e7a1398800231f2526d47e8e583607f843a2ebcb0c622e26fc73b3",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "TexturesZH.big",
+                      "size":  222753036,
+                      "sha256":  "aa975400abd70e45e13eacf4ab22505ea322941dfc492097c68245cd35d4b791",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "W3DZH.big",
+                      "size":  189741064,
+                      "sha256":  "e308c3aeb49d023ffd98b50400f24643a782a68ac4d2e53171c17fc45d73fdc6",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "WindowZH.big",
+                      "size":  8493653,
+                      "sha256":  "68b519f28d012cd297fae2663d431a4b0e6e416aa7bb1a57a79e5500ebcc14b4",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "ZH_Generals\\Audio.big",
+                      "size":  127940044,
+                      "sha256":  "d522df264149e3e27fd46f027548cc38bd60614a43666555219b7b1d45fb3bad",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "ZH_Generals\\gensec.big",
+                      "size":  787464,
+                      "sha256":  "b3baa19899073a3b7ef5fe4347137a09a3f0ef5613175538ccd2b641f9734c9a",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "ZH_Generals\\INI.big",
+                      "size":  7607479,
+                      "sha256":  "bff8d621088b25fd8b041c8acca020a020fabc66f972ab2bd131fc67d905a72c",
+                      "group":  "core",
+                      "rules":  true
+                  },
+                  {
+                      "path":  "ZH_Generals\\maps.big",
+                      "size":  23554152,
+                      "sha256":  "8a241df0c87ea47f6ad992984ea73dabf4f2ac5f96f8924f30bb0bf5fc4ac4d1",
+                      "group":  "core",
+                      "rules":  true
+                  },
+                  {
+                      "path":  "ZH_Generals\\Music.big",
+                      "size":  158818808,
+                      "sha256":  "c1e162b8a7575d98d9e20c7ef582e3edc96b35e3d071d821b01c5426d3c55450",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "ZH_Generals\\Patch.big",
+                      "size":  1462590,
+                      "sha256":  "28dc194412f96dc1f66412430cf74f2d89ad0cdabf70d2c8d1179d8e51743494",
+                      "group":  "core",
+                      "rules":  true
+                  },
+                  {
+                      "path":  "ZH_Generals\\shaders.big",
+                      "size":  1200,
+                      "sha256":  "b982d3a99c8fae32a6d07ab0994274c1754a0fb08f69646f96d698b3986fe2a5",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "ZH_Generals\\Speech.big",
+                      "size":  13479230,
+                      "sha256":  "5106e92a91b1159fd861d5e4475beb6e7e05b0d5ac43d65520e02d89e39e33d4",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "ZH_Generals\\Terrain.big",
+                      "size":  48342856,
+                      "sha256":  "4c203b31ccbf7f4a41ca0288d3e782a356a0f75f3315c05a83d7364e19f86f71",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "ZH_Generals\\Textures.big",
+                      "size":  333031108,
+                      "sha256":  "1303e92c57c9cf4e24bf85b342bd58799924565796f3a4aef65dd4a9967aad5b",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "ZH_Generals\\W3D.big",
+                      "size":  184549391,
+                      "sha256":  "87727b698089cdc32bc378b1746bf315c2a920d5df33cace0d7085e027b67d36",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "ZH_Generals\\Window.big",
+                      "size":  7962700,
+                      "sha256":  "344f830ce00eabc247524b5e8b1305f10fe8c742a667e238d3a9c1c63fbe6479",
+                      "group":  "core",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "AudioEnglishZH.big",
+                      "size":  58326522,
+                      "sha256":  "85109b5cb4a5ef75c5fdd1fe1a66957d951f98f028e10e3729dddc2309402914",
+                      "group":  "english",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "EnglishZH.big",
+                      "size":  80472928,
+                      "sha256":  "d3904216ac210a363d9e0e46980c6ef70232046ba713ea137e8a87cbd57a32d6",
+                      "group":  "english",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "SpeechEnglishZH.big",
+                      "size":  254275694,
+                      "sha256":  "5b3c8b1819b1ddfeaf6045a4a5dfb9cb47ad16a508dbf17c317e11b9d310a14f",
+                      "group":  "english",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "W3DEnglishZH.big",
+                      "size":  2696872,
+                      "sha256":  "f5d164d1e294f26744e2b87ecfbe13e68affaf5ceb4cf12f43005beb8f54defd",
+                      "group":  "english",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "ZH_Generals\\AudioEnglish.big",
+                      "size":  104744592,
+                      "sha256":  "39d67dba96111178fcceefae2bedb2dc65b55b968741162c714b333c0b0f5f2e",
+                      "group":  "english",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "ZH_Generals\\English.big",
+                      "size":  2774948,
+                      "sha256":  "218440f15bd2f718c6897f631eeacb8a42378679bcc0a6aa8a9cf83d0798f543",
+                      "group":  "english",
+                      "rules":  false
+                  },
+                  {
+                      "path":  "ZH_Generals\\SpeechEnglish.big",
+                      "size":  269104188,
+                      "sha256":  "b48ede709de86437a9cff23bd27586a03f86e2b009e0773816af48496bb10ae2",
+                      "group":  "english",
+                      "rules":  false
+                  }
+              ]
+}
