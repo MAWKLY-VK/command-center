@@ -278,14 +278,14 @@ namespace CommandCenter.Services
             var others = menu.Buttons.Where(b => b != button && b.Label != button.Label && KeyFor(b.Label) == key).ToList();
             if (others.Count > 0)
             {
-                string names = string.Join(Loc.T(", "), others.Select(o => o.Name));
+                string names = Loc.Join(others.Select(o => Loc.Embed(o.Name)));
                 issues.Add(first == button
                     ? new KeyIssue(IssueLevel.Error, Loc.T("{0} also uses {1} in this menu, so that button stops working.", names, key))
-                    : new KeyIssue(IssueLevel.Error, Loc.T("{0} already uses {1} in this menu; the game only runs the first one.", first.Name, key)));
+                    : new KeyIssue(IssueLevel.Error, Loc.T("{0} already uses {1} in this menu; the game only runs the first one.", Loc.Embed(first.Name), key)));
             }
 
             if (SharedGameKey(button) is { } global)
-                issues.Add(new KeyIssue(IssueLevel.Warn, Loc.T("{0} is also the game key for {1}. Pressing {0} does both.", key, global.Name)));
+                issues.Add(new KeyIssue(IssueLevel.Warn, Loc.T("{0} is also the game key for {1}. Pressing {0} does both.", key, Loc.Embed(global.Name))));
 
             if (key == 'F')
                 issues.Add(new KeyIssue(IssueLevel.Info, Loc.T("In replays F also turns fast forward on and off.")));
@@ -656,9 +656,9 @@ namespace CommandCenter.Services
                     continue;
                 string shortcut = Loc.Ltr(gameKey.Shortcut);
                 issues.Add(new KeyIssue(IssueLevel.Error,
-                    other.IsTeam ? Loc.T("{0} is the team key {1}, and team keys cannot change. Pick another key.", shortcut, other.Name)
-                    : other.IsBuiltIn ? Loc.T("{0} is built into the game for {1}; only one of them will work.", shortcut, other.Name)
-                    : Loc.T("{0} is also set for {1}; only one of them will work.", shortcut, other.Name)));
+                    other.IsTeam ? Loc.T("{0} is the team key {1}, and team keys cannot change. Pick another key.", shortcut, Loc.Embed(other.Name))
+                    : other.IsBuiltIn ? Loc.T("{0} is built into the game for {1}; only one of them will work.", shortcut, Loc.Embed(other.Name))
+                    : Loc.T("{0} is also set for {1}; only one of them will work.", shortcut, Loc.Embed(other.Name))));
             }
 
             if (gameKey.Modifiers == "NONE" && gameKey.Key.Length == 5 && gameKey.Key.StartsWith("KEY_"))
@@ -668,7 +668,7 @@ namespace CommandCenter.Services
                     .Where(b => KeyFor(b.Label) == letter && !b.Action.Equals(gameKey.Command, StringComparison.OrdinalIgnoreCase))
                     .Select(b => b.Name).Distinct().Take(3).ToList();
                 if (buttons.Count > 0)
-                    issues.Add(new KeyIssue(IssueLevel.Warn, Loc.T("{0} is also a button key ({1}…). Pressing it does both.", letter, string.Join(Loc.T(", "), buttons))));
+                    issues.Add(new KeyIssue(IssueLevel.Warn, Loc.T("{0} is also a button key ({1}…). Pressing it does both.", letter, Loc.Join(buttons.Select(Loc.Embed)))));
             }
             return issues;
         }

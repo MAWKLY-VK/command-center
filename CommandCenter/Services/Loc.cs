@@ -92,6 +92,15 @@ namespace CommandCenter.Services
         public static string Ltr(string text) => IsRightToLeft && text.Length > 0 ? LtrMark + text + LtrMark : text;
 
         public const char LtrMark = '\u200E';
+        public const char RtlMark = '\u200F';
+
+        // A name inside a translated sentence: English names get the marks of Ltr so brackets and punctuation at their
+        // ends stay in place ("Particle Cannon (Uplink)"); Arabic text is left as it is.
+        public static string Embed(string text) => IsRightToLeft && !text.Any(c => c is >= '\u0600' and <= '\u06FF') ? Ltr(text) : text;
+
+        // Names and other text that stays left to right (with FlowDirection LeftToRight) still starts on the reading side
+        // of the line, so a long name is cut at its end: "A lagoon Too Far [20\u2026" instead of "\u2026A lagoon Too Far [2".
+        public static TextAlignment StartAlignment => IsRightToLeft ? TextAlignment.Right : TextAlignment.Left;
 
         // "A", "A and B", "A, B and C"
         public static string List(IEnumerable<string> items)
@@ -99,8 +108,14 @@ namespace CommandCenter.Services
             var list = items.ToList();
             if (list.Count <= 1)
                 return list.FirstOrDefault() ?? "";
-            return string.Join(T(", "), list.Take(list.Count - 1)) + T(" and ") + list[^1];
+            return Join(list.Take(list.Count - 1)) + Separator(" and ") + list[^1];
         }
+
+        // "A, B, C". In Arabic a right-to-left mark (U+200F) goes before each comma: between two English names the comma
+        // would otherwise join them into one left-to-right run, and the list would read backwards.
+        public static string Join(IEnumerable<string> items) => string.Join(Separator(", "), items);
+
+        private static string Separator(string english) => IsRightToLeft ? RtlMark + T(english) : T(english);
 
         public static MessageBoxOptions MessageBoxOptions => IsRightToLeft ? MessageBoxOptions.RtlReading | MessageBoxOptions.RightAlign : MessageBoxOptions.None;
 

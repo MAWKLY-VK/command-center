@@ -1,4 +1,5 @@
-# Builds the release: one self-contained CommandCenter.exe and the update.json that goes with it.
+# Builds the release: one CommandCenter.exe and the update.json that goes with it. The program runs on the
+# .NET 10 Desktop Runtime (x86) that the Generals Online launcher already installs, so it is a few megabytes.
 # Both land in publish/. Attach them to a GitHub release tagged v<version>; older copies of
 # Command Center then ask to update.
 #
@@ -20,8 +21,7 @@ $version = @($xml.Project.PropertyGroup | ForEach-Object { $_.Version } | Where-
 if (-not $version) { throw "No <Version> found in $project" }
 Write-Host "Command Center $version"
 
-dotnet publish $project -c Release -r win-x64 --self-contained true -o $build `
-    -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
+dotnet publish $project -c Release -r win-x86 --self-contained false -o $build -p:PublishSingleFile=true
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
 
 New-Item -ItemType Directory -Force $out | Out-Null

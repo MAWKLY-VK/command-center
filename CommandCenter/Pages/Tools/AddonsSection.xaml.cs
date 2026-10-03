@@ -25,7 +25,7 @@ namespace CommandCenter.Pages.Tools
         private static readonly SolidColorBrush IconLine = Views.Brush("#2A2A55");
 
         private (BarKind Kind, string? Resolution) _installed;
-        private bool _loading, _touched, _dragging, _busy, _lettersBusy, _armiesLoading;
+        private bool _loading, _touched, _dragging, _busy, _lettersBusy, _armiesLoading, _goManaged;
         private double _split = 0.5;
         private Task? _preview;
         private HotkeyService? _hotkeys;
@@ -131,8 +131,20 @@ namespace CommandCenter.Pages.Tools
             }
             OriginalInstalled.Visibility = _installed.Kind == BarKind.Original ? Visibility.Visible : Visibility.Collapsed;
             ProInstalled.Visibility = _installed.Kind == BarKind.Pro ? Visibility.Visible : Visibility.Collapsed;
-            OtherNotice.Visibility = _installed.Kind == BarKind.Other ? Visibility.Visible : Visibility.Collapsed;
-            if (_installed.Kind == BarKind.Other)
+            try
+            {
+                _goManaged = GamePaths.GameFound && AddonService.ManagedByGo().Count > 0;
+            }
+            catch
+            {
+                _goManaged = false;
+            }
+            ChoiceOriginal.IsEnabled = ChoicePro.IsEnabled = Resolution.IsEnabled = !_goManaged && !_busy;
+            OtherNotice.Visibility = _installed.Kind == BarKind.Other || _goManaged ? Visibility.Visible : Visibility.Collapsed;
+            OtherTitle.Text = _goManaged ? Loc.T("Installed by the Generals Online launcher") : Loc.T("Another control bar is installed");
+            if (_goManaged)
+                OtherDetail.Text = Loc.T("Change or remove it in the Generals Online launcher. Command Center does not touch files that launcher manages, so the two never undo each other's changes.");
+            else if (_installed.Kind == BarKind.Other)
             {
                 List<string> files;
                 try
@@ -176,7 +188,7 @@ namespace CommandCenter.Pages.Tools
         private BarKind Chosen => ChoicePro.IsChecked == true ? BarKind.Pro : ChoiceOriginal.IsChecked == true ? BarKind.Original : BarKind.Other;
         private string? ChosenResolution => Chosen == BarKind.Pro ? (Resolution.SelectedItem as ComboBoxItem)?.Tag as string : null;
 
-        private bool Pending => GamePaths.GameFound && (Chosen != _installed.Kind || (Chosen == BarKind.Pro && ChosenResolution != _installed.Resolution));
+        private bool Pending => GamePaths.GameFound && !_goManaged && (Chosen != _installed.Kind || (Chosen == BarKind.Pro && ChosenResolution != _installed.Resolution));
 
         private void Choice_Checked(object sender, RoutedEventArgs e)
         {
@@ -238,7 +250,9 @@ namespace CommandCenter.Pages.Tools
             else
             {
                 ChangeText.Text = Loc.T("Installed now: {0}", BarName(_installed.Kind, _installed.Resolution));
-                ChangeDetail.Text = Loc.T("Choose another bar to change it. The new bar shows the next time the game starts.");
+                ChangeDetail.Text = _goManaged
+                    ? Loc.T("Managed by the Generals Online launcher.")
+                    : Loc.T("Choose another bar to change it. The new bar shows the next time the game starts.");
             }
         }
 
@@ -529,7 +543,10 @@ namespace CommandCenter.Pages.Tools
         }
 
         // Messages from the services are written in English; in right-to-left mode they keep their own reading order
-        private static string Plain(string text) =>
-            Loc.IsRightToLeft && !text.Any(c => c is >= '؀' and <= 'ۿ') ? Loc.Ltr(text) : text;
+        private static string Plain(string text)
+        {
+            text = Loc.T(text);
+            return Loc.IsRightToLeft && !text.Any(c => c is >= '؀' and <= 'ۿ') ? Loc.Ltr(text) : text;
+        }
     }
 }

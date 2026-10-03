@@ -2,6 +2,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net.Http;
 using System.Security.Cryptography;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace CommandCenter.Services
@@ -48,6 +49,35 @@ namespace CommandCenter.Services
             return (BarKind.Pro, height switch { "720" => "1280x720", "900" => "1600x900", "1080" => "1920x1080", "1440" => "2560x1440", "2160" => "3840x2160", _ => null });
         }
 
+        // The official Generals Online launcher installs Control Bar Pro too and lists the files it owns here. Like that
+        // launcher, Command Center leaves files it did not install alone, so the two never undo each other's work.
+        private static string GoControlBarState =>
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GeneralsOnline", "control-bar-pro.json");
+
+        // Bar archives in the game folder that the official launcher installed (read only)
+        public static List<string> ManagedByGo()
+        {
+            try
+            {
+                if (!File.Exists(GoControlBarState))
+                    return new();
+                using var doc = JsonDocument.Parse(File.ReadAllText(GoControlBarState));
+                var root = doc.RootElement;
+                if (!root.TryGetProperty("InstallDirectory", out var folder) || folder.GetString() is not { } directory
+                    || !Path.GetFullPath(directory).TrimEnd('\\').Equals(Path.GetFullPath(GamePaths.Game).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
+                    return new();
+                if (!root.TryGetProperty("Files", out var files) || files.ValueKind != JsonValueKind.Array)
+                    return new();
+                return files.EnumerateArray().Select(f => f.GetString()).OfType<string>()
+                    .Where(name => BarArchive.IsMatch(name) && File.Exists(Path.Combine(GamePaths.Game, name)))
+                    .ToList();
+            }
+            catch
+            {
+                return new();
+            }
+        }
+
         // The Pro resolution that matches the game's own resolution in Options.ini
         public static string SuggestedResolution()
         {
@@ -64,6 +94,8 @@ namespace CommandCenter.Services
         {
             if (GameLauncher.IsGameRunning())
                 throw new InvalidOperationException("Close the game first; it keeps its archives open.");
+            if (ManagedByGo().Count > 0)
+                throw new InvalidOperationException("This control bar was installed by the Generals Online launcher. Change or remove it there.");
 
             int before = BackupService.Load().Count;
             byte[]? zip = null;

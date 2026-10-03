@@ -5,7 +5,7 @@ It starts the game the same way the official launcher does and adds the tools pl
 a health check with one-click fixes, a map library, a replay browser, a hotkey editor that follows the
 game's own rules, control bar add-ons and the settings the in-game menu cannot reach.
 
-> Test build. Nothing here is released yet.
+> Early test release.
 
 ## Pages
 
@@ -30,6 +30,16 @@ pages with a sidebar.
 - No DLL injection, no handles opened to the game process, no changes to Generals Online's own files.
 - Hotkeys and control bars do not take part in the multiplayer check, so they never cause a mismatch.
 
+## Next to the official launcher
+
+Command Center is a companion, not a replacement. It works alongside the Generals Online launcher:
+
+- Play starts the game the same way, and hands the foreground to the game so a full-screen game is not pushed to the taskbar.
+- Play waits while the game runs, whoever started it, and the official launcher left open on its own does not count as the game.
+- `settings.json` and `launcher.json` are edited in place: fields Command Center does not know, such as ones added by newer Generals Online versions, are kept, and nothing is written when nothing changed.
+- Game settings are not saved while the game runs, because the game reads them only when it starts.
+- Control Bar Pro installed by the official launcher stays its business: Command Center shows it and leaves those files alone, as the official launcher does with files it did not install.
+
 ## Build
 
 Needs Windows 10 or 11 and the .NET 10 SDK.
@@ -41,10 +51,14 @@ dotnet build CommandCenter/CommandCenter.csproj -c Release
 The program is `CommandCenter/bin/Release/net10.0-windows/CommandCenter.exe`.
 
 To make a release, run `tools\publish.ps1 -Notes "What changed"`. It writes a single-file `publish\CommandCenter.exe`
-and `publish\update.json`; attach both to a GitHub release tagged `v<version>`. Older copies of Command Center
-then stop working until they update.
+(about 3 MB) and `publish\update.json`; attach both to a GitHub release tagged `v<version>`. Older copies of
+Command Center then stop working until they update.
 
 ## Running
+
+Command Center is a 32-bit program for the .NET 10 Desktop Runtime (x86), the same runtime the Generals Online
+launcher installs and runs on, so it needs no installer of its own. If Windows says .NET is missing, install the
+x86 Desktop Runtime from [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/10.0).
 
 The game folder is found automatically (current folder, the program's folder, then the Steam libraries).
 

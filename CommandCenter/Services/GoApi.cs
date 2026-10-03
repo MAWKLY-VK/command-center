@@ -165,8 +165,11 @@ namespace CommandCenter.Services
             set => Root["windowed_height"] = value;
         }
 
+        // Shared with the official launcher, so an unchanged file is left alone
         public void Save()
         {
+            if (Load().Root.ToJsonString() == Root.ToJsonString())
+                return;
             Directory.CreateDirectory(GamePaths.GoData);
             File.WriteAllText(GamePaths.LauncherSettings, Root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
         }

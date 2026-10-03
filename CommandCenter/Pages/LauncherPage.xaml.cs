@@ -1,7 +1,10 @@
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
+using System.Windows.Threading;
 using CommandCenter.Services;
 
 namespace CommandCenter.Pages
@@ -10,11 +13,15 @@ namespace CommandCenter.Pages
     {
         private bool _initializing = true;
         private bool _playing;
+        private readonly DispatcherTimer _gameWatch = new() { Interval = TimeSpan.FromSeconds(3) };
 
         public LauncherPage()
         {
             InitializeComponent();
             Loaded += LauncherPage_Loaded;
+            Loaded += (_, _) => { _gameWatch.Start(); GameWatch_Tick(null, EventArgs.Empty); };
+            Unloaded += (_, _) => _gameWatch.Stop();
+            _gameWatch.Tick += GameWatch_Tick;
             AppState.StatsChanged += () => Dispatcher.Invoke(ShowStats);
             AppState.HealthChanged += () => Dispatcher.Invoke(ShowHealthNotice);
         }
@@ -175,35 +182,70 @@ namespace CommandCenter.Pages
                     MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK, Loc.MessageBoxOptions);
                 return;
             }
+            if (GameLauncher.IsGameRunning())
+            {
+                ShowGameState(true);
+                MessageBox.Show(Loc.T("The game is already running."), "Command Center",
+                    MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, Loc.MessageBoxOptions);
+                return;
+            }
 
             var window = Application.Current.MainWindow;
+            bool minimized = false;
             try
             {
                 _playing = true;
-                PlayButton.IsEnabled = false;
+                ShowGameState(true);
                 var channel = ClientSelectorPanel.Visibility == Visibility.Visible && rbTestEnv.IsChecked == true ? Channel.Test : Channel.Live;
                 GameLauncher.PlayOnline(channel);
 
-                // Out of the way while the game runs, back when it closes
-                window.WindowState = WindowState.Minimized;
-                await GameLauncher.WaitForGameAsync();
-                window.WindowState = WindowState.Normal;
-                window.Activate();
+                // Step aside once the game is in front, without taking the focus back from it; back when it closes
+                await GameLauncher.WaitForGameAsync(() =>
+                {
+                    minimized = true;
+                    ShowWindow(new WindowInteropHelper(window).Handle, MinimizedNoActivate);
+                });
+                if (minimized)
+                {
+                    window.WindowState = WindowState.Normal;
+                    window.Activate();
+                }
                 _ = AppState.RefreshReplaysAsync();
             }
             catch (Exception ex)
             {
-                window.WindowState = WindowState.Normal;
+                if (minimized)
+                    window.WindowState = WindowState.Normal;
                 MessageBox.Show(Loc.T("Failed to launch the game: {0}", ex.Message), "Command Center",
                     MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK, Loc.MessageBoxOptions);
             }
             finally
             {
                 _playing = false;
-                PlayButton.IsEnabled = true;
+                ShowGameState(false);
             }
         }
 
+        // PLAY waits while the game runs, whoever started it (the official launcher does the same)
+        private void ShowGameState(bool running)
+        {
+            PlayButton.IsEnabled = !running;
+            PlayButton.Content = running ? Loc.T("RUNNING") : Loc.T("PLAY");
+        }
+
+        private async void GameWatch_Tick(object? sender, EventArgs e)
+        {
+            if (_playing || !IsVisible)
+                return;
+            bool running = await Task.Run(GameLauncher.IsGameRunning);
+            if (!_playing)
+                ShowGameState(running);
+        }
+
+        private const int MinimizedNoActivate = 7;
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr window, int command);
         private void BtnExit_Click(object sender, RoutedEventArgs e) => Application.Current.MainWindow.Close();
     }
 }

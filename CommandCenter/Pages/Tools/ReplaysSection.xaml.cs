@@ -571,6 +571,7 @@ namespace CommandCenter.Pages.Tools
                 FontWeight = FontWeights.SemiBold,
                 MaxWidth = 210,
                 TextTrimming = TextTrimming.CharacterEllipsis,
+                FlowDirection = FlowDirection.LeftToRight,
                 ToolTip = player.Name,
             };
             DockPanel.SetDock(name, Dock.Left);

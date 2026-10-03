@@ -888,5 +888,14 @@
     "many": "أُعيد رسم الأحرف على {0} صورة وفق مفاتيحك المحفوظة.",
     "other": "أُعيد رسم الأحرف على {0} صورة وفق مفاتيحك المحفوظة."
   },
-  "Hotkey letters removed. The game's own pictures are back.": "أُزيلت أحرف الاختصار وعادت صور اللعبة الأصلية."
+  "Hotkey letters removed. The game's own pictures are back.": "أُزيلت أحرف الاختصار وعادت صور اللعبة الأصلية.",
+
+  // ── Working next to the official launcher ──
+  "RUNNING": "قيد التشغيل",
+  "Close the game first; it reads these settings only when it starts.": "أغلق اللعبة أولًا؛ فهي لا تقرأ هذه الإعدادات إلا عند بدئها.",
+  "Close the game first; it keeps its archives open.": "أغلق اللعبة أولًا؛ فهي تُبقي ملفاتها مفتوحة.",
+  "Installed by the Generals Online launcher": "مثبّت من مشغّل Generals Online",
+  "Change or remove it in the Generals Online launcher. Command Center does not touch files that launcher manages, so the two never undo each other's changes.": "غيّره أو أزله من مشغّل Generals Online. لا يلمس Command Center الملفات التي يديرها ذلك المشغّل، فلا يُلغي أحدهما تغييرات الآخر.",
+  "Managed by the Generals Online launcher.": "يديره مشغّل Generals Online.",
+  "This control bar was installed by the Generals Online launcher. Change or remove it there.": "ثبّت مشغّل Generals Online شريط التحكم هذا، فغيّره أو أزله من هناك."
 }

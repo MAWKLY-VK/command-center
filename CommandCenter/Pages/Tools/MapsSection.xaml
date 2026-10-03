@@ -28,7 +28,7 @@
                         </Border>
                     </Grid>
                     <StackPanel Margin="7,5,7,7">
-                        <TextBlock Text="{Binding Name}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding Name}" Style="{StaticResource NameTextStyle}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                         <TextBlock Text="{Binding Detail}" FontSize="10" Foreground="#8888AA" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
                 </StackPanel>

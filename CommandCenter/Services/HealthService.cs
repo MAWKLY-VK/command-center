@@ -205,9 +205,7 @@ namespace CommandCenter.Services
 
         private static HealthResult? CheckGameRunning()
         {
-            var running = Process.GetProcesses().Select(p => p.ProcessName)
-                .Where(n => n.StartsWith("GeneralsOnlineZH", StringComparison.OrdinalIgnoreCase) || n.Equals("generals", StringComparison.OrdinalIgnoreCase))
-                .Distinct().ToList();
+            var running = GameLauncher.RunningGames();
             return running.Count == 0 ? null : new HealthResult
             {
                 Id = "running", Group = GroupFiles, Title = "The game is running", Status = HealthStatus.Warning,
@@ -488,7 +486,7 @@ namespace CommandCenter.Services
         private static IEnumerable<HealthResult> CheckAdminFlag(string game)
         {
             var user = LayerEntries(Registry.CurrentUser, game).Where(e => HasToken(e.Data, "RUNASADMIN")).ToList();
-            var machine = LayerEntries(Registry.LocalMachine, game).Where(e => HasToken(e.Data, "RUNASADMIN")).ToList();
+            var machine = LayerEntries(MachineHive, game).Where(e => HasToken(e.Data, "RUNASADMIN")).ToList();
 
             if (user.Count == 0 && machine.Count == 0)
             {
@@ -557,7 +555,7 @@ namespace CommandCenter.Services
         private static IEnumerable<HealthResult> CheckDpiOverride(string game)
         {
             var user = LayerEntries(Registry.CurrentUser, game).Where(e => DpiOverrides.Any(t => HasToken(e.Data, t))).ToList();
-            var machine = LayerEntries(Registry.LocalMachine, game).Where(e => DpiOverrides.Any(t => HasToken(e.Data, t))).ToList();
+            var machine = LayerEntries(MachineHive, game).Where(e => DpiOverrides.Any(t => HasToken(e.Data, t))).ToList();
             return DpiResults(user, machine);
         }
 
@@ -614,6 +612,10 @@ namespace CommandCenter.Services
             BackupService.SetUserRegistryValue(title, LayersKey, program, keep, Path.GetFileName(program) + " · registry");
         }
 
+        // The machine-wide compatibility settings live in the 64-bit view, which this 32-bit program has to ask for
+        private static readonly RegistryKey MachineHive =
+            RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, Environment.Is64BitOperatingSystem ? RegistryView.Registry64 : RegistryView.Default);
+
         private static List<(string Name, string Data)> LayerEntries(RegistryKey hive, string game)
         {
             var found = new List<(string, string)>();
@@ -644,8 +646,9 @@ namespace CommandCenter.Services
 
         private static HealthResult CheckVisualCpp()
         {
-            using var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\Microsoft\VisualStudio\14.0\VC\Runtimes\X86")
-                            ?? Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X86");
+            // The x86 runtime registers itself in the 32-bit view (WOW6432Node on 64-bit Windows)
+            using var hive = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32);
+            using var key = hive.OpenSubKey(@"SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\X86");
             bool installed = key?.GetValue("Installed") is int i && i == 1;
             string version = (key?.GetValue("Version") as string ?? "").TrimStart('v');
             int minor = key?.GetValue("Minor") is int m ? m : 0;

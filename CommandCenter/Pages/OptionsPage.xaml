@@ -548,7 +548,7 @@
                     <TextBlock Text="{l:T CONFIGURATION}" Foreground="#8888AA" FontSize="12" FontWeight="Bold" 
                                Margin="0,0,0,8"/>
                     <Border Background="#07091C" BorderBrush="#2A2A55" BorderThickness="1"
-                            Padding="14,12" MaxHeight="400" Margin="0,0,0,0">
+                            Padding="14,12" MaxHeight="400" Margin="0,0,0,0" FlowDirection="LeftToRight">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel x:Name="configDetailsPanel">
                                 <TextBlock Text="{l:T (No plugin selected)}" Foreground="#A0A0C0" FontSize="11"/>

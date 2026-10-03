@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 
 namespace CommandCenter.Services
 {
@@ -32,6 +33,11 @@ namespace CommandCenter.Services
 
         private static void Start(string exe, string arguments)
         {
+            // The game window comes from a process started by the anti-cheat launcher, not by us. Windows only lets it
+            // take the foreground if we pass that right on while we still hold it; without this the full-screen game
+            // opens behind and drops to the taskbar. The official launcher does the same.
+            AllowSetForegroundWindow(AnyProcess);
+
             var info = new ProcessStartInfo(Path.Combine(GamePaths.Game, exe), arguments)
             {
                 WorkingDirectory = GamePaths.Game,
@@ -40,31 +46,86 @@ namespace CommandCenter.Services
             Process.Start(info)?.Dispose();
         }
 
-        // Looks for the game by process name only; no handle is opened to the game process.
-        public static bool IsGameRunning() =>
-            Process.GetProcesses().Any(p =>
+        // The game, its anti-cheat launcher and the game's own updater. GeneralsOnlineZH.exe on its own is the official
+        // launcher, which stays open next to the game, so it does not count.
+        private static bool IsGameProcess(string name) =>
+            (name.StartsWith("GeneralsOnlineZH_", StringComparison.OrdinalIgnoreCase)
+             || name.StartsWith("GeneralsOnline_update", StringComparison.OrdinalIgnoreCase)
+             || name.Equals("generals", StringComparison.OrdinalIgnoreCase)
+             || name.Equals("EAC_LaunchGeneralsOnline", StringComparison.OrdinalIgnoreCase));
+
+        // Ids of the running game processes, by name only; no handle is opened to the game process
+        private static HashSet<int> GameProcessIds()
+        {
+            var ids = new HashSet<int>();
+            foreach (var p in Process.GetProcesses())
             {
-                string name = p.ProcessName;
+                if (IsGameProcess(p.ProcessName))
+                    ids.Add(p.Id);
                 p.Dispose();
-                return name.StartsWith("GeneralsOnlineZH", StringComparison.OrdinalIgnoreCase)
-                       || name.Equals("generals", StringComparison.OrdinalIgnoreCase)
-                       || name.Equals("EAC_LaunchGeneralsOnline", StringComparison.OrdinalIgnoreCase);
-            });
+            }
+            return ids;
+        }
+
+        public static bool IsGameRunning() => GameProcessIds().Count > 0;
+
+        public static List<string> RunningGames()
+        {
+            var names = new List<string>();
+            foreach (var p in Process.GetProcesses())
+            {
+                if (IsGameProcess(p.ProcessName) && !names.Contains(p.ProcessName, StringComparer.OrdinalIgnoreCase))
+                    names.Add(p.ProcessName);
+                p.Dispose();
+            }
+            return names;
+        }
+
+        // True when the window in front belongs to the game (or its anti-cheat splash)
+        public static bool GameIsInFront()
+        {
+            IntPtr window = GetForegroundWindow();
+            if (window == IntPtr.Zero)
+                return false;
+            GetWindowThreadProcessId(window, out uint pid);
+            return GameProcessIds().Contains((int)pid);
+        }
 
         // Waits until the game has started and closed again (or never started within the grace period).
-        public static async Task WaitForGameAsync(CancellationToken ct = default)
+        // inFront runs once, when the game first holds the foreground.
+        public static async Task WaitForGameAsync(Action? inFront = null, CancellationToken ct = default)
         {
             var start = DateTime.Now;
-            bool seen = false;
+            bool seen = false, shown = false;
+            int missing = 0;
             while (!ct.IsCancellationRequested)
             {
-                await Task.Delay(2000, ct);
-                bool running = IsGameRunning();
-                if (running)
+                await Task.Delay(1000, ct);
+                if (IsGameRunning())
+                {
                     seen = true;
-                else if (seen || DateTime.Now - start > TimeSpan.FromSeconds(45))
+                    missing = 0;
+                    if (!shown && inFront != null && GameIsInFront())
+                    {
+                        shown = true;
+                        inFront();
+                    }
+                }
+                // The anti-cheat launcher hands over to the game, so allow a short gap before calling it closed
+                else if (seen ? ++missing >= 3 : DateTime.Now - start > TimeSpan.FromSeconds(45))
                     return;
             }
         }
+
+        private const int AnyProcess = -1;
+
+        [DllImport("user32.dll")]
+        private static extern bool AllowSetForegroundWindow(int processId);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
     }
 }

@@ -8,10 +8,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>CommandCenter</AssemblyName>
     <RootNamespace>CommandCenter</RootNamespace>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Product>Command Center</Product>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <!-- 32-bit on the .NET 10 Desktop Runtime (x86) that the Generals Online launcher installs and runs on itself,
+         so the program stays a few megabytes instead of carrying its own copy of .NET -->
+    <PlatformTarget>x86</PlatformTarget>
+    <RollForward>Major</RollForward>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>

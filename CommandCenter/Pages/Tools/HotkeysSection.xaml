@@ -57,7 +57,7 @@
             <DockPanel Height="26">
                 <Ellipse DockPanel.Dock="Right" Width="7" Height="7" Margin="8,0,0,0" VerticalAlignment="Center"
                          Fill="{Binding Mark}" Visibility="{Binding MarkVisibility}" ToolTip="{Binding MarkTip}"/>
-                <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="{Binding Name}" Style="{StaticResource NameTextStyle}" FontSize="12" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
             </DockPanel>
         </DataTemplate>
 
@@ -241,7 +241,7 @@
                                     <Image x:Name="BigIcon" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality"/>
                                 </Border>
                                 <StackPanel Grid.Column="1" Margin="12,0,12,0" VerticalAlignment="Top">
-                                    <TextBlock x:Name="ButtonName" FontSize="14" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock x:Name="ButtonName" Style="{StaticResource NameTextStyle}" FontSize="14" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
                                     <TextBlock x:Name="ButtonWhere" FontSize="11" Foreground="#8888AA" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"/>
                                     <TextBlock x:Name="KeyHint" FontSize="11" Foreground="#A0A0C0" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                 </StackPanel>

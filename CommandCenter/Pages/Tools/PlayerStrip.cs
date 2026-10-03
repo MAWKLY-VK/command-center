@@ -96,6 +96,7 @@ namespace CommandCenter.Pages.Tools
                 Foreground = Views.Brush("#D0D0E8"),
                 MaxWidth = NameWidth,
                 TextTrimming = TextTrimming.CharacterEllipsis,
+                FlowDirection = FlowDirection.LeftToRight,
                 VerticalAlignment = VerticalAlignment.Center,
             });
             return panel;

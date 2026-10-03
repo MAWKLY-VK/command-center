@@ -65,7 +65,7 @@ namespace CommandCenter.Pages
                 var (w, h) = resolutions[i];
                 cmbWindowedResolution.Items.Add(new ComboBoxItem
                 {
-                    Content = $"{w} x {h}",
+                    Content = Loc.Ltr($"{w} x {h}"),
                     Tag = (w, h)
                 });
                 if (w == selectedWidth && h == selectedHeight)
@@ -485,17 +485,10 @@ namespace CommandCenter.Pages
         {
             try
             {
-                if (!File.Exists(SettingsFilePath))
-                {
-                    _settings = new GameSettingsFile();
-                    File.WriteAllText(SettingsFilePath, System.Text.Json.JsonSerializer.Serialize(
-                        _settings, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
-                }
-                else
-                {
-                    _settings = System.Text.Json.JsonSerializer.Deserialize<GameSettingsFile>(
-                        File.ReadAllText(SettingsFilePath)) ?? new();
-                }
+                // A missing file shows the defaults; Generals Online creates its own file, and this page writes one only on save
+                _settings = File.Exists(SettingsFilePath)
+                    ? System.Text.Json.JsonSerializer.Deserialize<GameSettingsFile>(File.ReadAllText(SettingsFilePath)) ?? new()
+                    : new GameSettingsFile();
 
                 txtMaxCameraHeight.Text = ((int)_settings.camera.max_height_only_when_lobby_host).ToString();
                 txtMinCameraHeight.Text = ((int)_settings.camera.min_height).ToString();
@@ -574,8 +567,6 @@ namespace CommandCenter.Pages
                 if (firstPlugin != null)
                 {
                     _settings.plugins.anticheat = new DirectoryInfo(firstPlugin).Name;
-                    File.WriteAllText(SettingsFilePath, System.Text.Json.JsonSerializer.Serialize(
-                        _settings, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
                 }
             }
             catch
@@ -664,11 +655,21 @@ namespace CommandCenter.Pages
             if (cmbAnticheatPlugin.SelectedItem is ComboBoxItem pluginItem)
                 _settings.plugins.anticheat = pluginItem.Tag?.ToString() ?? "";
 
-            WriteIfChanged("Generals Online settings", SettingsFilePath, Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(
-                _settings, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })));
-
-            SaveIniSettings();
             SaveLauncherOptions();
+
+            // The game reads settings.json and Options.ini when it starts and writes Options.ini itself
+            if (GameLauncher.IsGameRunning())
+            {
+                if (GoSettingsChanged(GoSettings.Load()) || IniSettingsChanged())
+                    Views.Main.Toast(Loc.T("Close the game first; it reads these settings only when it starts."), isError: true);
+                return;
+            }
+
+            // settings.json is edited as a JSON tree, so fields added by newer Generals Online versions stay as they are
+            var go = GoSettings.Load();
+            if (GoSettingsChanged(go))
+                go.Save("Saved from the Options page");
+            SaveIniSettings();
 
             if (patchChanged)
             {
@@ -768,7 +769,39 @@ namespace CommandCenter.Pages
             catch { }
         }
 
-        private void SaveIniSettings()
+        // Puts the values from this page into the settings.json tree; true when that changes anything
+        private bool GoSettingsChanged(GoSettings go)
+        {
+            string before = go.Root.ToJsonString();
+            go.Set("camera", "max_height_only_when_lobby_host", _settings.camera.max_height_only_when_lobby_host);
+            go.Set("camera", "min_height", _settings.camera.min_height);
+            go.Set("camera", "move_speed_ratio", _settings.camera.move_speed_ratio);
+            go.Set("chat", "duration_seconds_until_fade_out", _settings.chat.duration_seconds_until_fade_out);
+            go.Set("render", "fps_limit", _settings.render.fps_limit);
+            go.Set("render", "limit_framerate", _settings.render.limit_framerate);
+            go.Set("render", "stats_overlay", _settings.render.stats_overlay);
+            var social = _settings.social;
+            go.Set("social", "notification_friend_comes_online_menus", social.notification_friend_comes_online_menus);
+            go.Set("social", "notification_friend_comes_online_gameplay", social.notification_friend_comes_online_gameplay);
+            go.Set("social", "notification_friend_goes_offline_menus", social.notification_friend_goes_offline_menus);
+            go.Set("social", "notification_friend_goes_offline_gameplay", social.notification_friend_goes_offline_gameplay);
+            go.Set("social", "notification_player_accepts_request_menus", social.notification_player_accepts_request_menus);
+            go.Set("social", "notification_player_accepts_request_gameplay", social.notification_player_accepts_request_gameplay);
+            go.Set("social", "notification_player_sends_request_menus", social.notification_player_sends_request_menus);
+            go.Set("social", "notification_player_sends_request_gameplay", social.notification_player_sends_request_gameplay);
+            go.Set("network", "http_version", _settings.network.http_version);
+            go.Set("network", "use_alternative_endpoint", _settings.network.use_alternative_endpoint);
+            go.Set("data_packs", "use_community_data_patch", _settings.data_packs.use_community_data_patch);
+            go.Set("plugins", "anticheat", _settings.plugins.anticheat);
+            return go.Root.ToJsonString() != before;
+        }
+
+        private void SaveIniSettings() => WriteIfChanged("Game options", IniFilePath, BuildIni());
+
+        private bool IniSettingsChanged() => !(File.Exists(IniFilePath) && File.ReadAllBytes(IniFilePath).AsSpan().SequenceEqual(BuildIni()));
+
+        // Options.ini with the edge scrolling and cursor lock choices; every other line stays as it is
+        private byte[] BuildIni()
         {
             bool cursorWin = chkCursorLockWindowed.IsChecked == true;
             bool cursorFull = chkCursorLockFullscreen.IsChecked == true;
@@ -797,7 +830,7 @@ namespace CommandCenter.Pages
             if (!wroteCursorFull) { lines.Add($"CursorCaptureEnabledInFullscreenGame = {Y(cursorFull)}"); lines.Add($"CursorCaptureEnabledInFullscreenMenu = {Y(cursorFull)}"); }
             if (!wroteCursorWin) { lines.Add($"CursorCaptureEnabledInWindowedGame = {Y(cursorWin)}"); lines.Add($"CursorCaptureEnabledInWindowedMenu = {Y(cursorWin)}"); }
 
-            WriteIfChanged("Game options", IniFilePath, Encoding.UTF8.GetBytes(string.Join("\r\n", lines) + "\r\n"));
+            return Encoding.UTF8.GetBytes(string.Join("\r\n", lines) + "\r\n");
         }
 
         // Saving goes through the backup list, so the change can be undone; an unchanged file is left alone
