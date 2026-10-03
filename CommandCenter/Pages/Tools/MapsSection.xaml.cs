@@ -469,7 +469,6 @@ namespace CommandCenter.Pages.Tools
             Summary.ToolTip = null;
             if (!LibraryTab)
             {
-                SourceButton.Visibility = Visibility.Collapsed;
                 Summary.Text = _loaded
                     ? Loc.N(_installed.Count, "{0} map", "{0} maps") + " · " + Loc.Ltr(Views.Size(_installed.Sum(t => t.Info.SizeBytes)))
                     : "";
@@ -477,9 +476,6 @@ namespace CommandCenter.Pages.Tools
                 return;
             }
 
-            SourceButton.Visibility = _loaded ? Visibility.Visible : Visibility.Collapsed;
-            SourceButton.Content = OnlineSource ? Loc.T("USE A FOLDER") : Loc.T("USE ONLINE LIBRARY");
-            SourceButton.ToolTip = OnlineSource ? Loc.T("Read the library from a folder on this PC") : Loc.T("Read the library from the internet again");
             if (!_loaded)
             {
                 Summary.Text = "";
@@ -532,17 +528,14 @@ namespace CommandCenter.Pages.Tools
             {
                 // Offline, not found, or a damaged catalog
                 EmptyTitle.Text = Loc.T(failed.Problem ?? "The map library can't be read");
-                EmptyText.Text = (failed.Detail != null ? Loc.T(failed.Detail) + " " : "") + Loc.T("You can also install maps from a folder on this PC.");
+                EmptyText.Text = (failed.Detail != null ? Loc.T(failed.Detail) + " " : "") + Loc.T("You can still drop a .zip or a map folder on this page to install it.");
                 EmptyActions.Visibility = Visibility.Visible;
                 RetryButton.Visibility = Visibility.Visible;
-                EmptySourceButton.Content = Loc.T("USE A FOLDER");
             }
             else if (library && source.Count == 0)
             {
                 EmptyTitle.Text = Loc.T("No maps in this folder");
                 EmptyText.Text = Loc.T("Pick a folder that holds map folders (each with a .map file).");
-                EmptyActions.Visibility = Visibility.Visible;
-                EmptySourceButton.Content = Loc.T("CHOOSE ANOTHER FOLDER");
             }
             else if (source.Count == 0)
             {
@@ -646,28 +639,7 @@ namespace CommandCenter.Pages.Tools
             UpdateBar();
         }
 
-        // ── Library source ──
-
-        private void Source_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender == EmptySourceButton || OnlineSource)
-            {
-                ChooseFolder();
-                return;
-            }
-            MapLibraryClient.UseSource(null);
-            _ = LoadAsync();
-        }
-
-        private void ChooseFolder()
-        {
-            var dialog = new Microsoft.Win32.OpenFolderDialog { Title = Loc.T("Choose the folder that holds your maps") };
-            if (dialog.ShowDialog(Window.GetWindow(this)) != true)
-                return;
-            MapLibraryClient.UseSource(dialog.FolderName);
-            _ = LoadAsync();
-        }
-
+        // Reads the online library again after it could not be reached
         private void Retry_Click(object sender, RoutedEventArgs e) => _ = LoadAsync(refresh: true);
 
         // ── Download and install ──

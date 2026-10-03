@@ -59,11 +59,6 @@
             <Setter Property="Margin" Value="8,0,0,0"/>
             <Setter Property="Visibility" Value="Collapsed"/>
         </Style>
-        <Style x:Key="NoteText" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Foreground" Value="#A8A8C8"/>
-            <Setter Property="TextWrapping" Value="Wrap"/>
-        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -78,12 +73,7 @@
             <TextBlock Text="{l:T ADD-ONS}" Style="{StaticResource SectionHeaderStyle}" DockPanel.Dock="Left"/>
         </DockPanel>
 
-        <DockPanel Grid.Row="1" Margin="0,10,0,10" LastChildFill="False">
-            <RadioButton x:Name="TabBars" GroupName="AddonViews" Style="{StaticResource SubTabStyle}" Content="{l:T CONTROL BAR}"
-                         IsChecked="True" DockPanel.Dock="Left" Checked="View_Checked"/>
-            <RadioButton x:Name="TabLetters" GroupName="AddonViews" Style="{StaticResource SubTabStyle}" Content="{l:T HOTKEY LETTERS}"
-                         DockPanel.Dock="Left" Checked="View_Checked"/>
-        </DockPanel>
+        <TextBlock Grid.Row="1" Text="{l:T CONTROL BAR}" Style="{StaticResource GroupLabelStyle}" Margin="0,12,0,8"/>
 
         <!-- Control bar -->
         <ScrollViewer x:Name="BarsView" Grid.Row="2" VerticalScrollBarVisibility="Auto" Focusable="False">
@@ -148,56 +138,8 @@
                     </RadioButton>
                 </Grid>
 
-                <Grid Margin="0,18,0,4">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="24"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <TextBlock Text="{l:T SAFETY}" Style="{StaticResource GroupLabelStyle}"/>
-                        <StackPanel x:Name="SafetyList"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Text="{l:T HD TEXTURES}" Style="{StaticResource GroupLabelStyle}"/>
-                        <TextBlock Style="{StaticResource NoteText}"
-                                   Text="{l:T Sharper art for any bar. Only offered on the GenTool website, so it is not installed from here.}"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                            <Button Content="{l:T GENTOOL SITE}" Style="{StaticResource SmallButtonStyle}" Click="Hd_Click"/>
-                            <Button Content="{l:T SOURCE ON GITHUB}" Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0" Click="Source_Click"/>
-                        </StackPanel>
-                    </StackPanel>
-                </Grid>
-            </StackPanel>
-        </ScrollViewer>
-
-        <!-- Hotkey letters -->
-        <ScrollViewer x:Name="LettersView" Grid.Row="2" VerticalScrollBarVisibility="Auto" Focusable="False" Visibility="Collapsed">
-            <StackPanel Margin="0,0,8,0">
-                <TextBlock Style="{StaticResource NoteText}" Margin="0,0,0,12">
-                    <TextBlock.Text><l:T Text="Draws each button's hotkey letter on its picture, in the bottom-left corner, so the control bar in the game shows which key to press."/></TextBlock.Text>
-                </TextBlock>
-
-                <DockPanel Margin="0,0,0,8">
-                    <ComboBox x:Name="ArmyBox" DockPanel.Dock="Right" Width="200" Height="28" FontSize="12" SelectionChanged="Army_Changed"
-                              Visibility="Collapsed"/>
-                    <TextBlock x:Name="PreviewTitle" Text="{l:T PREVIEW}" Style="{StaticResource GroupLabelStyle}" Margin="0" VerticalAlignment="Center"/>
-                </DockPanel>
-
-                <Border Style="{StaticResource ResultBoxStyle}">
-                    <StackPanel>
-                        <TextBlock x:Name="PreviewMessage" Foreground="#8888AA" FontSize="12" TextWrapping="Wrap" Text="{l:T Loading…}"/>
-                        <StackPanel x:Name="PreviewRows" Visibility="Collapsed">
-                            <TextBlock Text="{l:T WITHOUT LETTERS}" Style="{StaticResource GroupLabelStyle}"/>
-                            <WrapPanel x:Name="BeforeIcons" FlowDirection="LeftToRight" HorizontalAlignment="Left"/>
-                            <TextBlock Text="{l:T WITH LETTERS}" Style="{StaticResource GroupLabelStyle}" Margin="0,12,0,6"/>
-                            <WrapPanel x:Name="AfterIcons" FlowDirection="LeftToRight" HorizontalAlignment="Left"/>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-
-                <TextBlock Text="{l:T GOOD TO KNOW}" Style="{StaticResource GroupLabelStyle}" Margin="0,16,0,6"/>
-                <StackPanel x:Name="LettersNotes"/>
+                <TextBlock Text="{l:T SAFETY}" Style="{StaticResource GroupLabelStyle}" Margin="0,18,0,6"/>
+                <StackPanel x:Name="SafetyList" Margin="0,0,0,4"/>
             </StackPanel>
         </ScrollViewer>
 
@@ -210,20 +152,6 @@
             <StackPanel VerticalAlignment="Center">
                 <TextBlock x:Name="ChangeText" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                 <TextBlock x:Name="ChangeDetail" FontSize="11.5" Foreground="#8888AA" TextWrapping="Wrap" Margin="0,2,0,0"/>
-            </StackPanel>
-        </DockPanel>
-
-        <!-- Hotkey letters: on or off -->
-        <DockPanel x:Name="LettersFooter" Grid.Row="3" Margin="0,10,0,0" Visibility="Collapsed">
-            <Button x:Name="LettersOnButton" DockPanel.Dock="Right" Content="{l:T TURN ON}" Style="{StaticResource GoldButtonStyle}" Margin="10,0,0,0"
-                    MinWidth="90" Click="LettersOn_Click"/>
-            <Button x:Name="LettersOffButton" DockPanel.Dock="Right" Content="{l:T TURN OFF}" Style="{StaticResource DiagButtonStyle}" Margin="10,0,0,0"
-                    Click="LettersOff_Click"/>
-            <Button x:Name="LettersUpdateButton" DockPanel.Dock="Right" Content="{l:T UPDATE LETTERS}" Style="{StaticResource DiagButtonStyle}" Margin="10,0,0,0"
-                    Click="LettersUpdate_Click"/>
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock x:Name="LettersState" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                <TextBlock x:Name="LettersDetail" FontSize="11.5" Foreground="#8888AA" TextWrapping="Wrap" Margin="0,2,0,0"/>
             </StackPanel>
         </DockPanel>
     </Grid>

@@ -109,8 +109,6 @@
                          DockPanel.Dock="Left" Checked="Tab_Checked"/>
             <RadioButton x:Name="TabInstalled" GroupName="MapTabs" Style="{StaticResource SubTabStyle}"
                          DockPanel.Dock="Left" Checked="Tab_Checked"/>
-            <Button x:Name="SourceButton" DockPanel.Dock="Right" Style="{StaticResource SmallButtonStyle}" Margin="10,0,0,0"
-                    VerticalAlignment="Center" Click="Source_Click"/>
             <TextBlock x:Name="Summary" DockPanel.Dock="Right" Foreground="#8888AA" FontSize="12" Margin="16,0,0,0"
                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
         </DockPanel>
@@ -144,9 +142,7 @@
                     <TextBlock x:Name="EmptyText" Style="{StaticResource HintStyle}" TextAlignment="Center"
                                HorizontalAlignment="Center" Margin="0,6,0,0"/>
                     <StackPanel x:Name="EmptyActions" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
-                        <Button x:Name="RetryButton" Content="{l:T TRY AGAIN}" Style="{StaticResource DiagButtonStyle}"
-                                Margin="0,0,10,0" Click="Retry_Click"/>
-                        <Button x:Name="EmptySourceButton" Style="{StaticResource DiagButtonStyle}" Click="Source_Click"/>
+                        <Button x:Name="RetryButton" Content="{l:T TRY AGAIN}" Style="{StaticResource DiagButtonStyle}" Click="Retry_Click"/>
                     </StackPanel>
                 </StackPanel>
             </Grid>

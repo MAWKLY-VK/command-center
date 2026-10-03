@@ -54,25 +54,12 @@ namespace CommandCenter.Services
         // --map-library <address or folder>
         public static string? SourceOverride { get; set; }
 
-        // Where the library is read from: --map-library, then --library-folder, then the saved choice (or the older
-        // library folder setting), then the online library
-        public static string CurrentSource =>
-            Value(SourceOverride) ?? Value(AppState.LibraryFolder) ?? Value(AppSettings.Current.MapLibrary)
-            ?? Value(AppSettings.Current.LibraryFolder) ?? OnlineLibrary;
+        // Where the library is read from: the online library, unless --map-library or --library-folder points
+        // elsewhere (for testing a new catalog)
+        public static string CurrentSource => Value(SourceOverride) ?? Value(AppState.LibraryFolder) ?? OnlineLibrary;
 
         // A client for the current source, or null when it is a plain folder of maps (read with MapCatalog.Scan)
         public static MapLibraryClient? ForCurrentSource() => IsCatalogSource(CurrentSource) ? new MapLibraryClient(CurrentSource) : null;
-
-        // Saves the user's choice: a web address or a folder, or null for the online library. It also replaces the
-        // command-line choice for the rest of this run.
-        public static void UseSource(string? source)
-        {
-            SourceOverride = null;
-            AppState.LibraryFolder = null;
-            AppSettings.Current.MapLibrary = Value(source);
-            AppSettings.Current.LibraryFolder = null;
-            AppSettings.Current.Save();
-        }
 
         private static string? Value(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 

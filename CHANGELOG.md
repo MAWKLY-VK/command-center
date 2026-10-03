@@ -2,10 +2,13 @@
 
 ## 0.2.0
 
-- Play no longer sends the game to the taskbar: the game gets the foreground (as with the official launcher), and Command Center steps aside only once the game is in front, without taking the focus back.
+- Play no longer leaves the game on the taskbar: Command Center stays open under the game while it starts and puts it back in front when the focus leaves it (the anti-cheat splash closing, another program taking the focus); afterwards it steps aside without taking the focus. Each launch is logged to `play.log`.
 - Play shows RUNNING and waits while the game runs, whoever started it; the official launcher left open on its own no longer counts as a running game.
 - Works next to Generals Online launcher 1.0.11: `settings.json` keeps fields Command Center does not know, unchanged files are not rewritten, game settings are not saved while the game runs, and Control Bar Pro installed by the official launcher is left to it.
 - Arabic: check marks are no longer mirrored; resolutions, map, player and unit names, plugin details and lists of English names keep their reading order.
+- New red eagle icon and home logo, made from the Generals Online launcher icon.
+- Options: Language has its own tab, first in the list; the map library source setting is gone (the library always comes from the internet).
+- Hotkey letters moved from Add-ons to Hotkeys; Add-ons now holds only the control bar, without the HD textures and GitHub links.
 - About 3 MB instead of 65 MB: runs on the .NET 10 Desktop Runtime (x86) that the Generals Online launcher already installs.
 
 ## 0.1.0 – first test build

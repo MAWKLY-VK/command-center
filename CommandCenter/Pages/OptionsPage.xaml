@@ -11,7 +11,7 @@
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="HorizontalAlignment" Value="Stretch"/>
             <Setter Property="HorizontalContentAlignment" Value="Left"/>
-            <Setter Property="Height" Value="38"/>
+            <Setter Property="Height" Value="35"/>
             <Setter Property="Margin" Value="0,1"/>
             <Setter Property="Padding" Value="16,0,0,0"/>
             <Setter Property="FontSize" Value="12"/>
@@ -174,9 +174,11 @@
 
             <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Focusable="False">
             <StackPanel Margin="0,8,0,0">
-                <RadioButton x:Name="rbCamera" Content="{l:T CAMERA}" GroupName="OptionsTabs"
+                <RadioButton x:Name="rbLanguage" Content="LANGUAGE" GroupName="OptionsTabs"
                              Style="{StaticResource NavTabStyle}" IsChecked="True"
                              Checked="Tab_Checked"/>
+                <RadioButton x:Name="rbCamera" Content="{l:T CAMERA}" GroupName="OptionsTabs"
+                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
                 <RadioButton x:Name="rbChat" Content="{l:T CHAT}" GroupName="OptionsTabs"
                              Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
                 <RadioButton x:Name="rbInput" Content="{l:T INPUT}" GroupName="OptionsTabs"
@@ -209,7 +211,17 @@
             <!-- All panels overlap in the same cell — only one visible at a time -->
             <Grid>
                 <!-- CAMERA -->
-                <StackPanel x:Name="PanelCamera" Visibility="Visible">
+                <!-- LANGUAGE: Command Center's own interface language -->
+                <StackPanel x:Name="PanelLanguage" Visibility="Visible">
+                    <TextBlock Text="{l:T LANGUAGE}" Style="{StaticResource SectionHeaderStyle}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="{l:T Interface language}" Style="{StaticResource FieldLabelStyle}"/>
+                        <ComboBox x:Name="cmbLanguage" Width="250" SelectionChanged="CmbLanguage_SelectionChanged"/>
+                    </StackPanel>
+                    <TextBlock Text="{l:T Command Center restarts to switch the language.}" Foreground="#888888" FontSize="11"/>
+                </StackPanel>
+
+                <StackPanel x:Name="PanelCamera" Visibility="Collapsed">
                     <TextBlock Text="{l:T CAMERA}" Style="{StaticResource SectionHeaderStyle}"/>
                     <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
@@ -560,22 +572,6 @@
                 <!-- LAUNCHER: Command Center's own preferences -->
                 <StackPanel x:Name="PanelLauncher" Visibility="Collapsed">
                     <TextBlock Text="{l:T LAUNCHER}" Style="{StaticResource SectionHeaderStyle}"/>
-
-                    <TextBlock Text="{l:T LANGUAGE}" Foreground="#8888AA" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                        <TextBlock Text="{l:T Interface language}" Style="{StaticResource FieldLabelStyle}"/>
-                        <ComboBox x:Name="cmbLanguage" Width="250" SelectionChanged="CmbLanguage_SelectionChanged"/>
-                    </StackPanel>
-                    <TextBlock Text="{l:T Command Center restarts to switch the language.}" Foreground="#888888" FontSize="11" Margin="0,0,0,20"/>
-
-                    <TextBlock Text="{l:T MAP LIBRARY}" Foreground="#8888AA" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                        <TextBlock Text="{l:T Library source}" Style="{StaticResource FieldLabelStyle}"/>
-                        <TextBox x:Name="txtMapLibrary" Style="{StaticResource TextBoxStyle}" Width="250" Height="32"/>
-                        <Button Content="{l:T DEFAULT}" Style="{StaticResource DiagButtonStyle}" Margin="8,0,0,0" Click="BtnMapLibraryDefault_Click"/>
-                    </StackPanel>
-                    <TextBlock Text="{l:T Empty uses the online library. You can also enter a web address or a folder that holds catalog.json.}"
-                               Foreground="#888888" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,20"/>
 
                     <TextBlock Text="{l:T UPDATES}" Foreground="#8888AA" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"/>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,20">

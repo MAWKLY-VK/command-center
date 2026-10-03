@@ -184,6 +184,7 @@ namespace CommandCenter.Pages
         {
             if (PanelCamera == null) return; // not yet loaded
 
+            PanelLanguage.Visibility = Visibility.Collapsed;
             PanelCamera.Visibility = Visibility.Collapsed;
             PanelChat.Visibility = Visibility.Collapsed;
             PanelInput.Visibility = Visibility.Collapsed;
@@ -194,7 +195,8 @@ namespace CommandCenter.Pages
             PanelPlugins.Visibility = Visibility.Collapsed;
             PanelLauncher.Visibility = Visibility.Collapsed;
 
-            if (ReferenceEquals(sender, rbCamera)) PanelCamera.Visibility = Visibility.Visible;
+            if (ReferenceEquals(sender, rbLanguage)) PanelLanguage.Visibility = Visibility.Visible;
+            else if (ReferenceEquals(sender, rbCamera)) PanelCamera.Visibility = Visibility.Visible;
             else if (ReferenceEquals(sender, rbChat)) PanelChat.Visibility = Visibility.Visible;
             else if (ReferenceEquals(sender, rbInput)) PanelInput.Visibility = Visibility.Visible;
             else if (ReferenceEquals(sender, rbGraphics)) PanelGraphics.Visibility = Visibility.Visible;
@@ -655,8 +657,6 @@ namespace CommandCenter.Pages
             if (cmbAnticheatPlugin.SelectedItem is ComboBoxItem pluginItem)
                 _settings.plugins.anticheat = pluginItem.Tag?.ToString() ?? "";
 
-            SaveLauncherOptions();
-
             // The game reads settings.json and Options.ini when it starts and writes Options.ini itself
             if (GameLauncher.IsGameRunning())
             {
@@ -691,6 +691,8 @@ namespace CommandCenter.Pages
         private void LoadLauncherOptions()
         {
             _loadingLauncher = true;
+            // The tab keeps its English name next to the translation, so it can be found in a language one cannot read
+            rbLanguage.Content = Loc.Language == "en" ? "LANGUAGE" : Loc.T("LANGUAGE") + " · LANGUAGE";
             cmbLanguage.Items.Clear();
             foreach (var (code, name) in Loc.Languages)
             {
@@ -699,22 +701,9 @@ namespace CommandCenter.Pages
                 if (code == Loc.Language)
                     cmbLanguage.SelectedItem = item;
             }
-            txtMapLibrary.Text = AppSettings.Current.MapLibrary ?? "";
             txtVersion.Text = "Command Center " + AppState.Version;
             _loadingLauncher = false;
         }
-
-        private void SaveLauncherOptions()
-        {
-            string source = txtMapLibrary.Text.Trim();
-            string? value = source.Length == 0 ? null : source;
-            if (value == AppSettings.Current.MapLibrary)
-                return;
-            AppSettings.Current.MapLibrary = value;
-            AppSettings.Current.Save();
-        }
-
-        private void BtnMapLibraryDefault_Click(object sender, RoutedEventArgs e) => txtMapLibrary.Text = "";
 
         private void CmbLanguage_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {

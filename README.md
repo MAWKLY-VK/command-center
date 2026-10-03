@@ -18,9 +18,9 @@ pages with a sidebar.
 | Tools › Health | Game files, anti-cheat, wrapper and runtime DLLs, rule-changing archives, "Run as administrator" (error 740), compatibility modes, Visual C++, graphics driver, resolution, network; one-click fixes with Undo |
 | Tools › Map library | The online map library and the installed maps, with previews, player counts and sizes; install by click or by dropping a `.zip` / folder |
 | Tools › Replays | Every match from `Replays` and `ArchivedReplays` with map, players, armies, results and who left when; watch, keep, rename, copy, delete with Undo; turns the game's own *ArchiveReplays* option on or off |
-| Tools › Hotkeys | Unit and building buttons for all 12 armies drawn like the in-game bar, plus the game keys; checks duplicates and clashes before saving |
-| Tools › Add-ons | Control Bar Pro from TheSuperHackers in five sizes, checked against pinned SHA-256 hashes; hotkey letters on the button pictures |
-| Options | The official launcher's sections (camera, chat, input, graphics, social, network with diagnostics, data packs, plugins) plus Launcher: language, map library source and updates |
+| Tools › Hotkeys | Unit and building buttons for all 12 armies drawn like the in-game bar, the game keys, and hotkey letters on the button pictures; checks duplicates and clashes before saving |
+| Tools › Add-ons | Control Bar Pro from TheSuperHackers in five sizes, checked against pinned SHA-256 hashes |
+| Options | Language first, then the official launcher's sections (camera, chat, input, graphics, social, network with diagnostics, data packs, plugins) and Launcher: updates and about |
 
 ## Ground rules
 
@@ -34,7 +34,7 @@ pages with a sidebar.
 
 Command Center is a companion, not a replacement. It works alongside the Generals Online launcher:
 
-- Play starts the game the same way, and hands the foreground to the game so a full-screen game is not pushed to the taskbar.
+- Play starts the game the same way and stays open under it while it starts, like the official launcher. If the focus leaves the game during the launch (for example when the anti-cheat splash closes), Command Center puts the game back in front, so a full-screen game is not left on the taskbar. Each launch is written to `play.log` in Command Center's folder.
 - Play waits while the game runs, whoever started it, and the official launcher left open on its own does not count as the game.
 - `settings.json` and `launcher.json` are edited in place: fields Command Center does not know, such as ones added by newer Generals Online versions, are kept, and nothing is written when nothing changed.
 - Game settings are not saved while the game runs, because the game reads them only when it starts.
@@ -84,6 +84,7 @@ Copyright (C) 2026 Command Center contributors.
 
 - The interface, the Options page and the network diagnostics are based on the [Generals Online Launcher](https://github.com/GeneralsOnlineDevelopmentTeam/Launcher) by the GeneralsOnline Development Team (GPL-3.0).
 - Control Bar Pro: [TheSuperHackers/GeneralsControlBar](https://github.com/TheSuperHackers/GeneralsControlBar) (MIT).
+- The program icon is the Generals Online launcher icon (GPL-3.0), recoloured red and without its lettering (`toolsmake-icon.ps1`).
 - Map previews, icons and artwork are read at run time from the player's own game and Steam installation.
 
 Command & Conquer is a trademark of Electronic Arts. This project is not affiliated with Electronic Arts

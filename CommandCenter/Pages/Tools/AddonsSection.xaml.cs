@@ -9,26 +9,21 @@ using CommandCenter.Services;
 
 namespace CommandCenter.Pages.Tools
 {
-    // Add-ons: the control bar (the game's own or Control Bar Pro) with a before/after picture,
-    // and hotkey letters drawn on the button pictures.
+    // Add-ons: the control bar (the game's own or Control Bar Pro) with a before/after picture.
+    // Hotkey letters live in the Hotkeys section.
     public partial class AddonsSection : UserControl, IToolSection
     {
         // The pictures are 1920 x 1080 screenshots; the preview shows the bottom of the screen, where the bar is
         private const double CropTop = 700.0 / 1080;
         private const double MaxPreviewHeight = 300;
-        private const int PreviewIcons = 10;
 
         private static readonly BitmapSource OriginalArt = Art("original");
         private static readonly BitmapSource ProArt = Art("pro");
         private static readonly SolidColorBrush NoteBrush = Views.Brush("#A8A8C8");
-        private static readonly SolidColorBrush NoteDot = Views.Brush("#404070");
-        private static readonly SolidColorBrush IconLine = Views.Brush("#2A2A55");
 
         private (BarKind Kind, string? Resolution) _installed;
-        private bool _loading, _touched, _dragging, _busy, _lettersBusy, _armiesLoading, _goManaged;
+        private bool _loading, _touched, _dragging, _busy, _goManaged;
         private double _split = 0.5;
-        private Task? _preview;
-        private HotkeyService? _hotkeys;
 
         public AddonsSection()
         {
@@ -51,49 +46,16 @@ namespace CommandCenter.Pages.Tools
             })
                 SafetyList.Children.Add(Note(text, Views.Passed));
 
-            foreach (string text in new[]
-            {
-                Loc.T("Only pictures change, so it does not cause mismatches online."),
-                Loc.T("The letters follow the hotkeys saved in the game. After you change hotkeys, press Update letters."),
-                Loc.T("Every picture is backed up first. Turning it off puts the game's own pictures back."),
-            })
-                LettersNotes.Children.Add(Note(text, NoteDot));
-
             ReadInstalled();
-            ShowLettersState();
         }
 
         public bool HasPendingChanges => Pending;
 
-        public void OnShown()
-        {
-            ReadInstalled();
-            ShowLettersState();
-        }
+        public void OnShown() => ReadInstalled();
 
-        public Task ReadyAsync() => TabLetters.IsChecked == true ? EnsurePreview() : Task.CompletedTask;
+        public Task ReadyAsync() => Task.CompletedTask;
 
-        public void ShowPart(string part)
-        {
-            if (part is "letters" or "hotkeyletters")
-                TabLetters.IsChecked = true;
-            else
-                TabBars.IsChecked = true;
-        }
-
-        private void View_Checked(object sender, RoutedEventArgs e)
-        {
-            if (!IsInitialized)
-                return;
-            bool letters = TabLetters.IsChecked == true;
-            BarsView.Visibility = BarsFooter.Visibility = letters ? Visibility.Collapsed : Visibility.Visible;
-            LettersView.Visibility = LettersFooter.Visibility = letters ? Visibility.Visible : Visibility.Collapsed;
-            if (letters)
-            {
-                ShowLettersState();
-                _ = EnsurePreview();
-            }
-        }
+        public void ShowPart(string part) { }
 
         // ── Control bar ──
 
@@ -308,10 +270,6 @@ namespace CommandCenter.Pages.Tools
             }
         }
 
-        private void Hd_Click(object sender, RoutedEventArgs e) => Views.Open(AddonService.HdPage);
-
-        private void Source_Click(object sender, RoutedEventArgs e) => Views.Open(AddonService.RepoPage);
-
         // ── Before and after picture ──
 
         // The picture keeps the screenshots' shape: as wide as the panel, up to a height
@@ -362,172 +320,6 @@ namespace CommandCenter.Pages.Tools
             After.Clip = new RectangleGeometry(new Rect(x, 0, Math.Max(0, w - x), h));
             Divider.Margin = new Thickness(x - 1, 0, 0, 0);
             Handle.Margin = new Thickness(x - Handle.Width / 2, 0, 0, 0);
-        }
-
-        // ── Hotkey letters ──
-
-        private void ShowLettersState()
-        {
-            bool on;
-            try
-            {
-                on = IconLettersService.IsEnabled;
-            }
-            catch
-            {
-                on = false;
-            }
-            LettersOnButton.Visibility = on ? Visibility.Collapsed : Visibility.Visible;
-            LettersOffButton.Visibility = LettersUpdateButton.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
-            LettersOnButton.IsEnabled = LettersOffButton.IsEnabled = LettersUpdateButton.IsEnabled = GamePaths.GameFound && !_lettersBusy;
-            if (_lettersBusy)
-                return;
-
-            if (!GamePaths.GameFound)
-            {
-                LettersState.Text = Loc.T("Folder not found");
-                LettersDetail.Text = Loc.T("Generals Online was not found. Start Command Center from the game folder or pass --game <folder>.");
-                return;
-            }
-            LettersState.Text = on ? Loc.T("Hotkey letters are on") : Loc.T("Hotkey letters are off");
-            LettersDetail.Text = on
-                ? Loc.T("They show on the buttons the next time the game starts.")
-                : Loc.T("Turning them on adds pictures with letters to the game folder. They show the next time the game starts.");
-        }
-
-        private void LettersOn_Click(object sender, RoutedEventArgs e) => TurnOn();
-
-        private void LettersOff_Click(object sender, RoutedEventArgs e) => TurnOff();
-
-        private void LettersUpdate_Click(object sender, RoutedEventArgs e) => _ = RunLettersAsync(async () =>
-        {
-            int count = await DrawLettersAsync();
-            Views.Main.Toast(Loc.N(count, "Letters redrawn on {0} picture for your saved hotkeys.", "Letters redrawn on {0} pictures for your saved hotkeys."));
-        });
-
-        private void TurnOn() => _ = RunLettersAsync(async () =>
-        {
-            int count = await DrawLettersAsync();
-            Views.Main.Toast(Loc.N(count, "Hotkey letters drawn on {0} picture. They show the next time the game starts.",
-                "Hotkey letters drawn on {0} pictures. They show the next time the game starts."), TurnOff);
-        });
-
-        private void TurnOff() => _ = RunLettersAsync(async () =>
-        {
-            await Task.Run(IconLettersService.Remove);
-            Views.Main.Toast(Loc.T("Hotkey letters removed. The game's own pictures are back."), TurnOn);
-        });
-
-        private static async Task<int> DrawLettersAsync()
-        {
-            var hotkeys = await AppState.Hotkeys() ?? throw new InvalidOperationException(Loc.T("The game's hotkeys could not be read."));
-            return await Task.Run(() => IconLettersService.Apply(hotkeys));
-        }
-
-        private async Task RunLettersAsync(Func<Task> work)
-        {
-            if (_lettersBusy)
-                return;
-            _lettersBusy = true;
-            ShowLettersState();
-            LettersDetail.Text = Loc.T("Working…");
-            try
-            {
-                await work();
-            }
-            catch (Exception ex)
-            {
-                Views.Main.Toast(Loc.T("Something went wrong: {0}", Plain(ex.Message)), isError: true);
-            }
-            finally
-            {
-                _lettersBusy = false;
-                ShowLettersState();
-            }
-        }
-
-        private Task EnsurePreview() => _preview ??= LoadPreviewAsync();
-
-        private async Task LoadPreviewAsync()
-        {
-            PreviewMessage.Text = Loc.T("Loading the game's button pictures…");
-            HotkeyService? hotkeys = null;
-            try
-            {
-                hotkeys = GamePaths.GameFound ? await AppState.Hotkeys() : null;
-            }
-            catch { }
-            if (hotkeys == null || hotkeys.Armies.Count == 0)
-            {
-                PreviewMessage.Text = Loc.T("The game's button pictures could not be read, so there is no preview.");
-                return;
-            }
-            _hotkeys = hotkeys;
-            _armiesLoading = true;
-            foreach (var army in hotkeys.Armies)
-                ArmyBox.Items.Add(new ComboBoxItem { Content = army.Name, Tag = army });
-            ArmyBox.SelectedIndex = 0;
-            _armiesLoading = false;
-            ArmyBox.Visibility = Visibility.Visible;
-            ShowPreview();
-            await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Background);
-        }
-
-        private void Army_Changed(object sender, SelectionChangedEventArgs e)
-        {
-            if (!_armiesLoading)
-                ShowPreview();
-        }
-
-        // The builder's menu of the chosen army, as it looks now and with the letters
-        private void ShowPreview()
-        {
-            if (_hotkeys is not { } hotkeys || (ArmyBox.SelectedItem as ComboBoxItem)?.Tag is not HotkeyArmy army)
-                return;
-            var menu = army.Menus.Where(m => m.Kind == MenuKind.Unit)
-                .OrderByDescending(m => m.Buttons.Count(b => b.Action.Equals("DOZER_CONSTRUCT", StringComparison.OrdinalIgnoreCase)))
-                .ThenByDescending(m => m.Buttons.Count(b => b.Image != null))
-                .FirstOrDefault() ?? army.Menus.FirstOrDefault();
-            if (menu == null)
-                return;
-
-            try
-            {
-                var buttons = menu.Buttons.Where(b => hotkeys.Images.Get(b.Image) != null)
-                    .DistinctBy(b => b.Image, StringComparer.OrdinalIgnoreCase).Take(PreviewIcons).ToList();
-                var lettered = IconLettersService.RenderPreview(hotkeys, buttons);
-                BeforeIcons.Children.Clear();
-                AfterIcons.Children.Clear();
-                for (int i = 0; i < buttons.Count && i < lettered.Count; i++)
-                {
-                    string name = hotkeys.ShownName(buttons[i].Label);
-                    BeforeIcons.Children.Add(Icon(hotkeys.Images.Get(buttons[i].Image)!, name));
-                    AfterIcons.Children.Add(Icon(lettered[i], name));
-                }
-                PreviewTitle.Text = Loc.T("PREVIEW: {0}", menu.Name.ToUpperInvariant());
-                PreviewMessage.Visibility = Visibility.Collapsed;
-                PreviewRows.Visibility = Visibility.Visible;
-            }
-            catch (Exception ex)
-            {
-                PreviewMessage.Text = Loc.T("Something went wrong: {0}", Plain(ex.Message));
-                PreviewMessage.Visibility = Visibility.Visible;
-                PreviewRows.Visibility = Visibility.Collapsed;
-            }
-        }
-
-        private static Border Icon(BitmapSource image, string name)
-        {
-            var picture = new Image { Source = image, Width = 52, Height = 42, Stretch = Stretch.Uniform };
-            RenderOptions.SetBitmapScalingMode(picture, BitmapScalingMode.HighQuality);
-            return new Border
-            {
-                Child = picture,
-                BorderBrush = IconLine,
-                BorderThickness = new Thickness(1),
-                Margin = new Thickness(0, 0, 6, 6),
-                ToolTip = name,
-            };
         }
 
         // ── Shared ──

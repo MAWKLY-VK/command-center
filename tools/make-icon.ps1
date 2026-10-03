@@ -1,49 +1,107 @@
-# Draws the Command Center emblem (the shield on the home page) at the usual icon sizes and packs
-# them into CommandCenter\Assets\app.ico. Run with Windows PowerShell:  powershell -STA -File tools\make-icon.ps1
-param([string]$Output = (Join-Path $PSScriptRoot '..\CommandCenter\Assets\app.ico'))
+# Builds the Command Center emblem from the Generals Online launcher icon (GPL-3.0): the eagle and shield without the
+# "GENERALS ONLINE" lettering, with the blue turned red. Writes CommandCenter\Assets\logo.png (home page) and
+# CommandCenter\Assets\app.ico (program icon). Run with Windows PowerShell:
+#   powershell -STA -File tools\make-icon.ps1 -Source <Launcher\Assets\appicon.ico from the Generals Online launcher>
+param(
+    [Parameter(Mandatory = $true)][string]$Source,
+    [string]$Output,
+    [string]$Logo
+)
+
+$assets = Join-Path (Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)) 'CommandCenter\Assets'
+if (-not $Output) { $Output = Join-Path $assets 'app.ico' }
+if (-not $Logo) { $Logo = Join-Path $assets 'logo.png' }
 
 Add-Type -AssemblyName PresentationCore, PresentationFramework, WindowsBase
 
-function Render([int]$size) {
-    $visual = New-Object System.Windows.Media.DrawingVisual
-    $dc = $visual.RenderOpen()
-    # The emblem is drawn on a 200 x 220 canvas; keep it centred in a square
-    $scale = $size / 224.0
-    $dc.PushTransform((New-Object System.Windows.Media.TranslateTransform((($size - 200 * $scale) / 2), (2 * $scale))))
-    $dc.PushTransform((New-Object System.Windows.Media.ScaleTransform($scale, $scale)))
+# The largest picture in the source icon (256 x 256)
+$decoder = New-Object System.Windows.Media.Imaging.IconBitmapDecoder((New-Object Uri ([System.IO.Path]::GetFullPath($Source))), 'None', 'OnLoad')
+$frame = $decoder.Frames | Sort-Object PixelWidth -Descending | Select-Object -First 1
+$frame = New-Object System.Windows.Media.Imaging.FormatConvertedBitmap($frame, [System.Windows.Media.PixelFormats]::Bgra32, $null, 0)
+$size = $frame.PixelWidth
+$pixels = New-Object byte[] ($size * $size * 4)
+$frame.CopyPixels($pixels, $size * 4, 0)
 
-    $outer = [System.Windows.Media.Geometry]::Parse('M100,6 L190,34 L190,104 C190,160 150,196 100,214 C50,196 10,160 10,104 L10,34 Z')
-    $inner = [System.Windows.Media.Geometry]::Parse('M100,20 L176,44 L176,104 C176,150 142,182 100,198 C58,182 24,150 24,104 L24,44 Z')
-    $star = [System.Windows.Media.Geometry]::Parse('M100,52 L109.4,78 L137,79 L115.2,96 L123,122.5 L100,107 L77,122.5 L84.8,96 L63,79 L90.6,78 Z')
-    $chevron1 = [System.Windows.Media.Geometry]::Parse('M60,136 L100,154 L140,136 L140,149 L100,167 L60,149 Z')
-    $chevron2 = [System.Windows.Media.Geometry]::Parse('M66,158 L100,173 L134,158 L134,169 L100,184 L66,169 Z')
+# The emblem ends where the lettering starts
+$top = 30; $bottom = 176
 
-    $navy = New-Object System.Windows.Media.LinearGradientBrush(
-        [System.Windows.Media.Color]::FromRgb(0x0A, 0x16, 0x60), [System.Windows.Media.Color]::FromRgb(0x02, 0x06, 0x18), 90)
-    $dc.DrawGeometry((New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.Color]::FromRgb(0x29, 0x80, 0xFF))), $null, $outer)
-    $dc.DrawGeometry($navy, $null, $inner)
-    $gold = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.Color]::FromRgb(0xFE, 0xCD, 0x03))
-    if ($size -lt 40) {
-        # Small icons: a bigger star and no chevrons, so the shape stays readable
-        $dc.PushTransform((New-Object System.Windows.Media.ScaleTransform(1.45, 1.45, 100, 100)))
-        $dc.DrawGeometry($gold, $null, $star)
-        $dc.Pop()
-    } else {
-        $silver = New-Object System.Windows.Media.SolidColorBrush([System.Windows.Media.Color]::FromRgb(0xC8, 0xD0, 0xDA))
-        $dc.DrawGeometry($gold, $null, $star)
-        $dc.DrawGeometry($silver, $null, $chevron1)
-        $dc.DrawGeometry($silver, $null, $chevron2)
+# Blue (and the blue-grey shading of the shield) turns red; the silver wings and the gold eagle stay as they are
+$left = $size; $right = 0
+for ($y = $top; $y -le $bottom; $y++) {
+    for ($x = 0; $x -lt $size; $x++) {
+        $i = ($y * $size + $x) * 4
+        if ($pixels[$i + 3] -lt 8) { continue }
+        if ($x -lt $left) { $left = $x }
+        if ($x -gt $right) { $right = $x }
+        $b = $pixels[$i] / 255.0; $g = $pixels[$i + 1] / 255.0; $r = $pixels[$i + 2] / 255.0
+        $max = [Math]::Max($r, [Math]::Max($g, $b)); $min = [Math]::Min($r, [Math]::Min($g, $b))
+        $delta = $max - $min
+        if ($max -le 0 -or $delta / $max -lt 0.3 -or $b -ne $max) { continue }
+        $hue = 60 * ((($r - $g) / $delta) + 4)
+        if ($hue -lt 180 -or $hue -gt 260) { continue }
+        # Same brightness and strength, red hue
+        $pixels[$i + 2] = [byte][Math]::Round($max * 255)
+        $pixels[$i + 1] = [byte][Math]::Round($min * 255 * 0.9)
+        $pixels[$i] = [byte][Math]::Round($min * 255 * 0.9)
     }
-    $dc.Pop(); $dc.Pop(); $dc.Close()
+}
 
-    $bitmap = New-Object System.Windows.Media.Imaging.RenderTargetBitmap($size, $size, 96, 96, [System.Windows.Media.PixelFormats]::Pbgra32)
-    $bitmap.Render($visual)
+# The lettering covers the bottom of the shield, so the tip is drawn again: a black line closes the tail feathers,
+# then the red shield narrows to a point
+$edge = $bottom
+$rowLeft = 0; while ($pixels[($edge * $size + $rowLeft) * 4 + 3] -lt 128) { $rowLeft++ }
+$rowRight = $size - 1; while ($pixels[($edge * $size + $rowRight) * 4 + 3] -lt 128) { $rowRight-- }
+$red = $pixels[(($edge * $size + $rowLeft + 2) * 4)..(($edge * $size + $rowLeft + 2) * 4 + 3)]
+$tipRows = 14
+for ($k = 1; $k -le $tipRows + 2; $k++) {
+    $y = $edge + $k
+    [Array]::Clear($pixels, $y * $size * 4, $size * 4)
+    $inset = [Math]::Max(0, ($k - 2) * (($rowRight - $rowLeft) / 2.0) / $tipRows)
+    $l = $rowLeft + $inset; $r = $rowRight - $inset
+    for ($x = [int][Math]::Floor($l); $x -le [int][Math]::Ceiling($r); $x++) {
+        $cover = [Math]::Max(0, [Math]::Min(1, [Math]::Min($x + 1 - $l, $r + 1 - $x)))
+        if ($cover -le 0) { continue }
+        $i = ($y * $size + $x) * 4
+        $line = $k -le 2 -and $x -ge $rowLeft + 5 -and $x -le $rowRight - 5
+        $pixels[$i] = if ($line) { 0 } else { $red[0] }
+        $pixels[$i + 1] = if ($line) { 0 } else { $red[1] }
+        $pixels[$i + 2] = if ($line) { 0 } else { $red[2] }
+        $pixels[$i + 3] = [byte][Math]::Round(255 * $cover)
+    }
+}
+$bottom = $edge + $tipRows + 2
+
+# Square picture with the emblem in the middle
+$width = $right - $left + 1; $height = $bottom - $top + 1
+$side = [Math]::Max($width, $height) + 8
+$square = New-Object byte[] ($side * $side * 4)
+$offsetX = [int](($side - $width) / 2); $offsetY = [int](($side - $height) / 2)
+for ($y = 0; $y -lt $height; $y++) {
+    [Array]::Copy($pixels, (($top + $y) * $size + $left) * 4, $square, (($offsetY + $y) * $side + $offsetX) * 4, $width * 4)
+}
+$emblem = [System.Windows.Media.Imaging.BitmapSource]::Create($side, $side, 96, 96, [System.Windows.Media.PixelFormats]::Bgra32, $null, $square, $side * 4)
+
+function Png([System.Windows.Media.Imaging.BitmapSource]$bitmap) {
     $encoder = New-Object System.Windows.Media.Imaging.PngBitmapEncoder
     $encoder.Frames.Add([System.Windows.Media.Imaging.BitmapFrame]::Create($bitmap))
     $stream = New-Object System.IO.MemoryStream
     $encoder.Save($stream)
     return ,$stream.ToArray()
 }
+
+function Render([int]$target) {
+    $visual = New-Object System.Windows.Media.DrawingVisual
+    [System.Windows.Media.RenderOptions]::SetBitmapScalingMode($visual, 'HighQuality')
+    $dc = $visual.RenderOpen()
+    $dc.DrawImage($emblem, (New-Object System.Windows.Rect(0, 0, $target, $target)))
+    $dc.Close()
+    $bitmap = New-Object System.Windows.Media.Imaging.RenderTargetBitmap($target, $target, 96, 96, [System.Windows.Media.PixelFormats]::Pbgra32)
+    $bitmap.Render($visual)
+    return ,(Png $bitmap)
+}
+
+[System.IO.File]::WriteAllBytes([System.IO.Path]::GetFullPath($Logo), (Render 256))
+"Wrote $Logo"
 
 $sizes = 16, 20, 24, 32, 40, 48, 64, 128, 256
 $images = foreach ($s in $sizes) { ,(Render $s) }

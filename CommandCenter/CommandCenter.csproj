@@ -22,6 +22,7 @@
   <ItemGroup>
     <Resource Include="Assets\**\*.jpg" />
     <Resource Include="Assets\app.ico" />
+    <Resource Include="Assets\logo.png" />
     <EmbeddedResource Include="Localization\*.json" Exclude="Localization\pending-*.json" LogicalName="Localization.%(Filename)%(Extension)" />
   </ItemGroup>
 

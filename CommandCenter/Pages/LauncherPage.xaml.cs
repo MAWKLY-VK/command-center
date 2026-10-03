@@ -199,11 +199,13 @@ namespace CommandCenter.Pages
                 var channel = ClientSelectorPanel.Visibility == Visibility.Visible && rbTestEnv.IsChecked == true ? Channel.Test : Channel.Live;
                 GameLauncher.PlayOnline(channel);
 
-                // Step aside once the game is in front, without taking the focus back from it; back when it closes
-                await GameLauncher.WaitForGameAsync(() =>
+                // Stays open under the game while it starts (it hands the focus back to the game if Windows gives it
+                // here), then steps aside without taking the focus; back when the game closes
+                var handle = new WindowInteropHelper(window).Handle;
+                await GameLauncher.WaitForGameAsync(handle, () =>
                 {
                     minimized = true;
-                    ShowWindow(new WindowInteropHelper(window).Handle, MinimizedNoActivate);
+                    ShowWindow(handle, MinimizedNoActivate);
                 });
                 if (minimized)
                 {

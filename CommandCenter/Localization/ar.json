@@ -416,9 +416,7 @@
   "Interface language": "لغة الواجهة",
   "Command Center restarts to switch the language.": "يُعاد تشغيل Command Center لتبديل اللغة.",
   "Restart Command Center now to switch the language?": "هل تريد إعادة تشغيل Command Center الآن لتبديل اللغة؟",
-  "Library source": "مصدر المكتبة",
   "DEFAULT": "الافتراضي",
-  "Empty uses the online library. You can also enter a web address or a folder that holds catalog.json.": "اتركه فارغًا لاستخدام المكتبة على الإنترنت، أو أدخل عنوان ويب أو مجلدًا فيه catalog.json.",
   "UPDATES": "التحديثات",
   "CHECK FOR UPDATES": "البحث عن تحديثات",
   "You have the latest version.": "لديك أحدث إصدار.",
@@ -642,12 +640,6 @@
   "7–8 players": "7–8 لاعبين",
   "Online library": "المكتبة على الإنترنت",
   "checked {0}": "فُحصت {0}",
-  "USE A FOLDER": "استخدام مجلد",
-  "USE ONLINE LIBRARY": "استخدام المكتبة على الإنترنت",
-  "CHOOSE ANOTHER FOLDER": "اختيار مجلد آخر",
-  "Read the library from a folder on this PC": "قراءة المكتبة من مجلد على هذا الحاسوب",
-  "Read the library from the internet again": "قراءة المكتبة من الإنترنت مجددًا",
-  "Choose the folder that holds your maps": "اختر المجلد الذي يحتوي على خرائطك",
   "Reading the map library…": "جارٍ قراءة مكتبة الخرائط…",
   "Its map.ini changes unit rules on this map.": "ملف map.ini فيها يغيّر قواعد الوحدات على هذه الخريطة.",
   "Uses map scripts.": "تستخدم نصوصًا برمجية للخريطة.",
@@ -686,7 +678,6 @@
   "No maps installed": "لا توجد خرائط مثبّتة",
   "Install maps from the Library tab, or drop a .zip or a map folder anywhere on this page.": "ثبّت خرائط من تبويب المكتبة، أو أفلِت ملف ‎.zip‎ أو مجلد خريطة في أي مكان من هذه الصفحة.",
   "Try another search or player count.": "جرّب بحثًا آخر أو عدد لاعبين آخر.",
-  "You can also install maps from a folder on this PC.": "يمكنك أيضًا تثبيت خرائط من مجلد على هذا الحاسوب.",
 
   // Messages from the map library client
   "The online map library can't be reached right now": "يتعذّر الوصول إلى مكتبة الخرائط على الإنترنت الآن",
@@ -848,10 +839,6 @@
   "Changes the interface only, so it never causes a mismatch": "يغيّر الواجهة فقط، لذا لا يسبب عدم تطابق أبدًا",
   "Your previous bar is kept; Undo puts it back": "يُحتفظ بشريطك السابق؛ زر التراجع يعيده",
   "Source: TheSuperHackers/GeneralsControlBar on GitHub (MIT licence)": "المصدر: TheSuperHackers/GeneralsControlBar على GitHub (ترخيص MIT)",
-  "HD TEXTURES": "رسومات عالية الدقة",
-  "Sharper art for any bar. Only offered on the GenTool website, so it is not installed from here.": "رسومات أوضح لأي شريط. متاحة فقط على موقع GenTool، لذا لا تُثبَّت من هنا.",
-  "GENTOOL SITE": "موقع GenTool",
-  "SOURCE ON GITHUB": "المصدر على GitHub",
 
   // ── Add-ons: hotkey letters ──
   "Draws each button's hotkey letter on its picture, in the bottom-left corner, so the control bar in the game shows which key to press.": "يرسم حرف الاختصار لكل زر على صورته في الزاوية السفلية اليسرى، ليُظهر شريط التحكم في اللعبة المفتاح الذي تضغطه.",
@@ -892,6 +879,7 @@
 
   // ── Working next to the official launcher ──
   "RUNNING": "قيد التشغيل",
+  "You can still drop a .zip or a map folder on this page to install it.": "ويمكنك تثبيت خريطة بإفلات ملف .zip أو مجلد خريطة على هذه الصفحة.",
   "Close the game first; it reads these settings only when it starts.": "أغلق اللعبة أولًا؛ فهي لا تقرأ هذه الإعدادات إلا عند بدئها.",
   "Close the game first; it keeps its archives open.": "أغلق اللعبة أولًا؛ فهي تُبقي ملفاتها مفتوحة.",
   "Installed by the Generals Online launcher": "مثبّت من مشغّل Generals Online",

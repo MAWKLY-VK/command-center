@@ -99,9 +99,18 @@ namespace CommandCenter.Pages.Tools
         // Only the user's own edits hold the window open; a team key repair just waits for the next Save
         public bool HasPendingChanges => _hk is { DiscardableCount: > 0 };
 
-        public void OnShown() => UpdateStatus();
+        public void OnShown()
+        {
+            UpdateStatus();
+            LettersView.Refresh();
+        }
 
-        public async Task ReadyAsync() => await Task.WhenAny(_ready.Task, Task.Delay(TimeSpan.FromSeconds(40)));
+        public async Task ReadyAsync()
+        {
+            await Task.WhenAny(_ready.Task, Task.Delay(TimeSpan.FromSeconds(40)));
+            if (TabLetters.IsChecked == true)
+                await LettersView.EnsurePreview();
+        }
 
         public void ShowPart(string part)
         {
@@ -110,6 +119,10 @@ namespace CommandCenter.Pages.Tools
                 case "gamekeys":
                 case "keys":
                     TabKeys.IsChecked = true;
+                    break;
+                case "letters":
+                case "hotkeyletters":
+                    TabLetters.IsChecked = true;
                     break;
                 case "buttons":
                     TabButtons.IsChecked = true;
@@ -207,11 +220,18 @@ namespace CommandCenter.Pages.Tools
 
         private void ShowView()
         {
-            bool keys = TabKeys.IsChecked == true, loaded = _hk != null;
-            ButtonsView.Visibility = loaded && !keys ? Visibility.Visible : Visibility.Collapsed;
+            bool keys = TabKeys.IsChecked == true, letters = TabLetters.IsChecked == true, loaded = _hk != null;
+            ButtonsView.Visibility = loaded && !keys && !letters ? Visibility.Visible : Visibility.Collapsed;
             KeysView.Visibility = loaded && keys ? Visibility.Visible : Visibility.Collapsed;
-            LayoutButtons.Visibility = loaded ? Visibility.Visible : Visibility.Collapsed;
+            LettersView.Visibility = letters ? Visibility.Visible : Visibility.Collapsed;
+            LoadingText.Visibility = !loaded && !letters ? Visibility.Visible : Visibility.Collapsed;
+            LayoutButtons.Visibility = loaded && !letters ? Visibility.Visible : Visibility.Collapsed;
             GridButton.Visibility = keys ? Visibility.Collapsed : Visibility.Visible;
+            if (letters)
+            {
+                LettersView.Refresh();
+                _ = LettersView.EnsurePreview();
+            }
         }
 
         // ── Armies and menus ──

@@ -18,8 +18,6 @@ namespace CommandCenter.Services
     public static class AddonService
     {
         private const string Repo = "https://github.com/TheSuperHackers/GeneralsControlBar/raw/main/";
-        public const string RepoPage = "https://github.com/TheSuperHackers/GeneralsControlBar";
-        public const string HdPage = "https://www.gentool.net/";
 
         public static readonly BarPackage[] Packages =
         {

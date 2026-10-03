@@ -6,11 +6,6 @@ namespace CommandCenter.Services
     // Command Center's own preferences, kept apart from the game's and Generals Online's files.
     public sealed class AppSettings
     {
-        public string? LibraryFolder { get; set; }
-
-        // Where the Maps page's Library tab reads from: a web address or a folder; empty means the online library
-        public string? MapLibrary { get; set; }
-
         // "en" or "ar"; empty means English unless Windows is in Arabic
         public string? Language { get; set; }
 

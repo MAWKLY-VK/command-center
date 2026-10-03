@@ -13,23 +13,10 @@
             <RowDefinition Height="100"/>
         </Grid.RowDefinitions>
 
-        <!-- Logo: a shield with a star and two rank chevrons, and the name in two lines -->
+        <!-- Logo: the red eagle emblem and the name in two lines -->
         <Viewbox Grid.Row="0" MaxHeight="190" Margin="20,10" HorizontalAlignment="Center" VerticalAlignment="Center" FlowDirection="LeftToRight">
             <StackPanel Orientation="Horizontal">
-                <Canvas Width="200" Height="220">
-                    <Path Data="M100,6 L190,34 L190,104 C190,160 150,196 100,214 C50,196 10,160 10,104 L10,34 Z" Fill="#2980FF"/>
-                    <Path Data="M100,20 L176,44 L176,104 C176,150 142,182 100,198 C58,182 24,150 24,104 L24,44 Z">
-                        <Path.Fill>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                <GradientStop Color="#0A1660" Offset="0"/>
-                                <GradientStop Color="#020618" Offset="1"/>
-                            </LinearGradientBrush>
-                        </Path.Fill>
-                    </Path>
-                    <Path Data="M100,52 L109.4,78 L137,79 L115.2,96 L123,122.5 L100,107 L77,122.5 L84.8,96 L63,79 L90.6,78 Z" Fill="#FECD03"/>
-                    <Path Data="M60,136 L100,154 L140,136 L140,149 L100,167 L60,149 Z" Fill="#C8D0DA"/>
-                    <Path Data="M66,158 L100,173 L134,158 L134,169 L100,184 L66,169 Z" Fill="#C8D0DA"/>
-                </Canvas>
+                <Image Source="/Assets/logo.png" Width="240" Height="240" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
                 <StackPanel Margin="28,0,0,0" VerticalAlignment="Center">
                     <TextBlock Text="COMMAND" FontFamily="Bahnschrift" FontWeight="Bold" FontStretch="Condensed" FontSize="104"
                                Foreground="White" LineHeight="96" LineStackingStrategy="BlockLineHeight"/>
