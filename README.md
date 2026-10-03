@@ -9,18 +9,19 @@ game's own rules, control bar add-ons and the settings the in-game menu cannot r
 
 ## Pages
 
-The layout follows the official Generals Online launcher: a home screen with four buttons, and Tools and Options
-pages with a sidebar.
+Tabs along the top lead to each page; the player count and Options sit next to them. The home page shows the
+game's Steam art (a drawn background for other copies), and the colours and Options sections follow the official
+Generals Online launcher.
 
 | Page | What it does |
 | --- | --- |
-| Home | Server numbers, a line when the health check finds something, Live / Test choice, Play |
-| Tools › Health | Game files, original archives checked against Zero Hour 1.04 fingerprints, anti-cheat, wrapper and runtime DLLs, rule-changing archives, "Run as administrator" (error 740), compatibility modes, Visual C++, graphics driver, resolution, network; one-click fixes with Undo |
-| Tools › Map library | The online map library and the installed maps, with previews, player counts and sizes; install by click or by dropping a `.zip` / folder |
-| Tools › Replays | Every match from `Replays` and `ArchivedReplays` with map, players, armies, results and who left when; watch, keep, rename, copy, delete with Undo; turns the game's own *ArchiveReplays* option on or off |
-| Tools › Hotkeys | Unit and building buttons for all 12 armies drawn like the in-game bar, the game keys, and hotkey letters on the button pictures; checks duplicates and clashes before saving |
-| Tools › Add-ons | Control Bar Pro from TheSuperHackers in five sizes, checked against pinned SHA-256 hashes |
-| Options | Language first, then the official launcher's sections (camera, chat, input, graphics, social, network with diagnostics, data packs, plugins) and Launcher: updates and about |
+| Home | Play, the client version, anti-cheat and which copy of the game is used, the server card (players, lobbies, ping), the last match with its result and Watch, a line when the health check finds something, Live / Test choice, tiles into the tools |
+| Health | A ring with how much of the game passed, then game files, original archives checked against Zero Hour 1.04 fingerprints, anti-cheat, wrapper and runtime DLLs, rule-changing archives, "Run as administrator" (error 740), compatibility modes, Visual C++, graphics driver, resolution, network; one-click fixes with Undo |
+| Maps | The online map library and the installed maps as cards with previews, player counts and sizes, filters by player count; install by click or by dropping a `.zip` / folder |
+| Replays | Every match from `Replays` and `ArchivedReplays` with map, players, armies, results and who left when, the selected one in a side panel; watch, keep, rename, copy, delete with Undo; turns the game's own *ArchiveReplays* option on or off |
+| Hotkeys | Unit and building buttons for all 12 armies drawn like the in-game bar, the game keys, and hotkey letters on the button pictures; checks duplicates and clashes before saving |
+| Add-ons | Control Bar Pro from TheSuperHackers in five sizes, checked against pinned SHA-256 hashes, with a before/after slider |
+| Options | Language first, then the game folder (which copy is used, pick another), then the official launcher's sections (camera, chat, input, graphics, social, network with diagnostics, data packs, plugins) and Launcher: updates and about |
 
 ## Ground rules
 
@@ -60,15 +61,18 @@ Command Center is a 32-bit program for the .NET 10 Desktop Runtime (x86), the sa
 launcher installs and runs on, so it needs no installer of its own. If Windows says .NET is missing, install the
 x86 Desktop Runtime from [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/10.0).
 
-The game folder is found automatically (current folder, the program's folder, then the Steam libraries).
+The game folder is found automatically in any installation: where Generals Online and the game's own installer
+recorded it (Steam, EA, the original discs and other copies), the current folder, the program's folder and the Steam
+libraries. Options › Game folder shows which copy is used and lets you pick another.
 
 | Argument | Meaning |
 | --- | --- |
 | `--game <folder>` | Use this game folder |
 | `--library-folder <folder>` | Use a local folder of maps as the map library |
 | `--user-data <folder>` | Use this folder instead of `Documents\Command and Conquer Generals Zero Hour Data` (for testing) |
-| `--capture <folder> --size 900x480 --pages home,tools:maps:library,options:launcher` | Save screenshots of pages without showing the window |
+| `--capture <folder> --size 1100x640 --pages home,tools:maps,options:game` | Save screenshots of pages without showing the window |
 | `--samples` | Add sample health problems to review the layout (their fixes do nothing) |
+| `--drawn-backdrop` | Show the background that copies without Steam art get |
 | `--update-url <url or file>` | Read the update manifest (`update.json`) from here instead of the latest GitHub release; a local file works for testing |
 | `--lang ar` / `--lang en` | Show Command Center in Arabic (right to left) or English for this run only; the saved language is not changed. With `--capture`, untranslated strings are listed in `missing-ar.txt` |
 

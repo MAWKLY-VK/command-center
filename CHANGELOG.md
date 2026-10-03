@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
+
+Also brings the 0.2.1 changes below, which were not released on their own.
 
 - New look: tabs along the top (Home, Health, Maps, Replays, Hotkeys, Add-ons) with the player count and Options beside them, the game's Steam art behind the home page (a drawn background for other copies), glass panels and short transitions between pages.
 - New home page: a large Play button, the client version, anti-cheat and which copy of the game is in use, the server card (players, lobbies, ping), the last match with its result and a Watch button, and tiles into the tools; health problems show as one line under Play.

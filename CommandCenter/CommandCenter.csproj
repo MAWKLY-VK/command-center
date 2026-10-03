@@ -8,7 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>CommandCenter</AssemblyName>
     <RootNamespace>CommandCenter</RootNamespace>
-    <Version>0.2.1</Version>
+    <Version>0.3.0</Version>
     <Product>Command Center</Product>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
