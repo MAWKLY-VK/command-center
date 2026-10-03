@@ -147,6 +147,11 @@ namespace CommandCenter.Services
             return Path.Combine(documents, "Command and Conquer Generals Zero Hour Data");
         }
 
+        // The game folder in use was given with --game or picked by the player, not found by itself
+        public static bool ChosenByPlayer => Game.Length > 0 && Chosen().Any(c => string.Equals(c, Game, StringComparison.OrdinalIgnoreCase));
+
+        public static bool IsSteamCopy(string folder) => folder.Contains(@"\steamapps\", StringComparison.OrdinalIgnoreCase);
+
         // Remembers a folder the player picked; false when it is not a Zero Hour folder
         public static bool UseGameFolder(string folder)
         {

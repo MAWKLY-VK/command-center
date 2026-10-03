@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
@@ -100,6 +101,8 @@ namespace CommandCenter.Pages.Tools
                 Raise(nameof(ResultText));
                 Raise(nameof(ResultBrush));
                 Raise(nameof(ResultTip));
+                Raise(nameof(ResultFill));
+                Raise(nameof(ResultVisibility));
             }
         }
 
@@ -144,6 +147,14 @@ namespace CommandCenter.Pages.Tools
             MatchResult.Lost => LostBrush,
             _ => Views.Hint,
         };
+
+        // The result as a tinted pill; nothing until the replay was read
+        public Brush ResultFill => ResultBrush is SolidColorBrush b ? new SolidColorBrush(Color.FromArgb(0x26, b.Color.R, b.Color.G, b.Color.B)) : Brushes.Transparent;
+        public Visibility ResultVisibility => ResultText.Length > 0 && ResultText != "—" ? Visibility.Visible : Visibility.Collapsed;
+
+        // The side panel: starting money and the time the match began
+        public string Money => Entry.StartingCash > 0 ? $"${Entry.StartingCash:N0}" : "—";
+        public string Started => Entry.Start.ToString("HH:mm", Loc.Culture);
 
         public string? ResultTip
         {
@@ -229,6 +240,7 @@ namespace CommandCenter.Pages.Tools
     public partial class ReplaysSection : UserControl, IToolSection
     {
         private static readonly Brush LostBrush = Views.Brush("#FF6B6B");
+        private static readonly Brush PlayerFill = Views.Brush("#0DFFFFFF");
 
         private readonly ObservableCollection<ReplayRow> _rows = new();
         private readonly ListCollectionView _view;
@@ -373,13 +385,6 @@ namespace CommandCenter.Pages.Tools
             Status.Text = _rows.Count == 0 ? "" : count + " · " + Loc.T("Enter watches, F2 renames, Del deletes");
         }
 
-        // The column titles follow the rows when the scroll bar takes room on the side
-        private void List_ScrollChanged(object sender, ScrollChangedEventArgs e)
-        {
-            if (e.OriginalSource is ScrollViewer viewer)
-                Header.Margin = new Thickness(14, 0, viewer.ComputedVerticalScrollBarVisibility == Visibility.Visible ? 26 : 14, 0);
-        }
-
         // ── Details of the selected replay ──
 
         private void List_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -421,18 +426,16 @@ namespace CommandCenter.Pages.Tools
             var r = row.Entry;
             var root = new StackPanel();
 
-            // Sides in two columns; a team game names its teams and their result
+            // Sides one under the other; a team game names its teams and their result
             var sides = ReplayRow.Sides(r);
             bool teams = sides.Any(s => s.Count() > 1);
             var grid = new System.Windows.Controls.Primitives.UniformGrid
             {
-                Columns = sides.Count > 1 ? 2 : 1,
-                MaxWidth = 760,
-                HorizontalAlignment = HorizontalAlignment.Left,
+                Columns = 1,
             };
             foreach (var side in sides)
             {
-                var box = new StackPanel { Margin = new Thickness(0, 0, 16, 4) };
+                var box = new StackPanel { Margin = new Thickness(0, 0, 0, 6) };
                 if (teams)
                 {
                     var result = row.ResultOf(side.First().Index)?.Result;
@@ -468,8 +471,6 @@ namespace CommandCenter.Pages.Tools
             info.Add(Loc.Ltr(Views.Size(r.SizeBytes)));
             if (r.Version.Length > 0)
                 info.Add(Loc.T("Version {0}", Loc.Ltr(r.Version)));
-            if (r.StartingCash > 0)
-                info.Add(Loc.T("Starting cash {0}", Loc.Ltr($"${r.StartingCash:N0}")));
             if (r.SuperweaponsOff)
                 info.Add(Loc.T("Superweapons off"));
             if (row.Recorder >= 0 && row.Recorder < r.Players.Count)
@@ -479,10 +480,10 @@ namespace CommandCenter.Pages.Tools
             root.Children.Add(file);
 
             // Rename in place, or the file actions
-            var renameBox = new TextBox { Style = (Style)FindResource("TextBoxStyle"), Width = double.NaN, Height = 26, FontSize = 12, Padding = new Thickness(6, 0, 6, 0) };
+            var renameBox = new TextBox { Style = (Style)FindResource("TextBoxStyle"), Width = double.NaN, Height = 32, FontSize = 12, Padding = new Thickness(6, 0, 6, 0) };
             var save = SmallButton(Loc.T("SAVE"), null);
             var cancel = SmallButton(Loc.T("CANCEL"), null);
-            var rename = new DockPanel { Margin = new Thickness(0, 8, 0, 2), Visibility = Visibility.Collapsed, MaxWidth = 520, HorizontalAlignment = HorizontalAlignment.Left };
+            var rename = new DockPanel { Margin = new Thickness(0, 8, 0, 2), Visibility = Visibility.Collapsed };
             DockPanel.SetDock(cancel, Dock.Right);
             DockPanel.SetDock(save, Dock.Right);
             cancel.Margin = new Thickness(8, 0, 0, 0);
@@ -491,14 +492,14 @@ namespace CommandCenter.Pages.Tools
             rename.Children.Add(save);
             rename.Children.Add(renameBox);
 
-            var actions = new WrapPanel { Margin = new Thickness(0, 8, 0, 2) };
-            var renameButton = SmallButton(Loc.T("RENAME"), null, "F2");
-            var copyButton = SmallButton(Loc.T("COPY FILE"), null, Loc.T("Copies the replay so you can paste it into Discord or a folder"));
-            var showButton = SmallButton(Loc.T("SHOW IN FOLDER"), null);
-            var deleteButton = SmallButton(Loc.T("DELETE"), Views.Problem, Loc.T("Moves the replay to the Recycle Bin; Undo brings it back (Del)"));
+            var actions = new UniformGrid { Columns = 4, Margin = new Thickness(0, 6, 0, 2) };
+            var renameButton = IconAction("pencil", Loc.T("Rename") + " (F2)", danger: false);
+            var copyButton = IconAction("copy", Loc.T("Copies the replay so you can paste it into Discord or a folder"), danger: false);
+            var showButton = IconAction("folder", Loc.T("Show in folder"), danger: false);
+            var deleteButton = IconAction("trash", Loc.T("Moves the replay to the Recycle Bin; Undo brings it back (Del)"), danger: true);
             foreach (var button in new[] { renameButton, copyButton, showButton, deleteButton })
             {
-                button.Margin = new Thickness(0, 0, 8, 6);
+                button.Margin = new Thickness(0, 0, button == deleteButton ? 0 : 8, 0);
                 actions.Children.Add(button);
             }
             root.Children.Add(rename);
@@ -551,7 +552,7 @@ namespace CommandCenter.Pages.Tools
         // Badge in the player's colour, name and result; army and when the player left below
         private FrameworkElement PlayerLine(ReplayPlayer player, ReplayPlayerResult? result, bool showResult)
         {
-            var line = new DockPanel { Margin = new Thickness(0, 0, 0, 8) };
+            var line = new DockPanel();
             FrameworkElement badge = _artReady && ReplayRow.Emblem(player) is { } emblem
                 ? new Image { Source = emblem, Width = 20, Height = 20, FlowDirection = FlowDirection.LeftToRight }
                 : new Border { Width = 10, Height = 10, Margin = new Thickness(5, 0, 5, 0), Background = Views.PlayerBrush(player.Color) };
@@ -601,7 +602,14 @@ namespace CommandCenter.Pages.Tools
             }
             text.Children.Add(sub);
             line.Children.Add(text);
-            return line;
+            return new Border
+            {
+                Child = line,
+                Background = PlayerFill,
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(8, 6, 8, 6),
+                Margin = new Thickness(0, 0, 0, 6),
+            };
         }
 
         private static TextBlock Line(string text, Brush brush) => new()
@@ -612,6 +620,26 @@ namespace CommandCenter.Pages.Tools
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 2, 0, 4),
         };
+
+        // A square file action under the players; its words show on hover
+        private Button IconAction(string icon, string tip, bool danger)
+        {
+            var button = new Button
+            {
+                Style = (Style)FindResource("SmallButtonStyle"),
+                Height = 38,
+                Padding = new Thickness(0),
+                ToolTip = tip,
+                Content = new Controls.Icon { Kind = icon, Width = 16, Height = 16 },
+            };
+            AutomationProperties.SetName(button, tip);
+            if (danger)
+            {
+                button.BorderBrush = Views.Brush("#59FF6B6B");
+                button.Foreground = Views.Brush("#FF8A8A");
+            }
+            return button;
+        }
 
         private Button SmallButton(string text, Brush? border, string? tip = null)
         {

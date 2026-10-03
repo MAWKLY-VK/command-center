@@ -12,10 +12,12 @@ namespace CommandCenter.Pages.Tools
     // and the history of changes the launcher made, each with Undo.
     public partial class HealthSection : UserControl, IToolSection
     {
-        private static readonly SolidColorBrush DetailBrush = Views.Brush("#A8A8C8");
+        private static readonly SolidColorBrush DetailBrush = Views.Brush("#BCC2D8");
+        private static readonly SolidColorBrush CardBrush = Views.Brush("#B30A0E20");
+        private static readonly SolidColorBrush ChipText = Views.Brush("#C6EED2");
         private static readonly SolidColorBrush PassedBrush = Views.Brush("#D0D0E0");
         private static readonly SolidColorBrush PreviewBrush = Views.Brush("#7FA6E8");
-        private static readonly SolidColorBrush LineBrush = Views.Brush("#1C1C40");
+        private static readonly SolidColorBrush LineBrush = Views.Brush("#14FFFFFF");
 
         private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(30) };
         private bool _checking;
@@ -104,9 +106,11 @@ namespace CommandCenter.Pages.Tools
             }
 
             var fixable = problems.Concat(warnings).Where(h => h.Fix != null).ToList();
-            FixAllButton.Content = Loc.T("FIX ALL ({0})", fixable.Count);
+            FixAllText.Text = Loc.T("FIX ALL ({0})", fixable.Count);
             FixAllButton.Visibility = fixable.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
             FixAllButton.ToolTip = fixable.Count > 0 ? string.Join("\n", fixable.Select(f => "• " + Plain(f.FixPreview ?? f.Title))) : null;
+
+            ShowRing(ready, passed.Count, warnings.Count, problems.Count);
 
             ChecksList.Children.Clear();
             if (!ready)
@@ -115,52 +119,122 @@ namespace CommandCenter.Pages.Tools
             }
             else
             {
-                AddGroup(Loc.T("Problems"), problems, attention: true);
-                AddGroup(Loc.T("Warnings"), warnings, attention: true);
+                AddIssues(Loc.T("Problems"), problems);
+                AddIssues(Loc.T("Warnings"), warnings);
                 foreach (var group in passed.GroupBy(p => p.Group))
-                    AddGroup(Loc.T(group.Key), group.ToList(), attention: false);
+                    AddPassed(Loc.T(group.Key), group.ToList());
             }
             ShowCheckedAt();
         }
 
-        private void AddGroup(string name, List<HealthResult> results, bool attention)
+        // The ring fills to the share of checks that passed: green when nothing is wrong, amber for warnings, red for problems
+        private void ShowRing(bool ready, int passed, int warnings, int problems)
+        {
+            int all = passed + warnings + problems;
+            PassedCount.Text = ready ? passed.ToString(Loc.Culture) : "—";
+            WarningCount.Text = ready ? warnings.ToString(Loc.Culture) : "—";
+            ProblemCount.Text = ready ? problems.ToString(Loc.Culture) : "—";
+            if (!ready || all == 0)
+            {
+                PercentText.Text = "—";
+                RingLabel.Text = Loc.T("Checking…");
+                Ring.Visibility = Visibility.Hidden;
+                return;
+            }
+
+            double share = (double)passed / all;
+            PercentText.Text = $"{Math.Round(share * 100)}%";
+            RingLabel.Text = problems > 0 ? Loc.T("needs fixing") : warnings > 0 ? Loc.T("playable") : Loc.T("healthy");
+            Ring.Stroke = problems > 0 ? Views.Problem : warnings > 0 ? Views.Warning : Views.Passed;
+            Ring.Visibility = share > 0 ? Visibility.Visible : Visibility.Hidden;
+
+            // The dash runs along the ring's centre line, measured in stroke widths
+            double length = Math.PI * (140 - Ring.StrokeThickness) / Ring.StrokeThickness;
+            Ring.StrokeDashArray = new DoubleCollection { length, length * 2 };
+            double to = length * (1 - share);
+            if (App.HasArg("--capture"))
+                Ring.StrokeDashOffset = to;
+            else
+                Ring.BeginAnimation(Shape.StrokeDashOffsetProperty,
+                    new System.Windows.Media.Animation.DoubleAnimation(length, to, TimeSpan.FromMilliseconds(900))
+                    {
+                        EasingFunction = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut },
+                    });
+        }
+
+        private void AddIssues(string name, List<HealthResult> results)
         {
             if (results.Count == 0)
                 return;
-            ChecksList.Children.Add(new TextBlock
-            {
-                Text = Upper(name),
-                Style = (Style)FindResource("GroupLabelStyle"),
-                Margin = new Thickness(0, ChecksList.Children.Count == 0 ? 0 : 16, 0, attention ? 2 : 8),
-            });
-            for (int i = 0; i < results.Count; i++)
-                ChecksList.Children.Add(attention ? IssueRow(results[i], i == 0) : PassedRow(results[i]));
+            ChecksList.Children.Add(GroupLabel(name));
+            foreach (var result in results)
+                ChecksList.Children.Add(IssueCard(result));
         }
 
-        // A problem or warning: what is wrong, why it matters, what the fix will do, and the fix
-        private FrameworkElement IssueRow(HealthResult result, bool first)
+        // Passed checks of one area as small green chips; what was found shows on hover
+        private void AddPassed(string name, List<HealthResult> results)
         {
+            ChecksList.Children.Add(GroupLabel(name));
+            var chips = new WrapPanel();
+            foreach (var result in results)
+            {
+                if (ActionButton(result) != null)
+                    ChecksList.Children.Add(PassedRow(result));
+                else
+                    chips.Children.Add(PassedChip(result));
+            }
+            if (chips.Children.Count > 0)
+                ChecksList.Children.Add(chips);
+        }
+
+        private TextBlock GroupLabel(string name) => new()
+        {
+            Text = Upper(name),
+            Style = (Style)FindResource("GroupLabelStyle"),
+            Margin = new Thickness(2, ChecksList.Children.Count == 0 ? 0 : 14, 0, 8),
+        };
+
+        // A problem or warning: what is wrong, why it matters, what the fix will do, and the fix
+        private FrameworkElement IssueCard(HealthResult result)
+        {
+            var color = Views.StatusBrush(result.Status).Color;
             var grid = new Grid();
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            grid.Children.Add(Dot(result.Status, new Thickness(0, 6, 10, 0)));
+            grid.Children.Add(new Border
+            {
+                Width = 40,
+                Height = 40,
+                CornerRadius = new CornerRadius(12),
+                Background = Tint(color, 0x24),
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 0, 14, 0),
+                ToolTip = Views.StatusWord(result.Status),
+                Child = new Controls.Icon
+                {
+                    Kind = result.Status == HealthStatus.Problem ? "x-circle" : "alert",
+                    Width = 20,
+                    Height = 20,
+                    Foreground = new SolidColorBrush(color),
+                },
+            });
 
-            var text = new StackPanel();
-            text.Children.Add(new TextBlock { Text = Plain(result.Title), FontSize = 13, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+            var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            text.Children.Add(new TextBlock { Text = Plain(result.Title), FontSize = 14, FontWeight = FontWeights.Bold, TextWrapping = TextWrapping.Wrap });
             if (result.Detail.Length > 0)
-                text.Children.Add(new TextBlock { Text = Plain(result.Detail), FontSize = 12, Foreground = DetailBrush, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) });
+                text.Children.Add(new TextBlock { Text = Plain(result.Detail), FontSize = 12, Foreground = DetailBrush, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
             if (result.Note != null)
                 text.Children.Add(new TextBlock { Text = Plain(result.Note), FontSize = 11.5, Foreground = Views.Hint, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
             if (result.FixPreview != null && result.Fix != null)
-                text.Children.Add(new TextBlock { Text = Plain(result.FixPreview), FontSize = 11.5, Foreground = PreviewBrush, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 4, 0, 0) });
+                text.Children.Add(new TextBlock { Text = Plain(result.FixPreview), FontSize = 11.5, Foreground = PreviewBrush, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 5, 0, 0) });
             Grid.SetColumn(text, 1);
             grid.Children.Add(text);
 
             if (ActionButton(result) is { } action)
             {
-                action.Margin = new Thickness(14, 1, 0, 0);
+                action.Margin = new Thickness(14, 2, 0, 0);
                 Grid.SetColumn(action, 2);
                 grid.Children.Add(action);
             }
@@ -168,13 +242,38 @@ namespace CommandCenter.Pages.Tools
             return new Border
             {
                 Child = grid,
-                Padding = new Thickness(0, 9, 0, 9),
-                BorderBrush = LineBrush,
-                BorderThickness = new Thickness(0, first ? 0 : 1, 0, 0),
+                Padding = new Thickness(14, 12, 14, 12),
+                Margin = new Thickness(0, 0, 0, 10),
+                CornerRadius = new CornerRadius(14),
+                Background = CardBrush,
+                BorderBrush = Tint(color, 0x4D),
+                BorderThickness = new Thickness(1),
             };
         }
 
-        // A passed check on one line: name, then what was found
+        private static Border PassedChip(HealthResult result)
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal };
+            row.Children.Add(new Controls.Icon { Kind = "check", Width = 11, Height = 11, StrokeThickness = 3, Foreground = Views.Passed, Margin = new Thickness(0, 0, 6, 0) });
+            row.Children.Add(new TextBlock { Text = Plain(result.Title), FontSize = 12, Foreground = ChipText, VerticalAlignment = VerticalAlignment.Center });
+            string tip = Plain(result.Detail) + (result.Note != null ? "\n" + Plain(result.Note) : "");
+            return new Border
+            {
+                Child = row,
+                Height = 28,
+                Padding = new Thickness(10, 0, 11, 0),
+                Margin = new Thickness(0, 0, 6, 6),
+                CornerRadius = new CornerRadius(14),
+                Background = Tint(Views.Passed.Color, 0x14),
+                BorderBrush = Tint(Views.Passed.Color, 0x2E),
+                BorderThickness = new Thickness(1),
+                ToolTip = tip.Trim().Length > 0 ? tip : null,
+            };
+        }
+
+        private static SolidColorBrush Tint(Color color, byte alpha) => new(Color.FromArgb(alpha, color.R, color.G, color.B));
+
+        // A passed check that offers an action, on one line: name, what was found, the action
         private FrameworkElement PassedRow(HealthResult result)
         {
             var grid = new Grid { Margin = new Thickness(0, 0, 0, 7) };
@@ -209,14 +308,16 @@ namespace CommandCenter.Pages.Tools
             Button button;
             if (result.Fix != null && result.FixLabel != null && result.Status != HealthStatus.Passed)
             {
-                button = SmallButton(Upper(Loc.T(result.FixLabel)));
+                button = new Button { Content = WithIcon("wrench", Upper(Loc.T(result.FixLabel))), Style = (Style)FindResource("DiagButtonStyle") };
                 button.ToolTip = result.FixPreview != null ? Plain(result.FixPreview) : null;
                 button.Click += (_, _) => Views.ApplyFix(result);
             }
             else if (result.GuideTarget != null && result.GuideLabel != null)
             {
-                button = SmallButton(Upper(Loc.T(result.GuideLabel)));
                 string target = result.GuideTarget;
+                button = SmallButton(Upper(Loc.T(result.GuideLabel)));
+                if (!target.StartsWith("select:", StringComparison.Ordinal))
+                    button.Content = WithIcon("external", Upper(Loc.T(result.GuideLabel)));
                 button.Click += (_, _) => Views.Open(target);
             }
             else
@@ -459,6 +560,14 @@ namespace CommandCenter.Pages.Tools
         private void Report_Click(object sender, RoutedEventArgs e) => Views.CopySupportReport();
 
         private Button SmallButton(string text) => new() { Content = text, Style = (Style)FindResource("SmallButtonStyle") };
+
+        private static StackPanel WithIcon(string icon, string text)
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal };
+            row.Children.Add(new Controls.Icon { Kind = icon, Width = 14, Height = 14, Margin = new Thickness(0, 0, 7, 0) });
+            row.Children.Add(new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center });
+            return row;
+        }
 
         private static TextBlock Message(string text) => new()
         {

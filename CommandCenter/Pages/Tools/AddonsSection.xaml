@@ -11,15 +11,15 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="Card" Background="#07091C" BorderBrush="#1FFFFFFF" BorderThickness="1" Padding="12,10,12,12">
+                        <Border x:Name="Card" Background="#B30A0E20" BorderBrush="#1AFFFFFF" BorderThickness="1" CornerRadius="14" Padding="16,14,16,14">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <Grid Width="14" Height="14" VerticalAlignment="Top" Margin="0,2,10,0">
-                                    <Ellipse x:Name="Ring" Stroke="#606080" StrokeThickness="1.5"/>
-                                    <Ellipse x:Name="Mark" Width="6" Height="6" Fill="#2980FF" Visibility="Collapsed"/>
+                                    <Ellipse x:Name="Ring" Stroke="#8088A8" StrokeThickness="1.5"/>
+                                    <Ellipse x:Name="Mark" Width="7" Height="7" Fill="#2980FF" Visibility="Collapsed"/>
                                 </Grid>
                                 <ContentPresenter Grid.Column="1"/>
                             </Grid>
@@ -30,7 +30,7 @@
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="Card" Property="BorderBrush" Value="#2980FF"/>
-                                <Setter TargetName="Card" Property="Background" Value="#262980FF"/>
+                                <Setter TargetName="Card" Property="Background" Value="#38224A8C"/>
                                 <Setter TargetName="Ring" Property="Stroke" Value="#2980FF"/>
                                 <Setter TargetName="Mark" Property="Visibility" Value="Visible"/>
                             </Trigger>
@@ -54,7 +54,7 @@
         <Style x:Key="InstalledMark" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="#55CC55"/>
+            <Setter Property="Foreground" Value="#7BE39A"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Margin" Value="8,0,0,0"/>
             <Setter Property="Visibility" Value="Collapsed"/>
@@ -78,18 +78,19 @@
         <!-- Control bar -->
         <ScrollViewer x:Name="BarsView" Grid.Row="2" VerticalScrollBarVisibility="Auto" Focusable="False">
             <StackPanel x:Name="BarsPanel" Margin="0,0,8,0" SizeChanged="BarsPanel_SizeChanged">
-                <Border BorderBrush="#1FFFFFFF" BorderThickness="1" HorizontalAlignment="Center">
+                <Border BorderBrush="#26FFFFFF" BorderThickness="1" CornerRadius="13" HorizontalAlignment="Center">
                     <Grid x:Name="CompareBox" ClipToBounds="True" Cursor="SizeWE" Background="Black" FlowDirection="LeftToRight"
                           Height="120" MouseLeftButtonDown="Compare_Down" MouseMove="Compare_Move" MouseLeftButtonUp="Compare_Up"
                           LostMouseCapture="Compare_LostCapture" SizeChanged="Compare_SizeChanged">
                         <Image x:Name="Before" Stretch="Fill"/>
                         <Image x:Name="After" Stretch="Fill"/>
-                        <Rectangle x:Name="Divider" Width="2" HorizontalAlignment="Left" Fill="#2980FF"/>
-                        <Border x:Name="Handle" Width="8" Height="26" HorizontalAlignment="Left" VerticalAlignment="Center" Background="#2980FF"/>
-                        <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" Padding="6,2" Background="#D901031A">
+                        <Rectangle x:Name="Divider" Width="2" HorizontalAlignment="Left" Fill="White"/>
+                        <Border x:Name="Handle" Width="14" Height="34" CornerRadius="7" HorizontalAlignment="Left" VerticalAlignment="Center" Background="White"
+                                BorderBrush="#2980FF" BorderThickness="2"/>
+                        <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" Padding="8,3" CornerRadius="6" Background="#D9050814">
                             <TextBlock x:Name="BeforeLabel" FontSize="10" FontWeight="Bold"/>
                         </Border>
-                        <Border x:Name="AfterTag" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Padding="6,2" Background="#D901031A">
+                        <Border x:Name="AfterTag" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Padding="8,3" CornerRadius="6" Background="#D9050814">
                             <TextBlock FontSize="10" FontWeight="Bold" Foreground="#5BA4FF" Text="CONTROL BAR PRO"/>
                         </Border>
                     </Grid>
@@ -97,13 +98,13 @@
                 <TextBlock x:Name="CompareNote" Foreground="#A7AECB" FontSize="11.5" TextWrapping="Wrap" Margin="0,6,0,12"/>
 
                 <!-- Bar archives that are not offered here, added by hand -->
-                <Border x:Name="OtherNotice" BorderBrush="#1FFFFFFF" BorderThickness="1" Background="#07091C" Padding="12,9" Margin="0,0,0,10"
+                <Border x:Name="OtherNotice" BorderBrush="#59FFB020" BorderThickness="1" Background="#1FFFB020" CornerRadius="12" Padding="14,10" Margin="0,0,0,10"
                         Visibility="Collapsed">
                     <DockPanel>
-                        <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Fill="#FFAA00" VerticalAlignment="Top" Margin="0,5,10,0"/>
+                        <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Fill="#FFB020" VerticalAlignment="Top" Margin="0,5,10,0"/>
                         <StackPanel>
                             <TextBlock x:Name="OtherTitle" Text="{l:T Another control bar is installed}" FontSize="12" FontWeight="SemiBold"/>
-                            <TextBlock x:Name="OtherDetail" FontSize="11.5" Foreground="#A8A8C8" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                            <TextBlock x:Name="OtherDetail" FontSize="11.5" Foreground="#BCC2D8" TextWrapping="Wrap" Margin="0,2,0,0"/>
                         </StackPanel>
                     </DockPanel>
                 </Border>
@@ -132,7 +133,7 @@
                                 <TextBlock Text="Control Bar Pro" Style="{StaticResource ChoiceTitle}" TextTrimming="CharacterEllipsis"/>
                             </DockPanel>
                             <TextBlock Text="{l:T Larger, cleaner bar by TheSuperHackers · v1.2}" Style="{StaticResource ChoiceText}"/>
-                            <ComboBox x:Name="Resolution" Height="26" FontSize="12" Margin="0,8,0,0" HorizontalAlignment="Left" MinWidth="130"
+                            <ComboBox x:Name="Resolution" Height="32" FontSize="12.5" Margin="0,10,0,0" HorizontalAlignment="Left" MinWidth="130"
                                       SelectionChanged="Resolution_Changed" ToolTip="{l:T Pick the size that matches your game resolution}"/>
                         </StackPanel>
                     </RadioButton>
@@ -144,15 +145,18 @@
         </ScrollViewer>
 
         <!-- Control bar: what Apply will do -->
-        <DockPanel x:Name="BarsFooter" Grid.Row="3" Margin="0,10,0,0">
-            <Button x:Name="ApplyButton" DockPanel.Dock="Right" Content="{l:T APPLY}" Style="{StaticResource GoldButtonStyle}" Margin="10,0,0,0"
-                    MinWidth="90" Click="Apply_Click"/>
-            <Button x:Name="DiscardButton" DockPanel.Dock="Right" Content="{l:T DISCARD}" Style="{StaticResource DiagButtonStyle}" Margin="10,0,0,0"
+        <Border Grid.Row="3" Margin="0,10,0,0" CornerRadius="16" Background="#DB0E142C" BorderBrush="#1FFFFFFF" BorderThickness="1"
+                Padding="18,10,10,10">
+        <DockPanel x:Name="BarsFooter">
+            <Button x:Name="ApplyButton" DockPanel.Dock="Right" Content="{l:T APPLY}" Style="{StaticResource GoldButtonStyle}" Height="40" Margin="10,0,0,0"
+                    MinWidth="100" Click="Apply_Click"/>
+            <Button x:Name="DiscardButton" DockPanel.Dock="Right" Content="{l:T DISCARD}" Style="{StaticResource SmallButtonStyle}" Height="40" Margin="10,0,0,0"
                     Visibility="Collapsed" Click="Discard_Click"/>
             <StackPanel VerticalAlignment="Center">
                 <TextBlock x:Name="ChangeText" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                 <TextBlock x:Name="ChangeDetail" FontSize="11.5" Foreground="#A7AECB" TextWrapping="Wrap" Margin="0,2,0,0"/>
             </StackPanel>
         </DockPanel>
+        </Border>
     </Grid>
 </UserControl>

@@ -20,9 +20,9 @@ namespace CommandCenter.Pages
         }
 
         // Status colours used across the Tools pages (same as the Options page diagnostics)
-        public static readonly SolidColorBrush Passed = Brush("#55CC55");
-        public static readonly SolidColorBrush Warning = Brush("#FFAA00");
-        public static readonly SolidColorBrush Problem = Brush("#FF4444");
+        public static readonly SolidColorBrush Passed = Brush("#52D273");
+        public static readonly SolidColorBrush Warning = Brush("#FFB020");
+        public static readonly SolidColorBrush Problem = Brush("#FF6B6B");
         public static readonly SolidColorBrush Hint = Brush("#A7AECB");
         public static readonly SolidColorBrush Blue = Brush("#2980FF");
         public static readonly SolidColorBrush Gold = Brush("#FECD03");
@@ -97,6 +97,25 @@ namespace CommandCenter.Pages
                     Process.Start("explorer.exe", $"\"{path}\"")?.Dispose();
             }
             catch { }
+        }
+
+        // The player picks the Zero Hour folder; it is remembered and the checks run again. Nothing in it is changed.
+        public static bool ChooseGameFolder(Window? owner)
+        {
+            var dialog = new Microsoft.Win32.OpenFolderDialog { Title = Loc.T("Choose the Zero Hour folder") };
+            if (GamePaths.ZeroHourFound)
+                dialog.InitialDirectory = GamePaths.Game;
+            if (dialog.ShowDialog(owner) != true)
+                return false;
+            if (!GamePaths.UseGameFolder(dialog.FolderName))
+            {
+                MessageBox.Show(Loc.T("That folder does not hold Zero Hour. Choose the folder with WindowZH.big and INIZH.big in it."), "Command Center",
+                    MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, Loc.MessageBoxOptions);
+                return false;
+            }
+            AppState.ForgetHotkeys();
+            _ = AppState.RefreshHealthAsync();
+            return true;
         }
 
         public static void Open(string target)

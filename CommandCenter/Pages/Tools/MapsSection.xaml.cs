@@ -40,6 +40,11 @@ namespace CommandCenter.Pages.Tools
             }
         }
 
+        // On the picture: the player count and the download size
+        public string PlayersText => Info.Players > 0 ? Info.Players.ToString(Loc.Culture) : "";
+        public Visibility PlayersVisibility => Info.Players > 0 ? Visibility.Visible : Visibility.Collapsed;
+        public string SizeText => Views.Size(Info.SizeBytes);
+
         public string Tip
         {
             get
@@ -227,8 +232,8 @@ namespace CommandCenter.Pages.Tools
     // in the user's Maps folder, with Recycle Bin removal and installing by dropping a .zip or a folder.
     public partial class MapsSection : UserControl, IToolSection
     {
-        private const double MinTile = 120;
-        private const double TileGap = 8;
+        private const double MinTile = 150;
+        private const double TileGap = 12;
         private const double ScrollBarRoom = 12;
 
         public static readonly DependencyProperty TileWidthProperty =
@@ -249,6 +254,7 @@ namespace CommandCenter.Pages.Tools
         private int _columns = 5;
         private bool _started, _loaded, _installing;
         private MapTile? _anchor;
+        private int _players;   // the player filter: all, 2, 3-4, 5-6, 7-8
 
         public MapsSection()
         {
@@ -401,7 +407,7 @@ namespace CommandCenter.Pages.Tools
                 return;
             var source = LibraryTab ? _library : _installed;
             string q = Search.Text.Trim();
-            (int min, int max) = PlayersFilter.SelectedIndex switch
+            (int min, int max) = _players switch
             {
                 1 => (2, 2),
                 2 => (3, 4),
@@ -593,7 +599,11 @@ namespace CommandCenter.Pages.Tools
             UpdateAll(scrollToTop: true);
         }
 
-        private void Filter_Changed(object sender, SelectionChangedEventArgs e) => UpdateAll(scrollToTop: true);
+        private void Players_Checked(object sender, RoutedEventArgs e)
+        {
+            _players = int.Parse((string)((FrameworkElement)sender).Tag);
+            UpdateAll(scrollToTop: true);
+        }
 
         private void Search_Changed(object sender, TextChangedEventArgs e)
         {

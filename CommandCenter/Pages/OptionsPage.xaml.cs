@@ -168,7 +168,7 @@ namespace CommandCenter.Pages
         // Opens a section by its sidebar name, e.g. "network" or "launcher" (used when taking screenshots)
         public void ShowPart(string part)
         {
-            var tab = new[] { rbCamera, rbChat, rbInput, rbGraphics, rbSocial, rbNetwork, rbDataPacks, rbPlugins, rbLauncher }
+            var tab = new[] { rbLanguage, rbGame, rbCamera, rbChat, rbInput, rbGraphics, rbSocial, rbNetwork, rbDataPacks, rbPlugins, rbLauncher }
                 .FirstOrDefault(r => r.Name.Equals("rb" + part.Replace(" ", ""), StringComparison.OrdinalIgnoreCase));
             if (tab != null)
                 tab.IsChecked = true;
@@ -185,6 +185,7 @@ namespace CommandCenter.Pages
             if (PanelCamera == null) return; // not yet loaded
 
             PanelLanguage.Visibility = Visibility.Collapsed;
+            PanelGame.Visibility = Visibility.Collapsed;
             PanelCamera.Visibility = Visibility.Collapsed;
             PanelChat.Visibility = Visibility.Collapsed;
             PanelInput.Visibility = Visibility.Collapsed;
@@ -196,6 +197,7 @@ namespace CommandCenter.Pages
             PanelLauncher.Visibility = Visibility.Collapsed;
 
             if (ReferenceEquals(sender, rbLanguage)) PanelLanguage.Visibility = Visibility.Visible;
+            else if (ReferenceEquals(sender, rbGame)) PanelGame.Visibility = Visibility.Visible;
             else if (ReferenceEquals(sender, rbCamera)) PanelCamera.Visibility = Visibility.Visible;
             else if (ReferenceEquals(sender, rbChat)) PanelChat.Visibility = Visibility.Visible;
             else if (ReferenceEquals(sender, rbInput)) PanelInput.Visibility = Visibility.Visible;
@@ -710,6 +712,87 @@ namespace CommandCenter.Pages
             }
             txtVersion.Text = "Command Center " + AppState.Version;
             _loadingLauncher = false;
+            ShowGameFolder();
+        }
+
+        // ── GAME FOLDER: which Zero Hour is played, and where the game keeps its data ──
+
+        private void ShowGameFolder()
+        {
+            bool found = GamePaths.ZeroHourFound;
+            string folder = GamePaths.Game;
+            txtGameFolder.Text = found ? Loc.Ltr(folder) : Loc.T("Game not found");
+            txtGameFolder.ToolTip = found ? folder : null;
+
+            (string badge, Color color) = !found ? (Loc.T("Not found"), Views.Problem.Color)
+                : GamePaths.ChosenByPlayer ? (Loc.T("Chosen by you"), Views.Blue.Color)
+                : GamePaths.IsSteamCopy(folder) ? (Loc.T("Steam copy"), Views.Passed.Color)
+                : (Loc.T("Other copy"), Views.Gold.Color);
+            SourceBadgeText.Text = badge;
+            SourceBadgeText.Foreground = new SolidColorBrush(color);
+            SourceBadge.Background = new SolidColorBrush(Color.FromArgb(0x26, color.R, color.G, color.B));
+
+            GameChips.Children.Clear();
+            if (found)
+            {
+                GameChips.Children.Add(Chip("Zero Hour", true));
+                GameChips.Children.Add(GamePaths.GameFound
+                    ? Chip("Generals Online " + AppState.ClientVersion(), true)
+                    : Chip(Loc.T("Generals Online is not installed"), false));
+            }
+            txtGameNote.Text = !found ? Loc.T("Choose the folder of any copy of Zero Hour: Steam, EA or another install.")
+                : GamePaths.GameFound ? Loc.T("Any copy works: Steam, EA or another install. Changing the folder changes nothing in the game files.")
+                : Loc.T("Install Generals Online into this folder, then press Play.");
+
+            txtDataFolder.Text = Loc.Ltr(GamePaths.UserData);
+            txtDataFolder.ToolTip = GamePaths.UserData;
+        }
+
+        private static Border Chip(string text, bool ok)
+        {
+            var color = ok ? Views.Passed.Color : Views.Problem.Color;
+            var row = new StackPanel { Orientation = Orientation.Horizontal };
+            row.Children.Add(new Controls.Icon
+            {
+                Kind = ok ? "check" : "close",
+                Width = 11,
+                Height = 11,
+                StrokeThickness = 3,
+                Foreground = new SolidColorBrush(color),
+                Margin = new Thickness(0, 0, 6, 0),
+            });
+            row.Children.Add(new TextBlock
+            {
+                Text = Loc.Embed(text),
+                FontSize = 12,
+                Foreground = Views.Brush(ok ? "#C6EED2" : "#FFC2C2"),
+                VerticalAlignment = VerticalAlignment.Center,
+            });
+            return new Border
+            {
+                Child = row,
+                Height = 28,
+                Padding = new Thickness(10, 0, 11, 0),
+                Margin = new Thickness(0, 0, 6, 6),
+                CornerRadius = new CornerRadius(14),
+                Background = new SolidColorBrush(Color.FromArgb(0x14, color.R, color.G, color.B)),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(0x33, color.R, color.G, color.B)),
+                BorderThickness = new Thickness(1),
+            };
+        }
+
+        private void ChangeFolder_Click(object sender, RoutedEventArgs e)
+        {
+            if (!Views.ChooseGameFolder(Window.GetWindow(this)))
+                return;
+            LoadGameSettings();
+            ShowGameFolder();
+            Views.Main.Toast(Loc.T("Game folder changed. The checks run again."));
+        }
+
+        private void OpenData_Click(object sender, RoutedEventArgs e)
+        {
+            Views.ShowInFolder(GamePaths.UserData);
         }
 
         private void CmbLanguage_SelectionChanged(object sender, SelectionChangedEventArgs e)

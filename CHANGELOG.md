@@ -5,6 +5,10 @@
 - New look: tabs along the top (Home, Health, Maps, Replays, Hotkeys, Add-ons) with the player count and Options beside them, the game's Steam art behind the home page (a drawn background for other copies), glass panels and short transitions between pages.
 - New home page: a large Play button, the client version, anti-cheat and which copy of the game is in use, the server card (players, lobbies, ping), the last match with its result and a Watch button, and tiles into the tools; health problems show as one line under Play.
 - Options are saved when you leave them by a tab, the same as their Save button.
+- Health: a ring shows how much of the game passed, with the passed, warning and problem counts; each problem is a card with its fix, and the passed checks are small green chips (details on hover).
+- Map library: bigger map cards with the player count and size on the picture, a round tick to choose, player filters as buttons, and the actions in a bar along the bottom.
+- Replays: matches as cards, and a side panel for the selected one with its map, result, date, length, starting money, players, file actions and Watch; "Archive every match" is a switch.
+- Hotkeys, Add-ons and Options follow the new look; Options has a Game folder tab that shows which copy is used (Steam, another copy, or chosen by you) and lets you pick another folder.
 
 ## 0.2.1
 

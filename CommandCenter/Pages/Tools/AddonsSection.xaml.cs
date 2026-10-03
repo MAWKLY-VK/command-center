@@ -19,7 +19,7 @@ namespace CommandCenter.Pages.Tools
 
         private static readonly BitmapSource OriginalArt = Art("original");
         private static readonly BitmapSource ProArt = Art("pro");
-        private static readonly SolidColorBrush NoteBrush = Views.Brush("#A8A8C8");
+        private static readonly SolidColorBrush NoteBrush = Views.Brush("#BCC2D8");
 
         private (BarKind Kind, string? Resolution) _installed;
         private bool _loading, _touched, _dragging, _busy, _goManaged;
@@ -318,6 +318,7 @@ namespace CommandCenter.Pages.Tools
                 return;
             double x = Math.Round(w * _split);
             After.Clip = new RectangleGeometry(new Rect(x, 0, Math.Max(0, w - x), h));
+            CompareBox.Clip = new RectangleGeometry(new Rect(0, 0, w, h), 12, 12);
             Divider.Margin = new Thickness(x - 1, 0, 0, 0);
             Handle.Margin = new Thickness(x - Handle.Width / 2, 0, 0, 0);
         }

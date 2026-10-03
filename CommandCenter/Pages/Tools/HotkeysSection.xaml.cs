@@ -64,12 +64,12 @@ namespace CommandCenter.Pages.Tools
         private static readonly SolidColorBrush Blue = Views.Blue;
         private static readonly SolidColorBrush LightBlue = Views.Brush("#5BA4FF");
         private static readonly SolidColorBrush Muted = Views.Hint;
-        private static readonly SolidColorBrush Soft = Views.Brush("#A0A0C0");
-        private static readonly SolidColorBrush Line = Views.Brush("#2A2A55");
+        private static readonly SolidColorBrush Soft = Views.Brush("#BCC2D8");
+        private static readonly SolidColorBrush Line = Views.Brush("#26FFFFFF");
         private static readonly SolidColorBrush Page = Views.Brush("#0A0E20");
         private static readonly SolidColorBrush SelectedFill = Views.Brush("#262980FF");
-        private static readonly SolidColorBrush SlotFill = Views.Brush("#050720");
-        private static readonly SolidColorBrush SlotLine = Views.Brush("#161640");
+        private static readonly SolidColorBrush SlotFill = Views.Brush("#0A0E20");
+        private static readonly SolidColorBrush SlotLine = Views.Brush("#1AFFFFFF");
         private static readonly SolidColorBrush BadgeFill = Views.Brush("#E0000000");
         private static readonly SolidColorBrush White = Brushes.White;
 
@@ -351,12 +351,17 @@ namespace CommandCenter.Pages.Tools
         private FrameworkElement Tile(HotkeyButton? button, HotkeyButton? silent)
         {
             var tile = new Grid { Width = TileWidth, Height = TileHeight, Margin = new Thickness(TileGap) };
-            tile.Children.Add(new Border { Background = SlotFill, BorderBrush = SlotLine, BorderThickness = new Thickness(1) });
+            tile.Children.Add(new Border { Background = SlotFill, BorderBrush = SlotLine, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8) });
             var shown = button ?? silent;
             if (shown == null)
                 return tile;
 
-            var image = new Image { Source = _hk!.Images.Get(shown.Image), Stretch = Stretch.UniformToFill, Margin = new Thickness(1) };
+            var image = new Border
+            {
+                Background = _hk!.Images.Get(shown.Image) is { } picture ? new ImageBrush(picture) { Stretch = Stretch.UniformToFill } : null,
+                CornerRadius = new CornerRadius(7),
+                Margin = new Thickness(1),
+            };
             RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.HighQuality);
             tile.Children.Add(image);
             if (button == null)
@@ -378,7 +383,8 @@ namespace CommandCenter.Pages.Tools
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Bottom,
                 Padding = new Thickness(5, 0, 5, 1),
-                Margin = new Thickness(1),
+                Margin = new Thickness(3),
+                CornerRadius = new CornerRadius(5),
                 Child = new TextBlock
                 {
                     Text = key == '\0' ? "–" : key.ToString(),
@@ -393,7 +399,7 @@ namespace CommandCenter.Pages.Tools
                 tile.Children.Add(Dot(Amber, HorizontalAlignment.Right));
 
             Brush rest = selected ? Blue : clash ? Red : Brushes.Transparent;
-            var frame = new Border { BorderThickness = new Thickness(2), BorderBrush = rest };
+            var frame = new Border { BorderThickness = new Thickness(2), BorderBrush = rest, CornerRadius = new CornerRadius(8) };
             tile.Children.Add(frame);
 
             tile.ToolTip = key == '\0' ? Loc.T("{0} · no key", button.Name) : Loc.T("{0} · key {1}", button.Name, key);

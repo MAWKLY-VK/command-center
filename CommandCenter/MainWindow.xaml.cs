@@ -72,10 +72,12 @@ namespace CommandCenter
             Navigate(_tools);
         }
 
-        public void ShowOptions()
+        public void ShowOptions(string? part = null)
         {
             SelectTab(null);
             Navigate(_options ??= new OptionsPage());
+            if (part != null)
+                _options.ShowPart(part);
         }
 
         private void Navigate(Page page)

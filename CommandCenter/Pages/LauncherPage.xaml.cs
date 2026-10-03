@@ -323,7 +323,7 @@ namespace CommandCenter.Pages
 
         private void HealthChip_Click(object sender, RoutedEventArgs e) => Views.Main.ShowTools("health");
 
-        private void SourceChip_Click(object sender, RoutedEventArgs e) => Views.Main.ShowOptions();
+        private void SourceChip_Click(object sender, RoutedEventArgs e) => Views.Main.ShowOptions("game");
 
         private void Tile_Click(object sender, RoutedEventArgs e) => Views.Main.ShowTools(((FrameworkElement)sender).Tag as string);
 
@@ -407,19 +407,8 @@ namespace CommandCenter.Pages
         {
             var answer = MessageBox.Show(Loc.T("Command & Conquer Generals - Zero Hour was not found. Choose its folder now?"), "Command Center",
                 MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes, Loc.MessageBoxOptions);
-            if (answer != MessageBoxResult.Yes)
+            if (answer != MessageBoxResult.Yes || !Views.ChooseGameFolder(Window.GetWindow(this)))
                 return false;
-            var dialog = new Microsoft.Win32.OpenFolderDialog { Title = Loc.T("Choose the Zero Hour folder") };
-            if (dialog.ShowDialog(Window.GetWindow(this)) != true)
-                return false;
-            if (!GamePaths.UseGameFolder(dialog.FolderName))
-            {
-                MessageBox.Show(Loc.T("That folder does not hold Zero Hour. Choose the folder with WindowZH.big and INIZH.big in it."), "Command Center",
-                    MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, Loc.MessageBoxOptions);
-                return false;
-            }
-            AppState.ForgetHotkeys();
-            _ = AppState.RefreshHealthAsync();
             ShowGame();
             return true;
         }
