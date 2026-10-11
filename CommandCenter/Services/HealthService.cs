@@ -188,9 +188,11 @@ namespace CommandCenter.Services
         private static readonly System.Text.RegularExpressions.Regex LanguageArchive =
             new(@"^(English|German|French|Spanish|Italian|Korean|Chinese|Brazilian|Polish|Russian)ZH\.big$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
+        internal static bool IsLanguageArchive(string fileName) => LanguageArchive.IsMatch(fileName);
+
         private static bool HasLanguageArchive(string game)
         {
-            try { return Directory.EnumerateFiles(game, "*ZH.big").Any(f => LanguageArchive.IsMatch(Path.GetFileName(f))); }
+            try { return Directory.EnumerateFiles(game, "*ZH.big").Any(f => IsLanguageArchive(Path.GetFileName(f))); }
             catch { return false; }
         }
 

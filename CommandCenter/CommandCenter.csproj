@@ -27,4 +27,8 @@
     <EmbeddedResource Include="Data\game-files.json" LogicalName="GameFiles.json" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="CommandCenter.Tests" />
+  </ItemGroup>
+
 </Project>

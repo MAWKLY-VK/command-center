@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="CommandCenter/CommandCenter.csproj" />
+  <Project Path="CommandCenter.Tests/CommandCenter.Tests.csproj" />
+</Solution>
