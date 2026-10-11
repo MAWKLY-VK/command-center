@@ -175,7 +175,17 @@ namespace CommandCenter.Services
 
         // ── GAME FILES ──
 
-        private static string[] RequiredFiles => new[] { GamePaths.GameExe, GamePaths.EacLauncher, "xaudio2_9redist.dll", "INIZH.big", "EnglishZH.big", "W3DZH.big", "WindowZH.big" };
+        private static string[] RequiredFiles => new[] { GamePaths.GameExe, GamePaths.EacLauncher, "xaudio2_9redist.dll", "INIZH.big", "W3DZH.big", "WindowZH.big" };
+
+        // Each edition has one language archive with the game's texts: EnglishZH.big, GermanZH.big, FrenchZH.big and so on
+        private static readonly System.Text.RegularExpressions.Regex LanguageArchive =
+            new(@"^(English|German|French|Spanish|Italian|Korean|Chinese|Brazilian|Polish|Russian)ZH\.big$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        private static bool HasLanguageArchive(string game)
+        {
+            try { return Directory.EnumerateFiles(game, "*ZH.big").Any(f => LanguageArchive.IsMatch(Path.GetFileName(f))); }
+            catch { return false; }
+        }
 
         // ── Original archives ──
 
@@ -307,6 +317,8 @@ namespace CommandCenter.Services
         {
             string[] required = RequiredFiles;
             var missing = required.Where(f => !File.Exists(Path.Combine(game, f))).ToList();
+            if (!HasLanguageArchive(game))
+                missing.Add("EnglishZH.big");
             bool steam = File.Exists(Path.Combine(game, "steam_appid.txt"));
 
             // Zero Hour without Generals Online, for example after Generals Online was uninstalled
