@@ -67,6 +67,8 @@ namespace CommandCenter.Services
         public static string Options => Path.Combine(UserData, "Options.ini");
         public static string GoSettings => Path.Combine(GoData, "settings.json");
         public static string LauncherSettings => Path.Combine(GoData, "launcher.json");
+        public static string GoGameData => Path.Combine(UserData, "GeneralsOnlineGameData");
+        public static string CommunityPatch => Path.Combine(GoGameData, GoProfile.Current.CommunityPatchFile);
         public static string Replays => Path.Combine(UserData, "Replays");
         public static string ArchivedReplays => Path.Combine(UserData, "ArchivedReplays");
         public static string Maps => Path.Combine(UserData, "Maps");

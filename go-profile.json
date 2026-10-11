@@ -8,6 +8,7 @@
   "liveThroughEac": false,
   "testThroughEac": true,
   "channelKey": "prefer_experiemental_client",
+  "communityPatchFile": "500_900_CommunityPatch_CoreINI.big",
   "apiBase": "https://api.playgenerals.online/env/prod/contract/1/",
   "manifestKey": "execrc_60"
 }
