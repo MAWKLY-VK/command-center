@@ -97,12 +97,17 @@
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
                     <RadioButton x:Name="TabChecks" GroupName="HealthViews" Style="{StaticResource SubTabStyle}" IsChecked="True"
                                  Checked="View_Checked"/>
+                    <RadioButton x:Name="TabQuestions" GroupName="HealthViews" Style="{StaticResource SubTabStyle}"
+                                 Checked="View_Checked"/>
                     <RadioButton x:Name="TabHistory" GroupName="HealthViews" Style="{StaticResource SubTabStyle}"
                                  Checked="View_Checked"/>
                 </StackPanel>
                 <Grid>
                     <ScrollViewer x:Name="ChecksView" VerticalScrollBarVisibility="Auto" Focusable="False">
                         <StackPanel x:Name="ChecksList" Margin="0,0,8,0"/>
+                    </ScrollViewer>
+                    <ScrollViewer x:Name="QuestionsView" VerticalScrollBarVisibility="Auto" Focusable="False" Visibility="Collapsed">
+                        <StackPanel x:Name="QuestionsList" Margin="0,0,8,0"/>
                     </ScrollViewer>
                     <Border x:Name="HistoryView" Style="{StaticResource ResultBoxStyle}" Padding="14,12,6,12" Visibility="Collapsed">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">

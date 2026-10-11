@@ -31,7 +31,7 @@ namespace CommandCenter.Services
             foreach (string archive in archives)
                 AddArchive(Path.Combine(gameFolder, archive), sortedByName: false);
 
-            string patch = Path.Combine(GamePaths.UserData, "GeneralsOnlineGameData", "500_900_CommunityPatch_CoreINI.big");
+            string patch = GamePaths.CommunityPatch;
             if (UsesCommunityPatch && File.Exists(patch))
                 AddArchive(patch, sortedByName: true);
 

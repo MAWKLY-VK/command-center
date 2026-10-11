@@ -72,6 +72,13 @@ namespace CommandCenter
             Navigate(_tools);
         }
 
+        // Health › Common questions; with the game not found, where to get it comes first
+        public void ShowQuestions()
+        {
+            ShowTools("health");
+            _tools!.ShowPart("questions");
+        }
+
         public void ShowOptions(string? part = null)
         {
             SelectTab(null);
@@ -337,7 +344,8 @@ namespace CommandCenter
 
         // ── Screenshots for review (--capture <folder>) ──
         // The window is placed off screen and never activated, so it does not take focus from a running game.
-        // Page ids: home, options, tools:health, tools:maps, tools:replays, tools:hotkeys, tools:addons
+        // Page ids: home, options, tools:health, tools:maps, tools:replays, tools:hotkeys, tools:addons; options:network:run
+        // also runs the network diagnostics first
 
         public async Task CaptureAsync(string folder, string size, string? pages)
         {
@@ -370,6 +378,8 @@ namespace CommandCenter
                         {
                             await Task.Delay(300);
                             _options!.ShowPart(id[1]);
+                            if (id.Length > 2 && id[2] == "run")
+                                await _options.RunDiagnosticsAsync();
                         }
                         break;
                     case "tools":

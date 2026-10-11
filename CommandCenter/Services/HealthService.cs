@@ -10,21 +10,22 @@ namespace CommandCenter.Services
 {
     public enum HealthStatus { Passed, Warning, Problem }
 
+    // Texts are LocText: translated on screen, English in the support report
     public sealed class HealthResult
     {
         public required string Id { get; init; }
         public required string Group { get; init; }
-        public required string Title { get; init; }
-        public required string Detail { get; init; }
+        public required LocText Title { get; init; }
+        public required LocText Detail { get; init; }
         public HealthStatus Status { get; init; }
 
         // Extra context shown under the detail, such as where the problem usually comes from
-        public string? Note { get; init; }
+        public LocText? Note { get; init; }
 
         // A fix the launcher can apply and undo, with a plain description of what it will change
         public string? FixLabel { get; init; }
         public Action? Fix { get; init; }
-        public string? FixPreview { get; init; }
+        public LocText? FixPreview { get; init; }
 
         // Or a guide that opens a page or setting for the player
         public string? GuideLabel { get; init; }
@@ -101,6 +102,9 @@ namespace CommandCenter.Services
 
         public const string DownloadPage = "https://www.playgenerals.online/";
 
+        // A guide target that opens Health › Common questions instead of a page or a folder
+        public const string QuestionsTarget = "questions";
+
         public static List<HealthResult> Run()
         {
             string game = GamePaths.Game;
@@ -113,6 +117,7 @@ namespace CommandCenter.Services
                 {
                     Id = "files", Group = GroupFiles, Title = "Zero Hour was not found", Status = HealthStatus.Problem,
                     Detail = "Command Center looks where Generals Online and the game's installer recorded it (Steam, EA app or another copy), in the Steam libraries and in its own folder. Press Play to choose the game folder",
+                    GuideLabel = "Where to get it", GuideTarget = QuestionsTarget,
                 });
                 return results;
             }
@@ -126,13 +131,13 @@ namespace CommandCenter.Services
                 }
                 catch (Exception ex)
                 {
-                    results.Add(new HealthResult { Id = "error:" + results.Count, Group = GroupFiles, Title = "A check could not run", Detail = ex.Message, Status = HealthStatus.Warning });
+                    results.Add(new HealthResult { Id = "error:" + results.Count, Group = GroupFiles, Title = "A check could not run", Detail = LocText.Value(ex.Message), Status = HealthStatus.Warning });
                 }
             }
             void AddMany(Func<IEnumerable<HealthResult>> checks)
             {
                 try { results.AddRange(checks()); }
-                catch (Exception ex) { results.Add(new HealthResult { Id = "error:" + results.Count, Group = GroupFiles, Title = "A check could not run", Detail = ex.Message, Status = HealthStatus.Warning }); }
+                catch (Exception ex) { results.Add(new HealthResult { Id = "error:" + results.Count, Group = GroupFiles, Title = "A check could not run", Detail = LocText.Value(ex.Message), Status = HealthStatus.Warning }); }
             }
 
             Add(() => CheckGameFiles(game));
@@ -146,7 +151,10 @@ namespace CommandCenter.Services
             AddMany(() => CheckExtraArchives(game));
             Add(() => CheckReadOnlyGameFiles(game));
             if (GamePaths.GameFound)
+            {
                 Add(() => CheckEacSettings(game));
+                Add(() => CheckAntiCheatPlugin(game));
+            }
 
             AddMany(() => CheckAdminFlag(game));
             Add(() => CheckCompatibilityMode(game));
@@ -162,7 +170,10 @@ namespace CommandCenter.Services
             Add(CheckResolution);
             Add(CheckNetworkAddress);
             if (GamePaths.GameFound)
+            {
                 Add(CheckGoSettings);
+                Add(CheckCommunityPatch);
+            }
             Add(CheckDocumentsFolder);
             Add(CheckDataFolderName);
             Add(() => CheckDocumentsPath(game));
@@ -171,7 +182,19 @@ namespace CommandCenter.Services
 
         // ── GAME FILES ──
 
-        private static string[] RequiredFiles => new[] { GamePaths.GameExe, GamePaths.EacLauncher, "xaudio2_9redist.dll", "INIZH.big", "EnglishZH.big", "W3DZH.big", "WindowZH.big" };
+        private static string[] RequiredFiles => new[] { GamePaths.GameExe, GamePaths.EacLauncher, "xaudio2_9redist.dll", "INIZH.big", "W3DZH.big", "WindowZH.big" };
+
+        // Each edition has one language archive with the game's texts: EnglishZH.big, GermanZH.big, FrenchZH.big and so on
+        private static readonly System.Text.RegularExpressions.Regex LanguageArchive =
+            new(@"^(English|German|French|Spanish|Italian|Korean|Chinese|Brazilian|Polish|Russian)ZH\.big$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        internal static bool IsLanguageArchive(string fileName) => LanguageArchive.IsMatch(fileName);
+
+        private static bool HasLanguageArchive(string game)
+        {
+            try { return Directory.EnumerateFiles(game, "*ZH.big").Any(f => IsLanguageArchive(Path.GetFileName(f))); }
+            catch { return false; }
+        }
 
         // ── Original archives ──
 
@@ -243,29 +266,29 @@ namespace CommandCenter.Services
                 return new HealthResult
                 {
                     Id = "archives", Group = GroupFiles, Title = "Original game archives are intact", Status = HealthStatus.Passed,
-                    Detail = $"{matched} archives match Zero Hour 1.04",
+                    Detail = LocText.N(matched, "{0} archive matches Zero Hour 1.04", "{0} archives match Zero Hour 1.04"),
                 };
 
-            static string Names(List<ArchiveEntry> list) =>
-                string.Join(", ", list.Take(5).Select(e => e.Path)) + (list.Count > 5 ? $" and {list.Count - 5} more" : "");
-            var parts = new List<string>();
+            static LocText Names(List<ArchiveEntry> list) => LocText.Names(list.Select(e => e.Path).ToList(), 5);
+            var parts = new List<LocText>();
             if (missing.Count > 0)
-                parts.Add("Missing: " + Names(missing));
+                parts.Add(LocText.F("Missing: {0}", Names(missing)));
             if (changed.Count > 0)
-                parts.Add((steam ? "Damaged or changed: " : "Different from the Steam release: ") + Names(changed));
+                parts.Add(LocText.F(steam ? "Damaged or changed: {0}" : "Different from the Steam release: {0}", Names(changed)));
             var rules = missing.Concat(changed).Where(e => e.Rules).Select(e => e.Path).ToList();
-            string? note = rules.Count > 0
-                ? $"{string.Join(", ", rules)} {(rules.Count == 1 ? "holds" : "hold")} the game rules: when missing or changed, online games end with a mismatch."
-                : null;
+            var notes = new List<LocText>();
+            if (rules.Count > 0)
+                notes.Add(LocText.N(rules.Count, "{1} holds the game rules: when missing or changed, online games end with a mismatch.",
+                    "{1} hold the game rules: when missing or changed, online games end with a mismatch.", LocText.Names(rules)));
             if (!steam)
-                note = (note == null ? "" : note + " ") + "Copies in other languages or editions can differ on purpose. If the game crashes or mismatches online, repair or reinstall it from where you got it.";
+                notes.Add("Copies in other languages or editions can differ on purpose. If the game crashes or mismatches online, repair or reinstall it from where you got it.");
 
             return new HealthResult
             {
                 Id = "archives", Group = GroupFiles, Status = steam || missing.Count > 0 ? HealthStatus.Problem : HealthStatus.Warning,
                 Title = missing.Count > 0 ? "Original game archives are missing" : steam ? "Original game archives are damaged or changed" : "Game archives differ from the Steam release",
-                Detail = string.Join(". ", parts),
-                Note = note,
+                Detail = LocText.Join(". ", parts),
+                Note = notes.Count > 0 ? LocText.Join(" ", notes) : null,
                 GuideLabel = steam ? "Verify in Steam" : null,
                 GuideTarget = steam ? "steam://validate/" + GamePaths.SteamAppId : null,
             };
@@ -303,10 +326,12 @@ namespace CommandCenter.Services
         {
             string[] required = RequiredFiles;
             var missing = required.Where(f => !File.Exists(Path.Combine(game, f))).ToList();
+            if (!HasLanguageArchive(game))
+                missing.Add("EnglishZH.big");
             bool steam = File.Exists(Path.Combine(game, "steam_appid.txt"));
 
             // Zero Hour without Generals Online, for example after Generals Online was uninstalled
-            if (missing.Contains("GeneralsOnlineZH_60.exe") && missing.Contains("EAC_LaunchGeneralsOnline.exe"))
+            if (missing.Contains(GamePaths.GameExe) && missing.Contains(GamePaths.EacLauncher))
                 return new HealthResult
                 {
                     Id = "files", Group = GroupFiles, Title = "Generals Online is not installed", Status = HealthStatus.Problem,
@@ -315,12 +340,16 @@ namespace CommandCenter.Services
                 };
 
             return missing.Count == 0
-                ? new HealthResult { Id = "files", Group = GroupFiles, Title = "Generals Online files complete", Detail = "GeneralsOnlineZH_60.exe, the anti-cheat launcher and xaudio2_9redist.dll are in place", Status = HealthStatus.Passed }
+                ? new HealthResult { Id = "files", Group = GroupFiles, Title = "Generals Online files complete", Detail = LocText.F("{0}, the anti-cheat launcher and xaudio2_9redist.dll are in place", GamePaths.GameExe), Status = HealthStatus.Passed }
                 : new HealthResult
                 {
                     Id = "files", Group = GroupFiles, Title = "Game files are missing", Status = HealthStatus.Problem,
-                    Detail = "Missing: " + string.Join(", ", missing),
-                    Note = missing.Contains("GeneralsOnlineZH_60.exe") ? "Antivirus programs sometimes remove it. Restore it from quarantine or reinstall Generals Online." : null,
+                    Detail = LocText.F("Missing: {0}", LocText.Names(missing, 10)),
+                    // Generals Online is not code-signed, so Windows Defender and other antivirus programs flag it after
+                    // some updates (Generals Online's own notice of 26 September 2026)
+                    Note = missing.Contains(GamePaths.GameExe)
+                        ? (LocText)"Antivirus programs sometimes remove it by mistake because it is not signed. Restore it from the antivirus quarantine, add the game folder as an exclusion, or install Generals Online again."
+                        : null,
                     GuideLabel = steam ? "Verify in Steam" : null,
                     GuideTarget = steam ? "steam://validate/" + GamePaths.SteamAppId : null,
                 };
@@ -380,7 +409,7 @@ namespace CommandCenter.Services
             return running.Count == 0 ? null : new HealthResult
             {
                 Id = "running", Group = GroupFiles, Title = "The game is running", Status = HealthStatus.Warning,
-                Detail = "Close the game before applying fixes: " + string.Join(", ", running),
+                Detail = LocText.F("Close the game before applying fixes: {0}", LocText.Names(running, 5)),
             };
         }
 
@@ -400,11 +429,11 @@ namespace CommandCenter.Services
                 string target = path;
                 yield return new HealthResult
                 {
-                    Id = "runtime:" + name, Group = GroupFiles, Title = $"Old Visual C++ file inside the game folder", Status = HealthStatus.Problem,
-                    Detail = $"{name} ({version}) is loaded instead of the system copy, so the game stops with \"Entry Point Not Found\"",
+                    Id = "runtime:" + name, Group = GroupFiles, Title = "Old Visual C++ file inside the game folder", Status = HealthStatus.Problem,
+                    Detail = LocText.F("{0} ({1}) is loaded instead of the system copy, so the game stops with \"Entry Point Not Found\"", name, version),
                     Note = "Usually left by GenPatcher or an old repack.",
                     FixLabel = "Quarantine",
-                    FixPreview = $"Moves {name} to the launcher's quarantine folder. Undo puts it back.",
+                    FixPreview = LocText.F("Moves {0} to the launcher's quarantine folder. Undo puts it back.", name),
                     Fix = () => BackupService.MoveToQuarantine("Quarantined " + name, target, "Old Visual C++ file"),
                 };
             }
@@ -421,12 +450,12 @@ namespace CommandCenter.Services
             string system = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.SystemX86), "dbghelp.dll");
             var local = FileVersionOf(path);
             if (File.Exists(system) && local >= FileVersionOf(system))
-                return new HealthResult { Id = "dbghelp", Group = GroupFiles, Title = "dbghelp.dll is up to date", Detail = $"The copy in the game folder ({local}) is as new as the one in Windows", Status = HealthStatus.Passed };
+                return new HealthResult { Id = "dbghelp", Group = GroupFiles, Title = "dbghelp.dll is up to date", Detail = LocText.F("The copy in the game folder ({0}) is as new as the one in Windows", local.ToString()), Status = HealthStatus.Passed };
 
             return new HealthResult
             {
                 Id = "dbghelp", Group = GroupFiles, Title = "Old dbghelp.dll inside the game folder", Status = HealthStatus.Problem,
-                Detail = $"dbghelp.dll ({local}) is loaded instead of the Windows copy. It is too old for Generals Online, which then does not start (\"Entry Point Not Found\") or crashes",
+                Detail = LocText.F("dbghelp.dll ({0}) is loaded instead of the Windows copy. It is too old for Generals Online, which then does not start (\"Entry Point Not Found\") or crashes", local.ToString()),
                 Note = "It comes with the original game files. GenPatcher renames it to dbghelp.dll.bak for the same reason.",
                 FixLabel = "Quarantine",
                 FixPreview = "Moves dbghelp.dll to the launcher's quarantine folder so Windows' own copy is used. Undo puts it back.",
@@ -451,6 +480,8 @@ namespace CommandCenter.Services
                 var info = FileVersionInfo.GetVersionInfo(path);
                 string product = (info.ProductName ?? info.FileDescription ?? "").Trim();
                 string label = product.Length > 0 ? product : what;
+                // The file's own product name stays as it is; the built-in description is translated
+                LocText shown = product.Length > 0 ? LocText.Value(product) : what;
                 if (dll.Equals("d3d8.dll", StringComparison.OrdinalIgnoreCase))
                 {
                     // Generals Online loads DirectX 8 from the Windows folder only, so GenTool, dgVoodoo or DXVK here
@@ -458,16 +489,16 @@ namespace CommandCenter.Services
                     found.Add(new HealthResult
                     {
                         Id = "wrapper:" + dll, Group = GroupFiles, Title = "d3d8.dll is not used by Generals Online", Status = HealthStatus.Passed,
-                        Detail = $"{label}. Generals Online loads the DirectX 8 that comes with Windows, so this file only affects the original game",
+                        Detail = LocText.F("{0}. Generals Online loads the DirectX 8 that comes with Windows, so this file only affects the original game", shown),
                     });
                     continue;
                 }
                 found.Add(new HealthResult
                 {
-                    Id = "wrapper:" + dll, Group = GroupFiles, Title = $"{dll} replaces part of the game", Status = HealthStatus.Warning,
-                    Detail = $"{label}. Generals Online does not need it and the anti-cheat can refuse to start with it",
+                    Id = "wrapper:" + dll, Group = GroupFiles, Title = LocText.F("{0} replaces part of the game", dll), Status = HealthStatus.Warning,
+                    Detail = LocText.F("{0}. Generals Online does not need it and the anti-cheat can refuse to start with it", shown),
                     FixLabel = "Quarantine",
-                    FixPreview = $"Moves {dll} to the launcher's quarantine folder. Undo puts it back.",
+                    FixPreview = LocText.F("Moves {0} to the launcher's quarantine folder. Undo puts it back.", dll),
                     Fix = () => BackupService.MoveToQuarantine("Quarantined " + dll, path, label),
                 });
             }
@@ -476,10 +507,10 @@ namespace CommandCenter.Services
                 string name = Path.GetFileName(asi);
                 found.Add(new HealthResult
                 {
-                    Id = "asi:" + name, Group = GroupFiles, Title = $"Script plugin {name}", Status = HealthStatus.Warning,
+                    Id = "asi:" + name, Group = GroupFiles, Title = LocText.F("Script plugin {0}", name), Status = HealthStatus.Warning,
                     Detail = "ASI plugins are injected into the game and are blocked by the anti-cheat",
                     FixLabel = "Quarantine",
-                    FixPreview = $"Moves {name} to the launcher's quarantine folder. Undo puts it back.",
+                    FixPreview = LocText.F("Moves {0} to the launcher's quarantine folder. Undo puts it back.", name),
                     Fix = () => BackupService.MoveToQuarantine("Quarantined " + name, asi, "ASI plugin"),
                 });
             }
@@ -516,12 +547,12 @@ namespace CommandCenter.Services
                 string path = archive;
                 found.Add(new HealthResult
                 {
-                    Id = "archive:" + relative, Group = GroupFiles, Title = $"{relative} changes unit rules", Status = HealthStatus.Problem,
+                    Id = "archive:" + relative, Group = GroupFiles, Title = LocText.F("{0} changes unit rules", relative), Status = HealthStatus.Problem,
                     Detail = inSubfolder
                         ? "The game also loads archives from folders inside the game folder. Other players do not have it, so online games end with \"The host has modified INI files\""
                         : "Other players do not have it, so online games end with \"The host has modified INI files\"",
                     FixLabel = "Quarantine",
-                    FixPreview = $"Moves {relative} to the launcher's quarantine folder. Undo puts it back.",
+                    FixPreview = LocText.F("Moves {0} to the launcher's quarantine folder. Undo puts it back.", relative),
                     Fix = () => BackupService.MoveToQuarantine("Quarantined " + name, path, "Caused mismatches"),
                 });
             }
@@ -535,7 +566,7 @@ namespace CommandCenter.Services
                 found.Add(new HealthResult
                 {
                     Id = "loose:" + rule, Group = GroupFiles, Title = "Loose rule files", Status = HealthStatus.Problem,
-                    Detail = $"{rule.TrimEnd('\\')} overrides unit rules and causes \"The host has modified INI files\"",
+                    Detail = LocText.F("{0} overrides unit rules and causes \"The host has modified INI files\"", rule.TrimEnd('\\')),
                     Note = "Remove it by hand if it belongs to a mod you still want for offline play.",
                 });
             }
@@ -553,17 +584,22 @@ namespace CommandCenter.Services
             if (locked.Count == 0)
                 return new HealthResult { Id = "readonly:game", Group = GroupFiles, Title = "No read-only game files", Detail = "Updates can replace every file in the game folder", Status = HealthStatus.Passed };
 
-            string names = NameList(locked.Select(f => Path.GetRelativePath(game, f)).ToList());
+            var names = LocText.Names(locked.Select(f => Path.GetRelativePath(game, f)).ToList());
             bool writable = CanWrite(game);
             return new HealthResult
             {
                 Id = "readonly:game", Group = GroupFiles, Title = "Read-only files in the game folder", Status = HealthStatus.Warning,
-                Detail = $"{Plural(locked.Count, "file is", "files are")} marked read-only: {names}. Generals Online updates stop to ask about them, and a skipped file stays on the old version",
+                Detail = LocText.N(locked.Count,
+                    "{0} file is marked read-only: {1}. Generals Online updates stop to ask about it, and a skipped file stays on the old version",
+                    "{0} files are marked read-only: {1}. Generals Online updates stop to ask about them, and a skipped file stays on the old version", names),
                 Note = writable
                     ? "Old CD installs and repacks copy files this way. GenPatcher clears this flag too."
                     : "Changing them needs administrator rights here: right-click the game folder › Properties, untick \"Read-only\" and apply it to all files.",
                 FixLabel = writable ? "Fix" : null,
-                FixPreview = writable ? $"Clears the read-only flag on {Plural(locked.Count, "file", "files")} in the game folder. Their contents stay the same. Undo sets the flag again." : null,
+                FixPreview = writable
+                    ? LocText.N(locked.Count, "Clears the read-only flag on {0} file in the game folder. Its contents stay the same. Undo sets the flag again.",
+                        "Clears the read-only flag on {0} files in the game folder. Their contents stay the same. Undo sets the flag again.")
+                    : null,
                 Fix = writable ? () => BackupService.ClearReadOnly("Cleared read-only game files", game, locked, $"Game folder · {Plural(locked.Count, "file", "files")}") : null,
                 GuideLabel = writable ? null : "Show folder",
                 GuideTarget = writable ? null : "select:" + game,
@@ -592,12 +628,43 @@ namespace CommandCenter.Services
                     exe = value.GetString();
             }
             if (string.IsNullOrEmpty(exe) || File.Exists(Path.Combine(game, exe)))
-                return new HealthResult { Id = "eacexe", Group = GroupFiles, Title = "Anti-cheat finds the game", Detail = $"EasyAntiCheat starts {exe}", Status = HealthStatus.Passed };
+                return new HealthResult { Id = "eacexe", Group = GroupFiles, Title = "Anti-cheat finds the game", Detail = LocText.F("EasyAntiCheat starts {0}", exe ?? ""), Status = HealthStatus.Passed };
             return new HealthResult
             {
                 Id = "eacexe", Group = GroupFiles, Title = "Anti-cheat cannot find the game", Status = HealthStatus.Problem,
-                Detail = $"EasyAntiCheat looks for {exe}, which is missing, so it stops with \"Invalid game executable path\"",
+                Detail = LocText.F("EasyAntiCheat looks for {0}, which is missing, so it stops with \"Invalid game executable path\"", exe),
                 Note = "Reinstall Generals Online, or restore the file if an antivirus removed it.",
+            };
+        }
+
+        // Generals Online loads the anti-cheat chosen in settings.json from plugins\<name>\<name>.dll; without it the game
+        // stops with "Failed to load the AntiCheat plugin from path: plugins/<name>/<name>.dll" (seen in Generals Online's
+        // tech-support channel). With none chosen yet, every installed plugin is checked.
+        private static HealthResult? CheckAntiCheatPlugin(string game)
+        {
+            string plugins = Path.Combine(game, "plugins");
+            string chosen = GoSettings.Load().AntiCheat;
+            var names = chosen.Length > 0 && !chosen.Any(c => Path.GetInvalidFileNameChars().Contains(c) || c == '.')
+                ? new List<string> { chosen }
+                : Directory.Exists(plugins)
+                    ? Directory.EnumerateDirectories(plugins).Where(d => Directory.EnumerateFiles(d, "*.json").Any()).Select(Path.GetFileName).OfType<string>().ToList()
+                    : new List<string>();
+            if (names.Count == 0)
+                return null;
+            var missing = names.Select(n => $@"plugins\{n}\{n}.dll").Where(f => !File.Exists(Path.Combine(game, f))).ToList();
+            if (missing.Count == 0)
+                return new HealthResult
+                {
+                    Id = "acplugin", Group = GroupFiles, Title = "Anti-cheat plugin in place", Status = HealthStatus.Passed,
+                    Detail = LocText.F("{0} is in the game folder", LocText.Names(names.Select(n => $@"plugins\{n}\{n}.dll").ToList())),
+                };
+            return new HealthResult
+            {
+                Id = "acplugin", Group = GroupFiles, Title = "Anti-cheat plugin is missing", Status = HealthStatus.Problem,
+                Detail = LocText.F("{0} is missing, so the game stops with \"Failed to load the AntiCheat plugin\"", LocText.Names(missing)),
+                Note = "Antivirus programs sometimes remove it by mistake because it is not signed. Restore it from the antivirus quarantine, add the game folder as an exclusion, or install Generals Online again.",
+                GuideLabel = "Show folder",
+                GuideTarget = "select:" + (Directory.Exists(plugins) ? plugins : game),
             };
         }
 
@@ -672,9 +739,9 @@ namespace CommandCenter.Services
                 {
                     Id = "admin", Group = GroupWindows, Title = "\"Run as administrator\" is set on the game", Status = HealthStatus.Warning,
                     Detail = "Windows blocks the game with error 740 \"The requested operation requires elevation\"",
-                    Note = $"Flag RUNASADMIN on {files}",
+                    Note = LocText.F("Flag RUNASADMIN on {0}", files),
                     FixLabel = "Fix",
-                    FixPreview = $"Removes RUNASADMIN from the compatibility settings of {files}. Other settings stay.",
+                    FixPreview = LocText.F("Removes RUNASADMIN from the compatibility settings of {0}. Other settings stay.", files),
                     Fix = () =>
                     {
                         foreach (var (name, _) in user)
@@ -688,7 +755,7 @@ namespace CommandCenter.Services
                 {
                     Id = "adminall", Group = GroupWindows, Title = "\"Run as administrator\" is set for all users", Status = HealthStatus.Warning,
                     Detail = "Windows blocks the game with error 740. This setting needs administrator rights to change",
-                    Note = $"Right-click {Path.GetFileName(machine[0].Name)} › Properties › Compatibility › Change settings for all users, then untick \"Run this program as an administrator\".",
+                    Note = LocText.F("Right-click {0} › Properties › Compatibility › Change settings for all users, then untick \"Run this program as an administrator\".", Path.GetFileName(machine[0].Name)),
                     GuideLabel = "Show file",
                     GuideTarget = "select:" + machine[0].Name,
                 };
@@ -708,9 +775,9 @@ namespace CommandCenter.Services
             return new HealthResult
             {
                 Id = "compat", Group = GroupWindows, Title = "Old Windows compatibility mode", Status = HealthStatus.Warning,
-                Detail = $"An old Windows mode is set on {files}; this causes crashes, black screens and the DirectX 8.1 message",
+                Detail = LocText.F("An old Windows mode is set on {0}; this causes crashes, black screens and the DirectX 8.1 message", files),
                 FixLabel = "Fix",
-                FixPreview = $"Removes the old Windows mode from {files}. Other settings stay.",
+                FixPreview = LocText.F("Removes the old Windows mode from {0}. Other settings stay.", files),
                 Fix = () =>
                 {
                     foreach (var (name, _) in found)
@@ -745,9 +812,9 @@ namespace CommandCenter.Services
                 {
                     Id = "dpi", Group = GroupWindows, Title = "DPI scaling is overridden for the game", Status = HealthStatus.Warning,
                     Detail = detail,
-                    Note = $"Set on {files}",
+                    Note = LocText.F("Set on {0}", files),
                     FixLabel = "Fix",
-                    FixPreview = $"Removes the DPI override (DPIUNAWARE, GDIDPISCALING) from the compatibility settings of {files}. Other settings stay.",
+                    FixPreview = LocText.F("Removes the DPI override (DPIUNAWARE, GDIDPISCALING) from the compatibility settings of {0}. Other settings stay.", files),
                     Fix = () =>
                     {
                         foreach (var (name, _) in user)
@@ -760,8 +827,8 @@ namespace CommandCenter.Services
                 yield return new HealthResult
                 {
                     Id = "dpiall", Group = GroupWindows, Title = "DPI scaling is overridden for all users", Status = HealthStatus.Warning,
-                    Detail = detail + ". This setting needs administrator rights to change",
-                    Note = $"Right-click {Path.GetFileName(machine[0].Name)} › Properties › Compatibility › Change settings for all users › Change high DPI settings, then untick \"Override high DPI scaling behavior\".",
+                    Detail = LocText.Join(". ", new LocText[] { detail, "This setting needs administrator rights to change" }),
+                    Note = LocText.F("Right-click {0} › Properties › Compatibility › Change settings for all users › Change high DPI settings, then untick \"Override high DPI scaling behavior\".", Path.GetFileName(machine[0].Name)),
                     GuideLabel = "Show file",
                     GuideTarget = "select:" + machine[0].Name,
                 };
@@ -836,10 +903,10 @@ namespace CommandCenter.Services
                 return new HealthResult
                 {
                     Id = "vcredist", Group = GroupWindows, Title = "Visual C++ runtime is out of date", Status = HealthStatus.Problem,
-                    Detail = $"Version {version} is installed; Generals Online needs 14.{MinVcMinor} or newer, otherwise \"Entry Point Not Found\" appears",
+                    Detail = LocText.F("Version {0} is installed; Generals Online needs 14.{1} or newer, otherwise \"Entry Point Not Found\" appears", version, MinVcMinor),
                     GuideLabel = "Download", GuideTarget = guide,
                 };
-            return new HealthResult { Id = "vcredist", Group = GroupWindows, Title = "Visual C++ 2015-2022 x86", Detail = $"{version}, new enough for Generals Online", Status = HealthStatus.Passed };
+            return new HealthResult { Id = "vcredist", Group = GroupWindows, Title = "Visual C++ 2015-2022 x86", Detail = LocText.F("{0}, new enough for Generals Online", version), Status = HealthStatus.Passed };
         }
 
         private static HealthResult CheckEasyAntiCheat()
@@ -869,7 +936,7 @@ namespace CommandCenter.Services
             var real = names.Where(n => !n.Contains("Basic Display", StringComparison.OrdinalIgnoreCase) && !n.Contains("Basic Render", StringComparison.OrdinalIgnoreCase)
                                         && !n.Contains("Virtual", StringComparison.OrdinalIgnoreCase) && !n.Contains("Parsec", StringComparison.OrdinalIgnoreCase)).ToList();
             return real.Count > 0
-                ? new HealthResult { Id = "gpu", Group = GroupWindows, Title = "Graphics driver", Detail = string.Join(" · ", real), Status = HealthStatus.Passed }
+                ? new HealthResult { Id = "gpu", Group = GroupWindows, Title = "Graphics driver", Detail = LocText.Value(string.Join(" · ", real)), Status = HealthStatus.Passed }
                 : new HealthResult
                 {
                     Id = "gpu", Group = GroupWindows, Title = "No graphics driver installed", Status = HealthStatus.Problem,
@@ -902,11 +969,14 @@ namespace CommandCenter.Services
             return new HealthResult
             {
                 Id = "readonly:settings", Group = GroupSettings, Title = "Game settings files are read-only", Status = HealthStatus.Warning,
-                Detail = $"{NameList(names)} {(locked.Count == 1 ? "is" : "are")} marked read-only, so the game cannot save to {(locked.Count == 1 ? "it" : "them")}. "
-                         + (replay ? "Settings go back after a restart and games are not recorded as replays" : "Settings go back after a restart"),
+                Detail = LocText.Join(" ", new[]
+                {
+                    LocText.N(locked.Count, "{1} is marked read-only, so the game cannot save to it.", "{1} are marked read-only, so the game cannot save to them.", LocText.Names(names)),
+                    replay ? "Settings go back after a restart and games are not recorded as replays" : "Settings go back after a restart",
+                }),
                 Note = "GenPatcher clears this flag too. Some people set it on purpose to keep a setting; the game cannot save any change then.",
                 FixLabel = "Fix",
-                FixPreview = $"Clears the read-only flag on {NameList(names)}. Their contents stay the same. Undo sets the flag again.",
+                FixPreview = LocText.F("Clears the read-only flag on {0}. Their contents stay the same. Undo sets the flag again.", LocText.Names(names)),
                 Fix = () => BackupService.ClearReadOnly("Cleared read-only settings files", data, locked, string.Join(", ", names)),
             };
         }
@@ -947,14 +1017,14 @@ namespace CommandCenter.Services
 
             var parts = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length == 2 && int.TryParse(parts[0], out int w) && int.TryParse(parts[1], out int h) && Display.Supports(w, h))
-                return new HealthResult { Id = "resolution", Group = GroupSettings, Title = "Resolution supported", Detail = $"{w} × {h} matches your display", Status = HealthStatus.Passed };
+                return new HealthResult { Id = "resolution", Group = GroupSettings, Title = "Resolution supported", Detail = LocText.F("{0} matches your display", $"{w} × {h}"), Status = HealthStatus.Passed };
 
             return new HealthResult
             {
                 Id = "resolution", Group = GroupSettings, Title = "Resolution not supported", Status = HealthStatus.Problem,
-                Detail = $"Options.ini is set to {value.Replace(" ", " × ")}, which your display cannot show. Your display is {width} × {height}",
+                Detail = LocText.F("Options.ini is set to {0}, which your display cannot show. Your display is {1}", value.Replace(" ", " × "), $"{width} × {height}"),
                 FixLabel = "Fix",
-                FixPreview = $"Sets Resolution in Options.ini to {width} × {height}.",
+                FixPreview = LocText.F("Sets Resolution in Options.ini to {0}.", $"{width} × {height}"),
                 Fix = () => OptionsFile.Write(new Dictionary<string, string> { ["Resolution"] = $"{width} {height}" }, "Set resolution", $"Options.ini · {value} → {width} {height}"),
             };
         }
@@ -977,9 +1047,9 @@ namespace CommandCenter.Services
             return new HealthResult
             {
                 Id = "ip", Group = GroupSettings, Title = "Saved network address is old", Status = HealthStatus.Warning,
-                Detail = $"Options.ini has {old}, this PC is now {preferred}. LAN games may not find each other",
+                Detail = LocText.F("Options.ini has {0}, this PC is now {1}. LAN games may not find each other", old, preferred),
                 FixLabel = "Fix",
-                FixPreview = $"Sets {string.Join(" and ", stale)} in Options.ini to {preferred}.",
+                FixPreview = LocText.F("Sets {0} in Options.ini to {1}.", LocText.Names(stale), preferred),
                 Fix = () => OptionsFile.Write(stale.ToDictionary(k => k, _ => preferred), "Updated network address", $"Options.ini · {old} → {preferred}"),
             };
         }
@@ -1009,12 +1079,50 @@ namespace CommandCenter.Services
                 return new HealthResult
                 {
                     Id = "gosettings", Group = GroupSettings, Title = "Generals Online settings are broken", Status = HealthStatus.Problem,
-                    Detail = "settings.json cannot be read and stops the game from starting: " + ex.Message.Split('.')[0],
+                    Detail = LocText.F("settings.json cannot be read and stops the game from starting: {0}", ex.Message.Split('.')[0]),
                     FixLabel = "Reset",
                     FixPreview = "Moves settings.json to quarantine; the game writes a fresh one with default values on next start.",
                     Fix = () => BackupService.MoveToQuarantine("Reset Generals Online settings", GamePaths.GoSettings, "settings.json"),
                 };
             }
+        }
+
+        // Generals Online support's first answer when every room shows greyed out: the community data patch file is
+        // missing from GeneralsOnlineGameData in the game's Documents folder. Mods need the patch turned off, so off is
+        // only a warning.
+        private static HealthResult CheckCommunityPatch()
+        {
+            bool on = GoSettings.Load().Get("data_packs", "use_community_data_patch", true);
+            string file = GoProfile.Current.CommunityPatchFile;
+            if (!on)
+                return new HealthResult
+                {
+                    Id = "datapatch", Group = GroupSettings, Title = "Community data patch is turned off", Status = HealthStatus.Warning,
+                    Detail = "Most Generals Online rooms use it, so they show greyed out and you cannot join them",
+                    Note = "Leave it off only while you play a mod; mods do not work with it.",
+                    FixLabel = "Turn on",
+                    FixPreview = "Turns the community data patch on in Generals Online's settings. Undo turns it off again.",
+                    Fix = () =>
+                    {
+                        var go = GoSettings.Load();
+                        go.Set("data_packs", "use_community_data_patch", true);
+                        go.Save("Turned the community data patch on");
+                    },
+                };
+            if (File.Exists(GamePaths.CommunityPatch))
+                return new HealthResult
+                {
+                    Id = "datapatch", Group = GroupSettings, Title = "Community data patch in place", Status = HealthStatus.Passed,
+                    Detail = LocText.F("{0} is in the Generals Online data folder", file),
+                };
+            return new HealthResult
+            {
+                Id = "datapatch", Group = GroupSettings, Title = "Community data patch file is missing", Status = HealthStatus.Problem,
+                Detail = "Every normal room on Generals Online shows greyed out and you cannot join, because your game does not match the other players",
+                Note = LocText.F("{0} belongs in the GeneralsOnlineGameData folder inside the game's Documents folder. Start the game once from the official launcher so it updates itself; if it is still missing, install Generals Online again.", file),
+                GuideLabel = "Show folder",
+                GuideTarget = "select:" + (Directory.Exists(GamePaths.GoGameData) ? GamePaths.GoGameData : GamePaths.UserData),
+            };
         }
 
         private static HealthResult? CheckDocumentsFolder()
@@ -1047,7 +1155,8 @@ namespace CommandCenter.Services
             return new HealthResult
             {
                 Id = "datafolder", Group = GroupSettings, Title = "The game uses a different Documents folder", Status = HealthStatus.Warning,
-                Detail = $"Zero Hour is set to keep settings, maps and replays in Documents\\{leaf}, but Command Center reads Documents\\{expected}. Changes made here may not reach the game",
+                Detail = LocText.F("Zero Hour is set to keep settings, maps and replays in {0}, but Command Center reads {1}. Changes made here may not reach the game",
+                    "Documents\\" + leaf, "Documents\\" + expected),
                 Note = "Set by UserDataLeafName in the registry, usually by an installer or patcher for another language.",
             };
         }
@@ -1090,7 +1199,9 @@ namespace CommandCenter.Services
                 return new HealthResult
                 {
                     Id = "docpath", Group = GroupSettings, Title = "Some maps or replays have paths too long for the game", Status = HealthStatus.Warning,
-                    Detail = $"{Plural(tooLong.Count, "file is", "files are")} past the Windows limit of {MaxPathLength} characters, so the game cannot open {(tooLong.Count == 1 ? "it" : "them")}: {NameList(names, 2)}",
+                    Detail = LocText.N(tooLong.Count,
+                        "{0} file is past the Windows limit of {1} characters, so the game cannot open it: {2}",
+                        "{0} files are past the Windows limit of {1} characters, so the game cannot open them: {2}", MaxPathLength, LocText.Names(names, 2)),
                     Note = "Shorten the folder or file names, or move the Documents folder to a shorter path.",
                     GuideLabel = "Show folder",
                     GuideTarget = "select:" + Path.Combine(data, first),
@@ -1102,7 +1213,8 @@ namespace CommandCenter.Services
                 return new HealthResult
                 {
                     Id = "docpath", Group = GroupSettings, Title = "Documents path is long", Status = HealthStatus.Warning,
-                    Detail = $"The game data folder path is {length} characters long, which leaves {Math.Max(0, MaxPathLength - length - 1)} for maps and replays. Maps with long names will not open",
+                    Detail = LocText.F("The game data folder path is {0} characters long, which leaves {1} for maps and replays. Maps with long names will not open",
+                        length, Math.Max(0, MaxPathLength - length - 1)),
                     Note = "Moving the Documents folder to a shorter path avoids this (right-click Documents › Properties › Location).",
                 };
 
@@ -1160,7 +1272,7 @@ namespace CommandCenter.Services
             var results = new List<HealthResult>();
             var stats = await GoApi.GetStatsAsync();
             results.Add(stats != null
-                ? new HealthResult { Id = "server", Group = GroupNetwork, Title = "Game server reachable", Detail = $"{stats.LatencyMs} ms to the Generals Online service", Status = HealthStatus.Passed }
+                ? new HealthResult { Id = "server", Group = GroupNetwork, Title = "Game server reachable", Detail = LocText.F("{0} to the Generals Online service", $"{stats.LatencyMs} ms"), Status = HealthStatus.Passed }
                 : new HealthResult { Id = "server", Group = GroupNetwork, Title = "Game server not reachable", Detail = "Check your internet connection, VPN or firewall", Status = HealthStatus.Problem });
 
             if (GamePaths.GameFound && await CheckClientVersionAsync() is { } version)
@@ -1189,13 +1301,13 @@ namespace CommandCenter.Services
                 return new HealthResult
                 {
                     Id = "goversion", Group = GroupNetwork, Title = "Generals Online is up to date", Status = HealthStatus.Passed,
-                    Detail = $"{GamePaths.GameExe} matches the version Generals Online publishes",
+                    Detail = LocText.F("{0} matches the version Generals Online publishes", GamePaths.GameExe),
                 };
             return new HealthResult
             {
                 Id = "goversion", Group = GroupNetwork, Title = "Generals Online is not the current version", Status = HealthStatus.Warning,
                 Detail = "The game updates itself when it starts. If this stays after it has updated, install Generals Online again",
-                Note = $"{GamePaths.GameExe} differs from the version Generals Online publishes: an update came out, or the file was changed.",
+                Note = LocText.F("{0} differs from the version Generals Online publishes: an update came out, or the file was changed.", GamePaths.GameExe),
                 GuideLabel = "Download", GuideTarget = DownloadPage,
             };
         }
@@ -1222,11 +1334,11 @@ namespace CommandCenter.Services
                 return new HealthResult
                 {
                     Id = "firewall", Group = GroupNetwork, Title = "Windows Firewall blocks the game", Status = HealthStatus.Problem,
-                    Detail = "A rule blocks GeneralsOnlineZH_60.exe, so other players cannot connect to you",
+                    Detail = LocText.F("A rule blocks {0}, so other players cannot connect to you", GamePaths.GameExe),
                     GuideLabel = "Open firewall", GuideTarget = "firewall",
                 };
             return allowed
-                ? new HealthResult { Id = "firewall", Group = GroupNetwork, Title = "Windows Firewall allows the game", Detail = "Incoming connections are allowed for GeneralsOnlineZH_60.exe", Status = HealthStatus.Passed }
+                ? new HealthResult { Id = "firewall", Group = GroupNetwork, Title = "Windows Firewall allows the game", Detail = LocText.F("Incoming connections are allowed for {0}", GamePaths.GameExe), Status = HealthStatus.Passed }
                 : new HealthResult { Id = "firewall", Group = GroupNetwork, Title = "No firewall rule yet", Detail = "Windows asks the first time you host or join; choose Allow", Status = HealthStatus.Passed };
         }
 

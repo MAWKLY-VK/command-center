@@ -867,7 +867,10 @@ namespace CommandCenter.Pages
 
         // ─── Network Diagnostics ─────────────────────────────────────────────────
 
-        private async void BtnRunDiagnostics_Click(object sender, RoutedEventArgs e)
+        private async void BtnRunDiagnostics_Click(object sender, RoutedEventArgs e) => await RunDiagnosticsAsync();
+
+        // Also used by --capture with "options:network:run"
+        public async Task RunDiagnosticsAsync()
         {
             _diagCts?.Cancel();
             _diagCts = new CancellationTokenSource();
@@ -902,18 +905,10 @@ namespace CommandCenter.Pages
             sb.AppendLine("═══ Generals Online Network Diagnostics ═══");
             sb.AppendLine($"Time:         {r.Timestamp:yyyy-MM-dd HH:mm:ss}");
             if (r.GeoSuccess)
-            {
-                string location = r.GeoCountryCode == "US" && r.GeoCity.Length > 0
-                    ? $"{r.GeoCity}, {r.GeoCountry}" : r.GeoCountry;
-                sb.AppendLine($"Location:     {location} - {r.GeoContinent}");
-                sb.AppendLine($"ISP:          {r.GeoIsp}");
-                sb.AppendLine($"External IP:  {RedactIp(r.GeoIp)}");
-            }
+                sb.AppendLine($"Country:      {CountryName(r.GeoCountryCode, english: true)}");
             sb.AppendLine();
             sb.AppendLine("─ Internet ─");
             sb.AppendLine($"Cloudflare:   {(r.CloudflareSuccess ? $"{r.CloudflareAvgMs}ms avg, {r.CloudflareLossPercent}% loss" : "Unreachable")}");
-            sb.AppendLine($"Download:     {(r.DownloadMbps > 0 ? $"{r.DownloadMbps:F1} Mbps" : "Failed")}");
-            sb.AppendLine($"Upload:       {(r.UploadMbps > 0 ? $"{r.UploadMbps:F1} Mbps" : "Failed")}");
             sb.AppendLine();
             sb.AppendLine("─ Game Server ─");
             sb.AppendLine($"DNS:          {(r.DnsSuccess ? $"OK — {r.DnsAddresses}" : "FAILED")}");
@@ -933,9 +928,9 @@ namespace CommandCenter.Pages
         private void ResetDiagnosticsUI()
         {
             var gray = DiagGray;
-            foreach (var dot in new[] { dotGeo, dotCF, dotDl, dotUl, dotDns, dotPing, dotProto, dotHttp, dotServer, dotCdn, dotStun, dotTurn, dotNat })
+            foreach (var dot in new[] { dotGeo, dotCF, dotDns, dotPing, dotProto, dotHttp, dotServer, dotCdn, dotStun, dotTurn, dotNat })
                 dot.Fill = gray;
-            foreach (var val in new[] { valGeo, valCF, valDl, valUl, valDns, valPing, valProto, valHttp, valServer, valCdn, valStun, valTurn, valNat })
+            foreach (var val in new[] { valGeo, valCF, valDns, valPing, valProto, valHttp, valServer, valCdn, valStun, valTurn, valNat })
             {
                 val.Text       = "checking…";
                 val.Foreground = gray;
@@ -944,19 +939,11 @@ namespace CommandCenter.Pages
 
         private void UpdateDiagnosticsUI(NetworkDiagnosticsResult r)
         {
-            // Geolocation
+            // Country
             if (r.GeoSuccess)
-            {
-                string location = r.GeoCountryCode == "US" && r.GeoCity.Length > 0
-                    ? $"{r.GeoCity}, {r.GeoCountry}"
-                    : r.GeoCountry;
-                string geoText = location;
-                if (r.GeoContinent.Length > 0) geoText += $" - {r.GeoContinent}";
-                if (r.GeoIsp.Length > 0)       geoText += $" - {r.GeoIsp}";
-                SetRow(dotGeo, valGeo, true, geoText, DiagGreen);
-            }
+                SetRow(dotGeo, valGeo, true, CountryName(r.GeoCountryCode, english: !Loc.IsRightToLeft), DiagGreen);
             else
-                SetRow(dotGeo, valGeo, false, Loc.T("Could not determine location"), DiagGray);
+                SetRow(dotGeo, valGeo, false, Loc.T("Could not determine the country"), DiagGray);
 
             // Cloudflare internet baseline
             SetRow(dotCF, valCF,
@@ -965,18 +952,6 @@ namespace CommandCenter.Pages
                     ? Loc.T("{0} ms avg  {1}% loss", r.CloudflareAvgMs, r.CloudflareLossPercent)
                     : Loc.T("Unreachable"),
                 r.CloudflareSuccess ? LossColor(r.CloudflareLossPercent) : DiagRed);
-
-            // Download speed
-            SetRow(dotDl, valDl,
-                r.SpeedTestSuccess && r.DownloadMbps > 0,
-                r.DownloadMbps > 0 ? $"{r.DownloadMbps:F1} Mbps" : Loc.T("Failed"),
-                r.DownloadMbps > 0 ? SpeedColor(r.DownloadMbps) : DiagRed);
-
-            // Upload speed
-            SetRow(dotUl, valUl,
-                r.SpeedTestSuccess && r.UploadMbps > 0,
-                r.UploadMbps > 0 ? $"{r.UploadMbps:F1} Mbps" : Loc.T("Failed"),
-                r.UploadMbps > 0 ? SpeedColor(r.UploadMbps) : DiagRed);
 
             // DNS
             SetRow(dotDns, valDns,
@@ -1029,15 +1004,17 @@ namespace CommandCenter.Pages
                 r.TurnSuccess ? LatencyColor(r.TurnLatencyMs) : DiagRed);
 
             // NAT type
+            // The detail stays English in the copied report for support, and is translated here
+            string natDetail = Loc.T(r.NatTypeDetail);
             var (natColor, natText) = r.NatType switch
             {
                 NatType.Open or NatType.FullCone or NatType.RestrictedCone
-                    => (DiagGreen,  $"{NatTypeLabel(r.NatType)} — {r.NatTypeDetail}"),
+                    => (DiagGreen,  $"{NatTypeLabel(r.NatType)} — {natDetail}"),
                 NatType.PortRestrictedCone
-                    => (DiagYellow, Loc.T("Port Restricted Cone") + $" — {r.NatTypeDetail}"),
+                    => (DiagYellow, Loc.T("Port Restricted Cone") + $" — {natDetail}"),
                 NatType.Symmetric
-                    => (DiagRed,    Loc.T("Symmetric") + $" — {r.NatTypeDetail}"),
-                _   => (DiagGray,   Loc.T("Unknown") + $" — {r.NatTypeDetail}")
+                    => (DiagRed,    Loc.T("Symmetric") + $" — {natDetail}"),
+                _   => (DiagGray,   Loc.T("Unknown") + $" — {natDetail}")
             };
             SetRow(dotNat, valNat, r.NatType != NatType.Unknown, natText, natColor);
         }
@@ -1047,9 +1024,7 @@ namespace CommandCenter.Pages
             const int MaxEntries = 10;
 
             string entry = $"[{r.Timestamp:HH:mm:ss}]  " +
-                $"↓ {(r.DownloadMbps > 0 ? $"{r.DownloadMbps:F1}Mbps" : "✗")}  " +
-                $"↑ {(r.UploadMbps > 0 ? $"{r.UploadMbps:F1}Mbps" : "✗")}  |  " +
-                $"CF: {(r.CloudflareSuccess ? $"{r.CloudflareAvgMs}ms" : "✗")}  |  " +
+                $"CF:{(r.CloudflareSuccess ? $"{r.CloudflareAvgMs}ms" : "✗")}  |  " +
                 $"Ping: {(r.PingSuccess ? $"{r.PingAvgMs}ms {r.PingLossPercent}% loss" : "✗")}  |  " +
                 $"HTTP: {(r.HttpSuccess ? $"{r.HttpLatencyMs}ms" : "✗")}  |  " +
                 $"STUN: {(r.StunSuccess ? "✓" : "✗")}  |  " +
@@ -1074,7 +1049,8 @@ namespace CommandCenter.Pages
         private static void SetRow(Ellipse dot, TextBlock val, bool ok, string text, SolidColorBrush color)
         {
             dot.Fill       = color;
-            val.Text       = text;
+            // A value with no Arabic in it, such as "93ms  (1.2.3.XXX:4)", keeps its brackets in order
+            val.Text       = text.Any(c => c is >= '؀' and <= 'ۿ') ? text : Loc.Ltr(text);
             val.Foreground = color;
         }
 
@@ -1084,8 +1060,16 @@ namespace CommandCenter.Pages
         private static SolidColorBrush LossColor(int pct) =>
             pct == 0 ? DiagGreen : pct < 25 ? DiagYellow : DiagRed;
 
-        private static SolidColorBrush SpeedColor(double mbps) =>
-            mbps >= 10 ? DiagGreen : mbps >= 1 ? DiagYellow : DiagRed;
+        // The country's English name; in Arabic, its own name when that is written in Arabic letters
+        private static string CountryName(string code, bool english)
+        {
+            try
+            {
+                var region = new System.Globalization.RegionInfo(code);
+                return !english && region.NativeName.Any(c => c is >= '؀' and <= 'ۿ') ? region.NativeName : region.EnglishName;
+            }
+            catch (ArgumentException) { return code; }
+        }
 
         private static string NatTypeLabel(NatType t) => t switch
         {

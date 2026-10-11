@@ -21,6 +21,12 @@ namespace CommandCenter
         {
             base.OnStartup(e);
             DispatcherUnhandledException += OnUnhandled;
+            // A background task that fails with nobody waiting for it (a refresh, a download) would vanish without a trace
+            TaskScheduler.UnobservedTaskException += (_, args) =>
+            {
+                args.SetObserved();
+                LogError(args.Exception);
+            };
             UpdateService.CleanUp();
 
             // Generals Online's current program names and service address, in the background
@@ -63,9 +69,24 @@ namespace CommandCenter
             base.OnExit(e);
         }
 
+        // errors.log in Command Center's folder, to attach to a bug report; it starts over past 256 KB
+        public static void LogError(Exception ex)
+        {
+            try
+            {
+                Directory.CreateDirectory(GamePaths.AppData);
+                string path = Path.Combine(GamePaths.AppData, "errors.log");
+                if (File.Exists(path) && new FileInfo(path).Length > 256 * 1024)
+                    File.Delete(path);
+                File.AppendAllText(path, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {AppState.Version}  {ex}{Environment.NewLine}{Environment.NewLine}");
+            }
+            catch { }
+        }
+
         private void OnUnhandled(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
             e.Handled = true;
+            LogError(e.Exception);
             if (MainWindow is MainWindow main && main.IsVisible)
                 main.Toast(Loc.T("Something went wrong: {0}", e.Exception.Message), isError: true);
             else

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.3
+
+- Health has a Common questions tab with what new players ask most in the Generals Online help channels: greyed-out rooms, the camera height in other players' rooms, dropped connections and slow loading, a game that does not start, antivirus, GenTool, mismatches, replays, where to get the game and where to ask for help. Each answer has buttons to the place that fixes it.
+- When Zero Hour is not found, Play's question says that No shows where to get the game, and the health problem has a button to the same answer.
+- Health checks two things that leave every room greyed out or stop the game: the community data patch turned off or its file missing (with a one-click Turn on), and the chosen anti-cheat plugin missing ("Failed to load the AntiCheat plugin").
+- German, French and other editions are no longer told that game files are missing because they have no `EnglishZH.big`.
+- The Health page is in Arabic, while the copied support report stays in English for Generals Online's helpers.
+- Network diagnostics no longer run a speed test: it downloaded, then uploaded, as much as the line allowed for six seconds each, while ping and loss were being measured. The location is now only the country, read over HTTPS, instead of the address and internet provider over plain HTTP. Values keep their brackets in order in Arabic, and the NAT description is translated.
+- Control Bar Pro downloads no longer fail on connections slower than about 4 Mbps.
+- Saving hotkeys with the icon letters on no longer freezes the window while the letters are drawn.
+- Options › Plugins says that the other anti-cheat can be chosen when the game does not start with one.
+- Failures that show no message are written to `errors.log` in Command Center's folder.
+- Tests for the file formats, `go-profile.json`, `settings.json` and the Arabic translations, run by GitHub on every push and pull request.
+
 ## 0.3.2
 
 - Generals Online's program names, the anti-cheat plugin name, the launcher.json channel key and the service address now come from `go-profile.json` in this repository. When Generals Online renames something, updating that file fixes every copy on its next start; a profile can only name programs in the game folder and Generals Online's own service.

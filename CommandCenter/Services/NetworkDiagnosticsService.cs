@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text.Json.Serialization;
@@ -16,10 +15,10 @@ namespace CommandCenter.Services
 {
     internal sealed class NetworkDiagnosticsService
     {
-        private const string GameApiHost = "api.playgenerals.online";
-        private const string GameApiUrl  = "https://api.playgenerals.online/env/prod/contract/1/Monitoring/BasicStats";
-        private const string SpeedUpUrl   = "https://speed.cloudflare.com/__up";
-        private const string StunHost    = "stun.playgenerals.online";
+        private static string GameApiUrl  => GoProfile.Current.ApiBase + "Monitoring/BasicStats";
+        private static string GameApiHost => new Uri(GoProfile.Current.ApiBase).Host;
+        private const string TraceUrl    = "https://www.cloudflare.com/cdn-cgi/trace";
+        private const string StunHost   = "stun.playgenerals.online";
         private const int    StunPort    = 3478;
         private const string StunAltHost = "stun.cloudflare.com"; // used for symmetric NAT detection
         private const int    StunAltPort = 3478;
@@ -32,10 +31,10 @@ namespace CommandCenter.Services
         {
             var result = new NetworkDiagnosticsResult();
 
-            // Phase 1: DNS + Cloudflare baseline + geolocation (all independent)
+            // Phase 1: DNS + Cloudflare baseline + country (all independent)
             var dnsTask = CheckDnsAsync(GameApiHost, ct);
             var cfTask  = CheckIcmpPingAsync(CloudflareIp, PingCount, ct);
-            var geoTask = CheckGeoAsync(ct);
+            var geoTask = CheckCountryAsync(ct);
             await Task.WhenAll(dnsTask, cfTask, geoTask);
 
             var dns = dnsTask.Result;
@@ -47,23 +46,17 @@ namespace CommandCenter.Services
             result.CloudflareAvgMs       = cf.AvgMs;
             result.CloudflareLossPercent = cf.LossPercent;
 
-            var geo = geoTask.Result;
-            result.GeoSuccess     = geo.Success;
-            result.GeoIp          = geo.Ip;
-            result.GeoCity        = geo.State;
-            result.GeoCountryCode = geo.CountryCode;
-            result.GeoCountry     = geo.Country;
-            result.GeoContinent   = geo.Continent;
-            result.GeoIsp         = geo.Isp;
+            result.GeoCountryCode = geoTask.Result;
+            result.GeoSuccess     = result.GeoCountryCode.Length > 0;
 
-            // Phase 2: All remaining checks (run in parallel)
+            // Phase 2: All remaining checks (run in parallel). Nothing here fills the line, so ping and loss are what
+            // the game would see.
             var pingTask    = CheckIcmpPingAsync(GameApiHost, PingCount, ct);
             var httpTask    = CheckHttpAsync(GameApiUrl, ct);
             var cdnTask     = CheckCdnAsync(ct);
             var stunNatTask = CheckStunAndNatAsync(ct);
             var turnTask    = CheckTurnAsync(ct);
-            var speedTask   = CheckSpeedAsync(ct);
-            await Task.WhenAll(pingTask, httpTask, cdnTask, stunNatTask, turnTask, speedTask);
+            await Task.WhenAll(pingTask, httpTask, cdnTask, stunNatTask, turnTask);
 
             var ping = pingTask.Result;
             result.PingSuccess     = ping.Success;
@@ -95,11 +88,6 @@ namespace CommandCenter.Services
             result.TurnSuccess   = turn.Success;
             result.TurnLatencyMs = turn.LatencyMs;
             result.TurnEndpoint  = turn.Endpoint;
-
-            var speed = speedTask.Result;
-            result.SpeedTestSuccess = speed.Success;
-            result.DownloadMbps     = speed.DownloadMbps;
-            result.UploadMbps       = speed.UploadMbps;
 
             return result;
         }
@@ -229,166 +217,22 @@ namespace CommandCenter.Services
             catch { sw.Stop(); return new(false, 0); }
         }
 
-        // ─── Geolocation (ip-api.com — no API key required) ──────────────────────
+        // ─── Country (Cloudflare trace, HTTPS, no API key) ───────────────────────
+        // Only the "loc=" line is read: the two-letter country Cloudflare sees the connection from.
 
-        private record GeoResult(bool Success, string Ip, string State, string CountryCode, string Country, string Continent, string Isp);
-
-        private record IpApiResponse(
-            [property: JsonPropertyName("status")]      string?  Status,
-            [property: JsonPropertyName("query")]       string?  Query,
-            [property: JsonPropertyName("city")]        string?  City,
-            [property: JsonPropertyName("country")]     string?  Country,
-            [property: JsonPropertyName("countryCode")] string?  CountryCode,
-            [property: JsonPropertyName("regionName")]  string?  RegionName,
-            [property: JsonPropertyName("isp")]         string?  Isp,
-            [property: JsonPropertyName("continent")]   string?  Continent);
-
-        private static async Task<GeoResult> CheckGeoAsync(CancellationToken ct)
+        private static async Task<string> CheckCountryAsync(CancellationToken ct)
         {
             try
             {
                 using var handler = new SocketsHttpHandler { UseProxy = false, ConnectTimeout = TimeSpan.FromSeconds(5) };
                 using var client  = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(8) };
-                // ip-api.com is free, no key required; HTTP required on free tier
-                var json = await client.GetStringAsync(
-                    "http://ip-api.com/json?fields=status,country,countryCode,city,regionName,isp,continent,query", ct);
-                var meta = System.Text.Json.JsonSerializer.Deserialize<IpApiResponse>(json);
-                if (meta?.Status != "success") return new(false, "", "", "", "", "", "");
-
-                string countryCode = meta.CountryCode ?? "";
-                string fullName    = countryCode == "US" ? "United States of America" : (meta.Country ?? "");
-
-                return new(true,
-                    meta.Query      ?? "",
-                    meta.RegionName ?? "",   // state for US, empty otherwise
-                    countryCode,
-                    fullName,
-                    meta.Continent  ?? "",
-                    meta.Isp        ?? "");
+                string trace = await client.GetStringAsync(TraceUrl, ct);
+                string? code = trace.Split('\n').Select(l => l.Trim())
+                    .FirstOrDefault(l => l.StartsWith("loc=", StringComparison.Ordinal))?[4..];
+                return code is { Length: 2 } && code.All(char.IsAsciiLetterUpper) && code != "XX" ? code : "";
             }
-            catch { return new(false, "", "", "", "", "", ""); }
+            catch { return ""; }
         }
-
-        // ─── Speed Test (Cloudflare) ──────────────────────────────────────────────
-        // Uses multiple parallel TCP streams (like Speedtest.net) so a single
-        // connection's TCP slow-start doesn't under-report fast connections.
-        // Each phase is time-bounded (6 s) so slow connections also get an accurate
-        // measurement without waiting forever.
-
-        private const int SpeedStreams   = 4;
-        private const int SpeedPhaseSecs = 6;
-
-        private record SpeedResult(bool Success, double DownloadMbps, double UploadMbps);
-
-        private static Task<SpeedResult> CheckSpeedAsync(CancellationToken ct) =>
-            // Run entirely on the thread pool so the tight ReadAsync loop never
-            // competes with the WPF UI SynchronizationContext.
-            Task.Run(() => RunSpeedTestAsync(ct), ct);
-
-        private static async Task<SpeedResult> RunSpeedTestAsync(CancellationToken ct)
-        {
-            using var handler = new SocketsHttpHandler
-            {
-                UseProxy = false,
-                ConnectTimeout = TimeSpan.FromSeconds(5)
-            };
-            using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(120) };
-
-            double dlMbps = 0, ulMbps = 0;
-
-            // ── Download ─────────────────────────────────────────────────────────
-            try
-            {
-                using var dlCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                dlCts.CancelAfter(TimeSpan.FromSeconds(SpeedPhaseSecs));
-
-                var sw = Stopwatch.StartNew();
-                var tasks = Enumerable.Range(0, SpeedStreams)
-                    .Select(_ => DownloadStreamAsync(client, dlCts.Token))
-                    .ToArray();
-
-                long totalBytes = 0;
-                foreach (var t in tasks)
-                    try { totalBytes += await t.ConfigureAwait(false); } catch { }
-                sw.Stop();
-
-                if (totalBytes > 0 && sw.Elapsed.TotalSeconds > 0)
-                    dlMbps = totalBytes * 8.0 / (sw.Elapsed.TotalSeconds * 1_000_000.0);
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-            catch { }
-
-            // ── Upload ───────────────────────────────────────────────────────────
-            try
-            {
-                using var ulCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                ulCts.CancelAfter(TimeSpan.FromSeconds(SpeedPhaseSecs));
-
-                var sw = Stopwatch.StartNew();
-                var tasks = Enumerable.Range(0, SpeedStreams)
-                    .Select(_ => UploadStreamAsync(client, ulCts.Token))
-                    .ToArray();
-
-                long totalBytes = 0;
-                foreach (var t in tasks)
-                    try { totalBytes += await t.ConfigureAwait(false); } catch { }
-                sw.Stop();
-
-                if (totalBytes > 0 && sw.Elapsed.TotalSeconds > 0)
-                    ulMbps = totalBytes * 8.0 / (sw.Elapsed.TotalSeconds * 1_000_000.0);
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-            catch { }
-
-            return new(dlMbps > 0 || ulMbps > 0, dlMbps, ulMbps);
-        }
-
-        private static async Task<long> DownloadStreamAsync(HttpClient client, CancellationToken ct)
-        {
-            long total = 0;
-            try
-            {
-                // Loop requests so fast connections aren't starved when a single
-                // 50 MB response is exhausted before the time window expires.
-                while (!ct.IsCancellationRequested)
-                {
-                    using var resp = await client.GetAsync(
-                        "https://speed.cloudflare.com/__down?bytes=50000000",
-                        HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
-                    if (!resp.IsSuccessStatusCode) break;
-                    using var stream = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-                    var buf = new byte[131072];
-                    int read;
-                    while ((read = await stream.ReadAsync(buf, ct).ConfigureAwait(false)) > 0)
-                        total += read;
-                }
-            }
-            catch (OperationCanceledException) { }
-            catch { }
-            return total;
-        }
-
-        // Repeatedly POST 1 MB chunks until the time window expires.
-        private static async Task<long> UploadStreamAsync(HttpClient client, CancellationToken ct)
-        {
-            var chunk = new byte[1_000_000]; // 1 MB of zeros
-            long total = 0;
-            while (!ct.IsCancellationRequested)
-            {
-                try
-                {
-                    var content = new ByteArrayContent(chunk);
-                    content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
-                    var resp = await client.PostAsync(SpeedUpUrl, content, ct);
-                    if (resp.IsSuccessStatusCode)
-                        total += chunk.Length;
-                }
-                catch (OperationCanceledException) { break; }
-                catch { break; }
-            }
-            return total;
-        }
-
         // ─── STUN + NAT Type Detection ────────────────────────────────────────────
         //
         // Algorithm (RFC 3489-style):

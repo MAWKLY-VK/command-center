@@ -99,18 +99,32 @@ namespace CommandCenter.Services
 
         public static GoSettings Load()
         {
-            var settings = new GoSettings();
             try
             {
-                if (File.Exists(GamePaths.GoSettings) && JsonNode.Parse(File.ReadAllText(GamePaths.GoSettings)) is JsonObject root)
-                    settings.Root = root;
+                if (File.Exists(GamePaths.GoSettings))
+                    return Parse(File.ReadAllText(GamePaths.GoSettings));
             }
             catch
             {
-                // A broken file is reported by the health check
+                // An unreadable file is reported by the health check
             }
+            return new GoSettings();
+        }
+
+        // A broken file gives empty settings; the health check reports it
+        internal static GoSettings Parse(string json)
+        {
+            var settings = new GoSettings();
+            try
+            {
+                if (JsonNode.Parse(json) is JsonObject root)
+                    settings.Root = root;
+            }
+            catch { }
             return settings;
         }
+
+        internal byte[] ToBytes() => System.Text.Encoding.UTF8.GetBytes(Root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
 
         public T Get<T>(string section, string key, T fallback)
         {
@@ -139,9 +153,7 @@ namespace CommandCenter.Services
 
         public string AntiCheat => Get("plugins", "anticheat", "");
 
-        public BackupEntry Save(string detail) =>
-            BackupService.WriteFile("Generals Online settings", GamePaths.GoSettings,
-                System.Text.Encoding.UTF8.GetBytes(Root.ToJsonString(new JsonSerializerOptions { WriteIndented = true })), detail);
+        public BackupEntry Save(string detail) => BackupService.WriteFile("Generals Online settings", GamePaths.GoSettings, ToBytes(), detail);
     }
 
     // The official launcher's launcher.json (client channel and window mode).

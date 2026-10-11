@@ -10,12 +10,13 @@ namespace CommandCenter.Services
         private static readonly Encoding Raw = Encoding.Latin1;
 
         // A key that appears twice keeps its last value, as in the game
-        public static Dictionary<string, string> Read()
+        public static Dictionary<string, string> Read() =>
+            File.Exists(GamePaths.Options) ? Parse(File.ReadAllLines(GamePaths.Options)) : new(StringComparer.OrdinalIgnoreCase);
+
+        internal static Dictionary<string, string> Parse(IEnumerable<string> lines)
         {
             var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            if (!File.Exists(GamePaths.Options))
-                return values;
-            foreach (string line in File.ReadAllLines(GamePaths.Options))
+            foreach (string line in lines)
             {
                 int eq = line.IndexOf('=');
                 if (eq > 0)
@@ -27,9 +28,12 @@ namespace CommandCenter.Services
         public static string? Get(string key) => Read().TryGetValue(key, out var v) ? v : null;
 
         // The file with the given keys set: every other line, the line endings and the encoding stay as they were
-        public static byte[] With(IDictionary<string, string> changes)
+        public static byte[] With(IDictionary<string, string> changes) =>
+            With(File.Exists(GamePaths.Options) ? File.ReadAllBytes(GamePaths.Options) : Array.Empty<byte>(), changes);
+
+        internal static byte[] With(byte[] current, IDictionary<string, string> changes)
         {
-            string text = File.Exists(GamePaths.Options) ? File.ReadAllText(GamePaths.Options, Raw) : "";
+            string text = Raw.GetString(current);
             string newline = text.Contains("\r\n") || !text.Contains('\n') ? "\r\n" : "\n";
             var lines = text.Length == 0 ? new List<string>() : text.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
             if (lines.Count > 0 && lines[^1].Length == 0)

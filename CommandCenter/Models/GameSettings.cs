@@ -43,19 +43,9 @@ namespace CommandCenter.Models
         public int PlayersOnline { get; set; }
         public int Lobbies { get; set; }
 
-        // Speed test (via Cloudflare speed.cloudflare.com)
-        public bool SpeedTestSuccess { get; set; }
-        public double DownloadMbps { get; set; }
-        public double UploadMbps { get; set; }
-
-        // Geolocation (via Cloudflare meta endpoint, no API key required)
+        // Country only, from Cloudflare's trace page over HTTPS. The address and the internet provider are not kept.
         public bool GeoSuccess { get; set; }
-        public string GeoIp { get; set; } = "";
-        public string GeoCity { get; set; } = "";       // state/region (US) or empty
         public string GeoCountryCode { get; set; } = ""; // ISO 3166-1 alpha-2
-        public string GeoCountry { get; set; } = "";    // full country name
-        public string GeoContinent { get; set; } = "";
-        public string GeoIsp { get; set; } = "";
 
         // CDN reachability
         public bool CdnSuccess { get; set; }

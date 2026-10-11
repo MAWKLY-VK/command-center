@@ -66,27 +66,30 @@ namespace CommandCenter
         // The community data patch changes which buttons and keys the game has, so the hotkeys are read again
         public static void ForgetHotkeys() => _hotkeys = null;
 
+        // Built from the same texts as the real checks, so they show translated
         private static IEnumerable<HealthResult> SampleIssues()
         {
+            static LocText Sample(LocText note) => LocText.Join(" ", new[] { note, (LocText)"(Sample)" });
+            string exe = GamePaths.GameExe;
             yield return new HealthResult
             {
                 Id = "sample:runtime", Group = HealthService.GroupFiles, Title = "Old Visual C++ file inside the game folder", Status = HealthStatus.Problem,
-                Detail = "msvcp140.dll (14.0.24215.1) is loaded instead of the system copy, so the game stops with \"Entry Point Not Found\"",
-                Note = "Usually left by GenPatcher or an old repack. (Sample)",
-                FixLabel = "Quarantine", FixPreview = "Moves msvcp140.dll to the launcher's quarantine folder. Undo puts it back.", Fix = () => { },
+                Detail = LocText.F("{0} ({1}) is loaded instead of the system copy, so the game stops with \"Entry Point Not Found\"", "msvcp140.dll", "14.0.24215.1"),
+                Note = Sample("Usually left by GenPatcher or an old repack."),
+                FixLabel = "Quarantine", FixPreview = LocText.F("Moves {0} to the launcher's quarantine folder. Undo puts it back.", "msvcp140.dll"), Fix = () => { },
             };
             yield return new HealthResult
             {
-                Id = "sample:archive", Group = HealthService.GroupFiles, Title = "ExtraRulesZH.big changes unit rules", Status = HealthStatus.Problem,
+                Id = "sample:archive", Group = HealthService.GroupFiles, Title = LocText.F("{0} changes unit rules", "ExtraRulesZH.big"), Status = HealthStatus.Problem,
                 Detail = "Other players do not have it, so online games end with \"The host has modified INI files\"",
-                FixLabel = "Quarantine", FixPreview = "Moves ExtraRulesZH.big to the launcher's quarantine folder. Undo puts it back.", Fix = () => { },
+                FixLabel = "Quarantine", FixPreview = LocText.F("Moves {0} to the launcher's quarantine folder. Undo puts it back.", "ExtraRulesZH.big"), Fix = () => { },
             };
             yield return new HealthResult
             {
                 Id = "sample:admin", Group = HealthService.GroupWindows, Title = "\"Run as administrator\" is set on the game", Status = HealthStatus.Warning,
                 Detail = "Windows blocks the game with error 740 \"The requested operation requires elevation\"",
-                Note = "Flag RUNASADMIN on GeneralsOnlineZH_60.exe (Sample)",
-                FixLabel = "Fix", FixPreview = "Removes RUNASADMIN from the compatibility settings of GeneralsOnlineZH_60.exe. Other settings stay.", Fix = () => { },
+                Note = Sample(LocText.F("Flag RUNASADMIN on {0}", exe)),
+                FixLabel = "Fix", FixPreview = LocText.F("Removes RUNASADMIN from the compatibility settings of {0}. Other settings stay.", exe), Fix = () => { },
             };
         }
 

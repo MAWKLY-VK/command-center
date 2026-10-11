@@ -29,6 +29,7 @@ namespace CommandCenter.Pages.Tools
         {
             InitializeComponent();
             TabChecks.Content = Loc.T("CHECKS");
+            TabQuestions.Content = Loc.T("COMMON QUESTIONS");
             CheckButton.ToolTip = Loc.T("Runs every check again. Nothing is changed.");
             AppState.HealthChanged += () => Dispatcher.Invoke(ShowResults);
             BackupService.Changed += () => Dispatcher.BeginInvoke(QueueHistory);
@@ -71,6 +72,8 @@ namespace CommandCenter.Pages.Tools
         {
             if (part == "history")
                 TabHistory.IsChecked = true;
+            else if (part == "questions")
+                TabQuestions.IsChecked = true;
             else
                 TabChecks.IsChecked = true;
         }
@@ -223,7 +226,7 @@ namespace CommandCenter.Pages.Tools
 
             var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             text.Children.Add(new TextBlock { Text = Plain(result.Title), FontSize = 14, FontWeight = FontWeights.Bold, TextWrapping = TextWrapping.Wrap });
-            if (result.Detail.Length > 0)
+            if (!result.Detail.IsEmpty)
                 text.Children.Add(new TextBlock { Text = Plain(result.Detail), FontSize = 12, Foreground = DetailBrush, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
             if (result.Note != null)
                 text.Children.Add(new TextBlock { Text = Plain(result.Note), FontSize = 11.5, Foreground = Views.Hint, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
@@ -316,9 +319,17 @@ namespace CommandCenter.Pages.Tools
             {
                 string target = result.GuideTarget;
                 button = SmallButton(Upper(Loc.T(result.GuideLabel)));
-                if (!target.StartsWith("select:", StringComparison.Ordinal))
-                    button.Content = WithIcon("external", Upper(Loc.T(result.GuideLabel)));
-                button.Click += (_, _) => Views.Open(target);
+                if (target == HealthService.QuestionsTarget)
+                {
+                    button.Content = WithIcon("info", Upper(Loc.T(result.GuideLabel)));
+                    button.Click += (_, _) => TabQuestions.IsChecked = true;
+                }
+                else
+                {
+                    if (!target.StartsWith("select:", StringComparison.Ordinal))
+                        button.Content = WithIcon("external", Upper(Loc.T(result.GuideLabel)));
+                    button.Click += (_, _) => Views.Open(target);
+                }
             }
             else
             {
@@ -394,7 +405,7 @@ namespace CommandCenter.Pages.Tools
             foreach (var result in real)
             {
                 try { result.Fix!(); }
-                catch (Exception ex) { failed.Add($"{result.Title}: {ex.Message}"); }
+                catch (Exception ex) { failed.Add($"{result.Title.Localized}: {ex.Message}"); }
             }
             var made = BackupService.Load().Skip(before).ToList();
             if (failed.Count > 0)
@@ -546,15 +557,64 @@ namespace CommandCenter.Pages.Tools
 
         private void ShowView()
         {
-            bool history = TabHistory.IsChecked == true;
-            ChecksView.Visibility = history ? Visibility.Collapsed : Visibility.Visible;
+            bool history = TabHistory.IsChecked == true, questions = TabQuestions.IsChecked == true;
+            ChecksView.Visibility = history || questions ? Visibility.Collapsed : Visibility.Visible;
+            QuestionsView.Visibility = questions ? Visibility.Visible : Visibility.Collapsed;
             HistoryView.Visibility = history ? Visibility.Visible : Visibility.Collapsed;
             BackupsButton.Visibility = history ? Visibility.Visible : Visibility.Collapsed;
             FooterHint.Text = history
                 ? Loc.T("Every change the launcher makes is backed up first. Undo puts back what was there before.")
-                : Loc.T("Checks only read your files. Fixes run when you press a button, and each one can be undone.");
+                : questions
+                    ? Loc.T("What new players ask most. Each button opens the place that fixes it.")
+                    : Loc.T("Checks only read your files. Fixes run when you press a button, and each one can be undone.");
             if (history && _historyStale)
                 ShowHistory();
+            if (questions)
+                ShowQuestions();
+        }
+
+        // ── Common questions ──
+
+        // Built each time the tab opens, so the order follows whether the game is found
+        private void ShowQuestions()
+        {
+            QuestionsList.Children.Clear();
+            foreach (var question in CommonQuestions.All(() =>
+                     {
+                         TabChecks.IsChecked = true;
+                         _ = CheckAsync();
+                     }))
+                QuestionsList.Children.Add(QuestionCard(question));
+        }
+
+        private Border QuestionCard(Question question)
+        {
+            var text = new StackPanel();
+            text.Children.Add(new TextBlock { Text = Loc.T(question.Title), FontSize = 14, FontWeight = FontWeights.Bold, TextWrapping = TextWrapping.Wrap });
+            text.Children.Add(new TextBlock { Text = Loc.T(question.Answer), FontSize = 12.5, Foreground = DetailBrush, TextWrapping = TextWrapping.Wrap, LineHeight = 19, Margin = new Thickness(0, 5, 0, 0) });
+            if (question.Actions.Count > 0)
+            {
+                var buttons = new WrapPanel { Margin = new Thickness(0, 10, 0, 0) };
+                foreach (var action in question.Actions)
+                {
+                    var button = SmallButton("");
+                    button.Content = WithIcon(action.Icon, Upper(Loc.T(action.Label)));
+                    button.Margin = new Thickness(0, 0, 8, 0);
+                    button.Click += (_, _) => action.Run();
+                    buttons.Children.Add(button);
+                }
+                text.Children.Add(buttons);
+            }
+            return new Border
+            {
+                Child = text,
+                Padding = new Thickness(16, 13, 16, 14),
+                Margin = new Thickness(0, 0, 0, 10),
+                CornerRadius = new CornerRadius(14),
+                Background = CardBrush,
+                BorderBrush = LineBrush,
+                BorderThickness = new Thickness(1),
+            };
         }
 
         private void Report_Click(object sender, RoutedEventArgs e) => Views.CopySupportReport();
@@ -581,6 +641,9 @@ namespace CommandCenter.Pages.Tools
         private static string Upper(string text) => text.ToUpperInvariant();
 
         // Check results are written in English; in right-to-left mode they are kept in their own reading order
+        // A check's text in the player's language
+        private static string Plain(LocText? text) => text == null ? "" : Plain(text.Localized);
+
         private static string Plain(string text) =>
             Loc.IsRightToLeft && !text.Any(c => c is >= '؀' and <= 'ۿ') ? Loc.Ltr(text) : text;
     }
