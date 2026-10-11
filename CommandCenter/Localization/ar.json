@@ -883,6 +883,7 @@
   "Generals Online is not installed in the game folder:\n{0}\n\nInstall it, then press Play again. Open the Generals Online download page?": "Generals Online غير مثبّت في مجلد اللعبة:\n{0}\n\nثبّته ثم اضغط «العب» من جديد. هل تريد فتح صفحة تنزيل Generals Online؟",
   "Command & Conquer Generals - Zero Hour was not found. Choose its folder now?\n\nChoose No to see where to get the game.": "لم يُعثر على Command & Conquer Generals - Zero Hour. هل تريد اختيار مجلدها الآن؟\n\nاختر «لا» لترى من أين تحصل على اللعبة.",
   "Where to get it": "من أين أحصل عليها",
+  "The game loads the anti-cheat chosen here when it starts. If it does not start with one, choose the other.": "تحمّل اللعبة نظام مكافحة الغش المختار هنا عند بدئها. إن لم تبدأ مع أحدهما، فاختر الآخر.",
   "Choose the Zero Hour folder": "اختر مجلد Zero Hour",
   "That folder does not hold Zero Hour. Choose the folder with WindowZH.big and INIZH.big in it.": "هذا المجلد لا يحوي Zero Hour. اختر المجلد الذي فيه WindowZH.big و INIZH.big.",
   "Zero Hour was not found. Press Play on the home page to choose the game folder.": "لم يُعثر على Zero Hour. اضغط «العب» في الصفحة الرئيسية لتختار مجلد اللعبة.",
