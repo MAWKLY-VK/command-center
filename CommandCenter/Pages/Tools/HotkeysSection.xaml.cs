@@ -906,9 +906,9 @@ namespace CommandCenter.Pages.Tools
             RefreshAll();
         }
 
-        private void Save_Click(object sender, RoutedEventArgs e) => Save();
+        private void Save_Click(object sender, RoutedEventArgs e) => _ = SaveAsync();
 
-        private void Save()
+        private async Task SaveAsync()
         {
             if (_hk == null || _hk.PendingCount == 0)
                 return;
@@ -925,14 +925,23 @@ namespace CommandCenter.Pages.Tools
             {
                 hk.Save();
                 string message = Loc.T("Saved to {0}. The new keys work the next time the game starts.", files);
-                try
+                // The letters drawn on the button pictures follow the saved keys. Drawing them takes a moment, so it runs
+                // in the background (as in the letters panel) while the editor waits, so no key changes underneath it.
+                if (AppSettings.Current.IconLetters)
                 {
-                    // The letters drawn on the button pictures follow the saved keys
-                    IconLettersService.RefreshIfEnabled(hk);
-                }
-                catch (Exception ex)
-                {
-                    message += " " + Loc.T("The letters on the icons could not be updated: {0}", ex.Message);
+                    IsEnabled = false;
+                    try
+                    {
+                        await Task.Run(() => IconLettersService.RefreshIfEnabled(hk));
+                    }
+                    catch (Exception ex)
+                    {
+                        message += " " + Loc.T("The letters on the icons could not be updated: {0}", ex.Message);
+                    }
+                    finally
+                    {
+                        IsEnabled = true;
+                    }
                 }
                 var made = BackupService.Load().Skip(before).ToList();
                 Views.Main.Toast(message, made.Count == 0 ? null : () =>
