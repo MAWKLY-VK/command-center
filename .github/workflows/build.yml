@@ -1,0 +1,49 @@
+# Builds Command Center and runs its tests on every push to main and on every pull request, on Windows like the
+# program itself. The tests run 32-bit, as Command Center does, so the 32-bit .NET runtime is installed first.
+name: Build and test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install the 32-bit .NET runtime for the tests
+        shell: pwsh
+        run: |
+          $dir = Join-Path ${env:ProgramFiles(x86)} "dotnet"
+          Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile "$env:RUNNER_TEMP\dotnet-install.ps1"
+          & "$env:RUNNER_TEMP\dotnet-install.ps1" -Channel 10.0 -Runtime dotnet -Architecture x86 -InstallDir $dir -NoPath
+          & "$env:RUNNER_TEMP\dotnet-install.ps1" -Channel 10.0 -Runtime windowsdesktop -Architecture x86 -InstallDir $dir -NoPath
+          "DOTNET_ROOT_X86=$dir" >> $env:GITHUB_ENV
+
+      - name: Test
+        run: dotnet test CommandCenter.Tests/CommandCenter.Tests.csproj -c Release --logger "console;verbosity=normal"
+
+      - name: Build the release program
+        run: dotnet publish CommandCenter/CommandCenter.csproj -c Release -r win-x86 --self-contained false -o out -p:PublishSingleFile=true
+
+      - name: Keep the program for trying out
+        uses: actions/upload-artifact@v4
+        with:
+          name: CommandCenter-${{ github.sha }}
+          path: out/CommandCenter.exe
+          retention-days: 14
