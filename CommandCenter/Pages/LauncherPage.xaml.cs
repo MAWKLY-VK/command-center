@@ -53,7 +53,6 @@ namespace CommandCenter.Pages
             var launcher = LauncherJson.Load();
             rbLiveClient.IsChecked = launcher.PreferLive;
             rbTestEnv.IsChecked = !launcher.PreferLive;
-            DefaultAnticheatToFirstPlugin();
             _initializing = false;
 
             ShowAll();
@@ -270,43 +269,7 @@ namespace CommandCenter.Pages
             }
         }
 
-        // Same as the official launcher: when the selected anti-cheat plugin is gone, pick the first installed one
-        private static void DefaultAnticheatToFirstPlugin()
-        {
-            try
-            {
-                if (!File.Exists(GamePaths.GoSettings))
-                    return;
-                var settings = GoSettings.Load();
-                if (settings.Root["plugins"] == null)
-                    return;
-                string plugins = Path.Combine(GamePaths.Game, "plugins");
-                if (!Directory.Exists(plugins))
-                    return;
-
-                string current = settings.AntiCheat;
-                if (!string.IsNullOrEmpty(current))
-                {
-                    string folder = Path.Combine(plugins, current);
-                    if (Directory.Exists(folder) && Directory.GetFiles(folder, "*.dll").Length > 0)
-                        return;
-                }
-
-                var first = Directory.GetDirectories(plugins)
-                    .Where(dir => Directory.GetFiles(dir, "*.json").Length > 0 && Directory.GetFiles(dir, "*.dll").Length > 0)
-                    .OrderBy(dir => new DirectoryInfo(dir).Name)
-                    .FirstOrDefault();
-                if (first != null)
-                {
-                    settings.Set("plugins", "anticheat", new DirectoryInfo(first).Name);
-                    settings.Save("Selected the installed anti-cheat plugin");
-                }
-            }
-            catch
-            {
-                // Generals Online repairs its own settings on start
-            }
-        }
+        // The anti-cheat choice is left to the player and to Generals Online, which picks one itself when it is empty
 
         private void ClientSelector_Changed(object sender, RoutedEventArgs e)
         {
@@ -316,9 +279,12 @@ namespace CommandCenter.Pages
             {
                 var launcher = LauncherJson.Load();
                 launcher.PreferLive = rbLiveClient.IsChecked == true;
-                launcher.Save();
+                launcher.Save(launcher.PreferLive ? "Chose the Live client" : "Chose the Test client");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Views.Main.Toast(Loc.T("Could not save: {0}", ex.Message), isError: true);
+            }
         }
 
         private void HealthChip_Click(object sender, RoutedEventArgs e) => Views.Main.ShowTools("health");

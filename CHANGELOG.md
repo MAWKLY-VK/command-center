@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.1
+
+- Options writes only the settings you change. Leaving the page without changing anything no longer rewrites `settings.json`, `launcher.json` or `Options.ini`, and values the page cannot show exactly (decimal camera heights, separate game and menu cursor settings) stay as they were.
+- `Options.ini` can no longer be replaced with six lines: when it cannot be read, or is missing, nothing is written. Changed lines keep the file's own line endings and characters.
+- Options loads even when `settings.json` holds a value of an unexpected type, showing the default for it; the "settings have been reset" message is gone.
+- The anti-cheat choice is never changed for you, on the home page or in Options. A plugin that is not installed shows as no selection until you pick one.
+- Nothing in the game folder, `Options.ini` or `settings.json` is changed while the game is running, whatever asks for it (fixes, undo, hotkeys, replays, add-ons).
+- Switching between Live and Test and the windowed settings are backed up and can be undone, like every other change.
+- The health check tests whether the game folder can be updated without creating a file in it.
+
 ## 0.3.0
 
 Also brings the 0.2.1 changes below, which were not released on their own.

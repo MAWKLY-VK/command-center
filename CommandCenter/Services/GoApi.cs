@@ -106,14 +106,16 @@ namespace CommandCenter.Services
             }
         }
 
-        public void Set<T>(string section, string key, T value)
+        public void Set<T>(string section, string key, T value) => SetNode(section, key, JsonValue.Create(value));
+
+        public void SetNode(string section, string key, JsonNode? value)
         {
             if (Root[section] is not JsonObject obj)
             {
                 obj = new JsonObject();
                 Root[section] = obj;
             }
-            obj[key] = JsonValue.Create(value);
+            obj[key] = value;
         }
 
         public string AntiCheat => Get("plugins", "anticheat", "");
@@ -140,42 +142,51 @@ namespace CommandCenter.Services
             return settings;
         }
 
+        // A value of an unexpected type reads as the default instead of failing
+        private T Read<T>(string key, T fallback)
+        {
+            try
+            {
+                return Root[key] is { } node ? node.GetValue<T>() : fallback;
+            }
+            catch
+            {
+                return fallback;
+            }
+        }
+
         // The official launcher stores the channel under this (misspelt) name: true means the live client
         public bool PreferLive
         {
-            get => Root["prefer_experiemental_client"]?.GetValue<bool>() ?? true;
+            get => Read("prefer_experiemental_client", true);
             set => Root["prefer_experiemental_client"] = value;
         }
 
         public bool Windowed
         {
-            get => Root["windowed"]?.GetValue<bool>() ?? false;
+            get => Read("windowed", false);
             set => Root["windowed"] = value;
         }
 
         public int WindowedWidth
         {
-            get => Root["windowed_width"]?.GetValue<int>() ?? 1920;
+            get => Read("windowed_width", 1920);
             set => Root["windowed_width"] = value;
         }
 
         public int WindowedHeight
         {
-            get => Root["windowed_height"]?.GetValue<int>() ?? 1080;
+            get => Read("windowed_height", 1080);
             set => Root["windowed_height"] = value;
         }
 
-        // Shared with the official launcher, so an unchanged file is left alone
-        public void Save()
+        // Shared with the official launcher, so an unchanged file is left alone; a change is backed up and can be undone
+        public void Save(string detail = "Saved by Command Center")
         {
             if (Load().Root.ToJsonString() == Root.ToJsonString())
                 return;
-            Directory.CreateDirectory(GamePaths.GoData);
-            File.WriteAllText(GamePaths.LauncherSettings, Root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
-        }
-
-        public BackupEntry SaveWithBackup(string detail) =>
             BackupService.WriteFile("Launcher settings", GamePaths.LauncherSettings,
                 System.Text.Encoding.UTF8.GetBytes(Root.ToJsonString(new JsonSerializerOptions { WriteIndented = true })), detail);
+        }
     }
 }

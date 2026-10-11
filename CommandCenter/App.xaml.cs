@@ -64,7 +64,7 @@ namespace CommandCenter
         {
             e.Handled = true;
             if (MainWindow is MainWindow main && main.IsVisible)
-                main.Toast("Something went wrong: " + e.Exception.Message, isError: true);
+                main.Toast(Loc.T("Something went wrong: {0}", e.Exception.Message), isError: true);
             else
                 MessageBox.Show(e.Exception.ToString(), "Command Center", MessageBoxButton.OK, MessageBoxImage.Error);
         }

@@ -345,16 +345,27 @@ namespace CommandCenter.Services
             };
         }
 
+        // Opens a file that is already there for writing and closes it without writing, so nothing in the game folder
+        // changes. Read-only files are left to their own check; a file the running game holds open proves nothing.
         private static bool CanWrite(string folder)
         {
+            string? probe = new[] { GamePaths.GameExe, "WindowZH.big", "INIZH.big", "EnglishZH.big" }
+                .Select(name => Path.Combine(folder, name))
+                .FirstOrDefault(path => File.Exists(path) && !File.GetAttributes(path).HasFlag(FileAttributes.ReadOnly));
+            if (probe == null)
+                return true;
             try
             {
-                using (new FileStream(Path.Combine(folder, $"cc-write-test-{Guid.NewGuid():N}.tmp"), FileMode.CreateNew, FileAccess.Write, FileShare.None, 1, FileOptions.DeleteOnClose)) { }
+                using (new FileStream(probe, FileMode.Open, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete, 1)) { }
                 return true;
             }
             catch (UnauthorizedAccessException)
             {
                 return false;
+            }
+            catch (IOException)
+            {
+                return true;
             }
         }
 

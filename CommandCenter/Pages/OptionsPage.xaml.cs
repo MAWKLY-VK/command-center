@@ -7,6 +7,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
@@ -18,7 +19,13 @@ namespace CommandCenter.Pages
 {
     public partial class OptionsPage : Page
     {
-        private GameSettingsFile _settings = new();
+        // What each control showed after loading. Only controls the player changed are written back, so values this page
+        // cannot show exactly (decimals, separate game and menu flags) and fields it does not know stay as they are.
+        private Dictionary<string, string> _shown = new();
+        private bool _loaded;
+        private string _anticheat = "";
+        private bool _anticheatTouched;
+        private bool _populatingPlugins;
         private NetworkDiagnosticsResult? _lastDiagResult;
         private CancellationTokenSource? _diagCts;
 
@@ -77,6 +84,19 @@ namespace CommandCenter.Pages
         }
 
         private void PopulateAnticheatPlugins()
+        {
+            _populatingPlugins = true;
+            try
+            {
+                FillAnticheatPlugins();
+            }
+            finally
+            {
+                _populatingPlugins = false;
+            }
+        }
+
+        private void FillAnticheatPlugins()
         {
             cmbAnticheatPlugin.Items.Clear();
             configDetailsPanel.Children.Clear();
@@ -137,21 +157,19 @@ namespace CommandCenter.Pages
                     });
                 }
 
-                if (cmbAnticheatPlugin.Items.Count > 0)
+                // Shows the plugin settings.json names; when it names none (or one that is not installed) nothing is
+                // selected, and Generals Online keeps choosing for itself until the player picks one here
+                int selectIndex = -1;
+                for (int i = 0; i < cmbAnticheatPlugin.Items.Count; i++)
                 {
-                    int selectIndex = 0;
-                    for (int i = 0; i < cmbAnticheatPlugin.Items.Count; i++)
+                    if (cmbAnticheatPlugin.Items[i] is ComboBoxItem item && item.Tag?.ToString() == _anticheat)
                     {
-                        if (cmbAnticheatPlugin.Items[i] is ComboBoxItem item &&
-                            item.Tag?.ToString() == _settings.plugins.anticheat)
-                        {
-                            selectIndex = i;
-                            break;
-                        }
+                        selectIndex = i;
+                        break;
                     }
-                    cmbAnticheatPlugin.SelectedIndex = selectIndex;
-                    DisplayAnticheatPluginDetails();
                 }
+                cmbAnticheatPlugin.SelectedIndex = selectIndex;
+                DisplayAnticheatPluginDetails();
             }
             catch
             {
@@ -232,6 +250,8 @@ namespace CommandCenter.Pages
 
         private void CmbAnticheatPlugin_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            if (!_populatingPlugins)
+                _anticheatTouched = true;
             DisplayAnticheatPluginDetails();
         }
 
@@ -476,156 +496,125 @@ namespace CommandCenter.Pages
             Views.Main.ShowHome();
         }
 
-        private static string SettingsFilePath => GamePaths.GoSettings;
-
-        private static string IniFilePath => GamePaths.Options;
-
         private static int ParseInt(TextBox tb, int defaultVal)
         {
             return int.TryParse(tb.Text, out int v) ? v : defaultVal;
         }
 
+        // Whole numbers as the text box shows them; the box takes digits only
+        private static string Whole(double value) => ((long)Math.Round(value)).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        private static string Check(CheckBox box) => box.IsChecked == true ? "1" : "0";
+
+        // Reads settings.json, launcher.json and Options.ini into the page. A value that is missing or of an unexpected
+        // type shows its default; nothing is written here.
         public void LoadGameSettings()
         {
             try
             {
-                // A missing file shows the defaults; Generals Online creates its own file, and this page writes one only on save
-                _settings = File.Exists(SettingsFilePath)
-                    ? System.Text.Json.JsonSerializer.Deserialize<GameSettingsFile>(File.ReadAllText(SettingsFilePath)) ?? new()
-                    : new GameSettingsFile();
+                var go = GoSettings.Load();
 
-                txtMaxCameraHeight.Text = ((int)_settings.camera.max_height_only_when_lobby_host).ToString();
-                txtMinCameraHeight.Text = ((int)_settings.camera.min_height).ToString();
-                txtCameraMovementSpeed.Text = ((int)(_settings.camera.move_speed_ratio * 100f)).ToString();
+                txtMaxCameraHeight.Text = Whole(go.Get("camera", "max_height_only_when_lobby_host", 310.0));
+                txtMinCameraHeight.Text = Whole(go.Get("camera", "min_height", 210.0));
+                txtCameraMovementSpeed.Text = Whole(go.Get("camera", "move_speed_ratio", 1.0) * 100);
 
-                txtChatDuration.Text = _settings.chat.duration_seconds_until_fade_out.ToString();
+                txtChatDuration.Text = Whole(go.Get("chat", "duration_seconds_until_fade_out", 30.0));
 
-                chkLimitFramerate.IsChecked = _settings.render.limit_framerate;
-                txtFPSLimit.Text = _settings.render.fps_limit.ToString();
-                txtFPSLimit.IsEnabled = _settings.render.limit_framerate;
-                chkStatsOverlay.IsChecked = _settings.render.stats_overlay;
+                chkLimitFramerate.IsChecked = go.Get("render", "limit_framerate", true);
+                txtFPSLimit.Text = Whole(go.Get("render", "fps_limit", 60.0));
+                txtFPSLimit.IsEnabled = chkLimitFramerate.IsChecked == true;
+                chkStatsOverlay.IsChecked = go.Get("render", "stats_overlay", true);
 
                 var launcher = LauncherJson.Load();
                 chkWindowed.IsChecked = launcher.Windowed;
                 PopulateResolutions(launcher.WindowedWidth, launcher.WindowedHeight);
                 cmbWindowedResolution.IsEnabled = launcher.Windowed;
 
-                chkFriendOnlineInGame.IsChecked = _settings.social.notification_friend_comes_online_gameplay;
-                chkFriendOnlineInMenus.IsChecked = _settings.social.notification_friend_comes_online_menus;
-                chkFriendOfflineInGame.IsChecked = _settings.social.notification_friend_goes_offline_gameplay;
-                chkFriendOfflineInMenus.IsChecked = _settings.social.notification_friend_goes_offline_menus;
-                chkFriendRequestInGame.IsChecked = _settings.social.notification_player_sends_request_gameplay;
-                chkFriendRequestInMenus.IsChecked = _settings.social.notification_player_sends_request_menus;
-                chkFriendAcceptedInGame.IsChecked = _settings.social.notification_player_accepts_request_gameplay;
-                chkFriendAcceptedInMenus.IsChecked = _settings.social.notification_player_accepts_request_menus;
+                chkFriendOnlineInGame.IsChecked = go.Get("social", "notification_friend_comes_online_gameplay", true);
+                chkFriendOnlineInMenus.IsChecked = go.Get("social", "notification_friend_comes_online_menus", true);
+                chkFriendOfflineInGame.IsChecked = go.Get("social", "notification_friend_goes_offline_gameplay", true);
+                chkFriendOfflineInMenus.IsChecked = go.Get("social", "notification_friend_goes_offline_menus", true);
+                chkFriendRequestInGame.IsChecked = go.Get("social", "notification_player_sends_request_gameplay", true);
+                chkFriendRequestInMenus.IsChecked = go.Get("social", "notification_player_sends_request_menus", true);
+                chkFriendAcceptedInGame.IsChecked = go.Get("social", "notification_player_accepts_request_gameplay", true);
+                chkFriendAcceptedInMenus.IsChecked = go.Get("social", "notification_player_accepts_request_menus", true);
 
-                int httpVer = _settings.network.http_version;
-                cmbHTTPVersion.SelectedIndex = httpVer < cmbHTTPVersion.Items.Count ? httpVer : 0;
-                chkAlternativeEndpoint.IsChecked = _settings.network.use_alternative_endpoint;
+                int httpVer = (int)go.Get("network", "http_version", 0.0);
+                cmbHTTPVersion.SelectedIndex = httpVer >= 0 && httpVer < cmbHTTPVersion.Items.Count ? httpVer : 0;
+                chkAlternativeEndpoint.IsChecked = go.Get("network", "use_alternative_endpoint", false);
 
-                chkUseCommunityDataPatch.IsChecked = _settings.data_packs.use_community_data_patch;
+                chkUseCommunityDataPatch.IsChecked = go.Get("data_packs", "use_community_data_patch", true);
+
+                _anticheat = go.AntiCheat;
+                _anticheatTouched = false;
 
                 LoadIniSettings();
-                
-                // If anticheat was empty, default to first plugin and save
-                if (string.IsNullOrEmpty(_settings.plugins.anticheat))
-                {
-                    DefaultAnticheatToFirstPlugin();
-                }
-            }
-            catch
-            {
-                MessageBox.Show(Loc.T("Your settings have been reset due to an update. Please reconfigure them."),
-                    "Command Center", MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, Loc.MessageBoxOptions);
-                Views.Main.ShowHome();
-            }
-        }
-        
-        private void DefaultAnticheatToFirstPlugin()
-        {
-            try
-            {
-                string pluginsPath = Path.Combine(GamePaths.Game, "plugins");
-                
-                if (!Directory.Exists(pluginsPath))
-                    return;
 
-                // Check if current anticheat's plugin still exists with valid DLL
-                if (!string.IsNullOrEmpty(_settings.plugins.anticheat))
-                {
-                    string currentPluginPath = Path.Combine(pluginsPath, _settings.plugins.anticheat);
-                    var dllFiles = Directory.GetFiles(currentPluginPath, "*.dll");
-                    
-                    // If plugin folder exists and has a DLL, keep it
-                    if (Directory.Exists(currentPluginPath) && dllFiles.Any())
-                        return;
-                    
-                    // Plugin or DLL is missing, will default to first below
-                }
-
-                var firstPlugin = Directory.GetDirectories(pluginsPath)
-                    .Where(dir => Directory.GetFiles(dir, "*.json").Any() && Directory.GetFiles(dir, "*.dll").Any())
-                    .OrderBy(dir => new DirectoryInfo(dir).Name)
-                    .FirstOrDefault();
-
-                if (firstPlugin != null)
-                {
-                    _settings.plugins.anticheat = new DirectoryInfo(firstPlugin).Name;
-                }
+                _shown = Shown();
+                _loaded = true;
             }
-            catch
+            catch (Exception ex)
             {
-                // silently fail if plugins folder doesn't exist or can't be read
+                // Saving stays off, so nothing is written from values that were not read
+                _loaded = false;
+                Views.Main.Toast(Loc.T("Some settings could not be read, so this page will not save anything: {0}", ex.Message), isError: true);
             }
         }
 
+        // The game's defaults for keys Options.ini does not have yet
         private void LoadIniSettings()
         {
-            if (!File.Exists(IniFilePath))
-            {
-                WriteDefaultIni();
-                return;
-            }
-            try
-            {
-                var dict = File.ReadLines(IniFilePath)
-                    .Where(l => !string.IsNullOrWhiteSpace(l) && l.Contains(" = "))
-                    .Select(l => l.Split(" = ", 2))
-                    .Where(p => p.Length == 2)
-                    .ToDictionary(p => p[0].Trim(), p => p[1].Trim());
+            var ini = OptionsFile.Read();
+            bool GetBool(string key, bool fallback) => ini.TryGetValue(key, out var v) ? v.Equals("yes", StringComparison.OrdinalIgnoreCase) : fallback;
 
-                bool GetBool(string key) => dict.TryGetValue(key, out var v) && v.ToLower().Contains("yes");
-
-                chkCursorLockFullscreen.IsChecked = GetBool("CursorCaptureEnabledInFullscreenGame") ||
-                                                    GetBool("CursorCaptureEnabledInFullscreenMenu");
-                chkCursorLockWindowed.IsChecked = GetBool("CursorCaptureEnabledInWindowedGame") ||
-                                                  GetBool("CursorCaptureEnabledInWindowedMenu");
-                chkEdgeScrollingFullscreen.IsChecked = GetBool("ScreenEdgeScrollEnabledInFullscreenApp");
-                chkEdgeScrollingWindowed.IsChecked = GetBool("ScreenEdgeScrollEnabledInWindowedApp");
-            }
-            catch
-            {
-                WriteDefaultIni();
-            }
+            chkCursorLockFullscreen.IsChecked = GetBool("CursorCaptureEnabledInFullscreenGame", true) ||
+                                                GetBool("CursorCaptureEnabledInFullscreenMenu", true);
+            chkCursorLockWindowed.IsChecked = GetBool("CursorCaptureEnabledInWindowedGame", true) ||
+                                              GetBool("CursorCaptureEnabledInWindowedMenu", false);
+            chkEdgeScrollingFullscreen.IsChecked = GetBool("ScreenEdgeScrollEnabledInFullscreenApp", true);
+            chkEdgeScrollingWindowed.IsChecked = GetBool("ScreenEdgeScrollEnabledInWindowedApp", false);
         }
 
-        private void WriteDefaultIni()
+        // settings.json fields on this page: the text its control shows, and the value it stands for
+        private (string Section, string Key, string Shown, Func<JsonNode?> Value)[] GoFields() => new (string, string, string, Func<JsonNode?>)[]
         {
-            string[] lines =
-            {
-                "ScreenEdgeScrollEnabledInFullscreenApp = yes",
-                "ScreenEdgeScrollEnabledInWindowedApp = no",
-                "CursorCaptureEnabledInFullscreenGame = yes",
-                "CursorCaptureEnabledInFullscreenMenu = yes",
-                "CursorCaptureEnabledInWindowedGame = no",
-                "CursorCaptureEnabledInWindowedMenu = no"
-            };
-            File.WriteAllLines(IniFilePath, lines);
-            chkCursorLockWindowed.IsChecked = false;
-            chkCursorLockFullscreen.IsChecked = true;
-            chkEdgeScrollingFullscreen.IsChecked = true;
-            chkEdgeScrollingWindowed.IsChecked = false;
+            ("camera", "max_height_only_when_lobby_host", txtMaxCameraHeight.Text, () => JsonValue.Create(ParseInt(txtMaxCameraHeight, 310))),
+            ("camera", "min_height", txtMinCameraHeight.Text, () => JsonValue.Create(ParseInt(txtMinCameraHeight, 210))),
+            ("camera", "move_speed_ratio", txtCameraMovementSpeed.Text, () => JsonValue.Create(ParseInt(txtCameraMovementSpeed, 100) / 100.0)),
+            ("chat", "duration_seconds_until_fade_out", txtChatDuration.Text, () => JsonValue.Create(ParseInt(txtChatDuration, 30))),
+            ("render", "limit_framerate", Check(chkLimitFramerate), () => JsonValue.Create(chkLimitFramerate.IsChecked == true)),
+            ("render", "fps_limit", txtFPSLimit.Text, () => JsonValue.Create(ParseInt(txtFPSLimit, 60))),
+            ("render", "stats_overlay", Check(chkStatsOverlay), () => JsonValue.Create(chkStatsOverlay.IsChecked == true)),
+            ("social", "notification_friend_comes_online_gameplay", Check(chkFriendOnlineInGame), () => JsonValue.Create(chkFriendOnlineInGame.IsChecked == true)),
+            ("social", "notification_friend_comes_online_menus", Check(chkFriendOnlineInMenus), () => JsonValue.Create(chkFriendOnlineInMenus.IsChecked == true)),
+            ("social", "notification_friend_goes_offline_gameplay", Check(chkFriendOfflineInGame), () => JsonValue.Create(chkFriendOfflineInGame.IsChecked == true)),
+            ("social", "notification_friend_goes_offline_menus", Check(chkFriendOfflineInMenus), () => JsonValue.Create(chkFriendOfflineInMenus.IsChecked == true)),
+            ("social", "notification_player_sends_request_gameplay", Check(chkFriendRequestInGame), () => JsonValue.Create(chkFriendRequestInGame.IsChecked == true)),
+            ("social", "notification_player_sends_request_menus", Check(chkFriendRequestInMenus), () => JsonValue.Create(chkFriendRequestInMenus.IsChecked == true)),
+            ("social", "notification_player_accepts_request_gameplay", Check(chkFriendAcceptedInGame), () => JsonValue.Create(chkFriendAcceptedInGame.IsChecked == true)),
+            ("social", "notification_player_accepts_request_menus", Check(chkFriendAcceptedInMenus), () => JsonValue.Create(chkFriendAcceptedInMenus.IsChecked == true)),
+            ("network", "http_version", cmbHTTPVersion.SelectedIndex.ToString(), () => JsonValue.Create(cmbHTTPVersion.SelectedIndex)),
+            ("network", "use_alternative_endpoint", Check(chkAlternativeEndpoint), () => JsonValue.Create(chkAlternativeEndpoint.IsChecked == true)),
+            ("data_packs", "use_community_data_patch", Check(chkUseCommunityDataPatch), () => JsonValue.Create(chkUseCommunityDataPatch.IsChecked == true)),
+        };
+
+        private string ResolutionShown() => cmbWindowedResolution.SelectedItem is ComboBoxItem { Tag: (int w, int h) } ? $"{w}x{h}" : "";
+
+        // Every control's current text, keyed like _shown
+        private Dictionary<string, string> Shown()
+        {
+            var shown = GoFields().ToDictionary(f => f.Section + "/" + f.Key, f => f.Shown);
+            shown["launcher/windowed"] = Check(chkWindowed);
+            shown["launcher/resolution"] = ResolutionShown();
+            shown["ini/cursorFull"] = Check(chkCursorLockFullscreen);
+            shown["ini/cursorWin"] = Check(chkCursorLockWindowed);
+            shown["ini/edgeFull"] = Check(chkEdgeScrollingFullscreen);
+            shown["ini/edgeWin"] = Check(chkEdgeScrollingWindowed);
+            return shown;
         }
+
+        private bool Changed(Dictionary<string, string> now, string key) =>
+            _shown.TryGetValue(key, out var was) && now.TryGetValue(key, out var value) && was != value;
 
         // Saves what was set on this page; the window calls it when the page is left by a tab or closed
         public void Commit()
@@ -634,51 +623,48 @@ namespace CommandCenter.Pages
                 SaveGameSettings();
         }
 
+        // Writes only what the player changed on this page since it was loaded
         private void SaveGameSettings()
         {
-            _settings.camera.max_height_only_when_lobby_host = ParseInt(txtMaxCameraHeight, 310);
-            _settings.camera.min_height = ParseInt(txtMinCameraHeight, 210);
-            _settings.camera.move_speed_ratio = ParseInt(txtCameraMovementSpeed, 100) / 100f;
-
-            _settings.chat.duration_seconds_until_fade_out = ParseInt(txtChatDuration, 30);
-
-            _settings.render.limit_framerate = chkLimitFramerate.IsChecked == true;
-            _settings.render.fps_limit = ParseInt(txtFPSLimit, 60);
-            _settings.render.stats_overlay = chkStatsOverlay.IsChecked == true;
-
-            SaveWindowedToLauncherJson();
-
-            _settings.social.notification_friend_comes_online_gameplay = chkFriendOnlineInGame.IsChecked == true;
-            _settings.social.notification_friend_comes_online_menus = chkFriendOnlineInMenus.IsChecked == true;
-            _settings.social.notification_friend_goes_offline_gameplay = chkFriendOfflineInGame.IsChecked == true;
-            _settings.social.notification_friend_goes_offline_menus = chkFriendOfflineInMenus.IsChecked == true;
-            _settings.social.notification_player_sends_request_gameplay = chkFriendRequestInGame.IsChecked == true;
-            _settings.social.notification_player_sends_request_menus = chkFriendRequestInMenus.IsChecked == true;
-            _settings.social.notification_player_accepts_request_gameplay = chkFriendAcceptedInGame.IsChecked == true;
-            _settings.social.notification_player_accepts_request_menus = chkFriendAcceptedInMenus.IsChecked == true;
-
-            _settings.network.http_version = cmbHTTPVersion.SelectedIndex;
-            _settings.network.use_alternative_endpoint = chkAlternativeEndpoint.IsChecked == true;
-
-            bool patchChanged = _settings.data_packs.use_community_data_patch != (chkUseCommunityDataPatch.IsChecked == true);
-            _settings.data_packs.use_community_data_patch = chkUseCommunityDataPatch.IsChecked == true;
-
-            if (cmbAnticheatPlugin.SelectedItem is ComboBoxItem pluginItem)
-                _settings.plugins.anticheat = pluginItem.Tag?.ToString() ?? "";
-
-            // The game reads settings.json and Options.ini when it starts and writes Options.ini itself
-            if (GameLauncher.IsGameRunning())
-            {
-                if (GoSettingsChanged(GoSettings.Load()) || IniSettingsChanged())
-                    Views.Main.Toast(Loc.T("Close the game first; it reads these settings only when it starts."), isError: true);
+            if (!_loaded)
                 return;
-            }
+
+            var now = Shown();
+            bool patchChanged = Changed(now, "data_packs/use_community_data_patch");
 
             // settings.json is edited as a JSON tree, so fields added by newer Generals Online versions stay as they are
             var go = GoSettings.Load();
-            if (GoSettingsChanged(go))
-                go.Save("Saved from the Options page");
-            SaveIniSettings();
+            bool goChanged = ApplyGoChanges(go, now);
+            var ini = IniChanges(now);
+            bool iniChanged = OptionsFile.WouldChange(ini);
+            bool launcherChanged = Changed(now, "launcher/windowed") || Changed(now, "launcher/resolution");
+
+            // The game reads settings.json and Options.ini when it starts and writes Options.ini itself. The changes stay
+            // on the page and are saved the next time it is left with the game closed.
+            if ((goChanged || iniChanged) && GameLauncher.IsGameRunning())
+            {
+                Views.Main.Toast(Loc.T("Close the game first; it reads these settings only when it starts."), isError: true);
+                return;
+            }
+
+            try
+            {
+                if (goChanged)
+                    go.Save("Saved from the Options page");
+                if (iniChanged)
+                    OptionsFile.Write(ini, "Game options", "Saved from the Options page");
+                if (launcherChanged)
+                    SaveWindowedToLauncherJson();
+            }
+            catch (Exception ex)
+            {
+                Views.Main.Toast(Loc.T("Could not save: {0}", ex.Message), isError: true);
+                return;
+            }
+            _shown = now;
+            _anticheatTouched = false;
+            if (goChanged)
+                _anticheat = go.AntiCheat;
 
             if (patchChanged)
             {
@@ -834,90 +820,47 @@ namespace CommandCenter.Pages
         // launcher.json is edited as a JSON tree, so the client choice and anything else in it stays as it was
         private void SaveWindowedToLauncherJson()
         {
-            try
+            var launcher = LauncherJson.Load();
+            launcher.Windowed = chkWindowed.IsChecked == true;
+            if (cmbWindowedResolution.SelectedItem is ComboBoxItem item && item.Tag is (int w, int h))
             {
-                var launcher = LauncherJson.Load();
-                launcher.Windowed = chkWindowed.IsChecked == true;
-                if (cmbWindowedResolution.SelectedItem is ComboBoxItem item && item.Tag is (int w, int h))
-                {
-                    launcher.WindowedWidth = w;
-                    launcher.WindowedHeight = h;
-                }
-                launcher.Save();
+                launcher.WindowedWidth = w;
+                launcher.WindowedHeight = h;
             }
-            catch { }
+            launcher.Save("Saved from the Options page");
         }
 
-        // Puts the values from this page into the settings.json tree; true when that changes anything
-        private bool GoSettingsChanged(GoSettings go)
+        // Puts the values the player changed into the settings.json tree; true when that changes anything
+        private bool ApplyGoChanges(GoSettings go, Dictionary<string, string> now)
         {
             string before = go.Root.ToJsonString();
-            go.Set("camera", "max_height_only_when_lobby_host", _settings.camera.max_height_only_when_lobby_host);
-            go.Set("camera", "min_height", _settings.camera.min_height);
-            go.Set("camera", "move_speed_ratio", _settings.camera.move_speed_ratio);
-            go.Set("chat", "duration_seconds_until_fade_out", _settings.chat.duration_seconds_until_fade_out);
-            go.Set("render", "fps_limit", _settings.render.fps_limit);
-            go.Set("render", "limit_framerate", _settings.render.limit_framerate);
-            go.Set("render", "stats_overlay", _settings.render.stats_overlay);
-            var social = _settings.social;
-            go.Set("social", "notification_friend_comes_online_menus", social.notification_friend_comes_online_menus);
-            go.Set("social", "notification_friend_comes_online_gameplay", social.notification_friend_comes_online_gameplay);
-            go.Set("social", "notification_friend_goes_offline_menus", social.notification_friend_goes_offline_menus);
-            go.Set("social", "notification_friend_goes_offline_gameplay", social.notification_friend_goes_offline_gameplay);
-            go.Set("social", "notification_player_accepts_request_menus", social.notification_player_accepts_request_menus);
-            go.Set("social", "notification_player_accepts_request_gameplay", social.notification_player_accepts_request_gameplay);
-            go.Set("social", "notification_player_sends_request_menus", social.notification_player_sends_request_menus);
-            go.Set("social", "notification_player_sends_request_gameplay", social.notification_player_sends_request_gameplay);
-            go.Set("network", "http_version", _settings.network.http_version);
-            go.Set("network", "use_alternative_endpoint", _settings.network.use_alternative_endpoint);
-            go.Set("data_packs", "use_community_data_patch", _settings.data_packs.use_community_data_patch);
-            go.Set("plugins", "anticheat", _settings.plugins.anticheat);
+            foreach (var field in GoFields())
+                if (Changed(now, field.Section + "/" + field.Key))
+                    go.SetNode(field.Section, field.Key, field.Value());
+            if (_anticheatTouched && cmbAnticheatPlugin.SelectedItem is ComboBoxItem { Tag: string plugin } && plugin.Length > 0)
+                go.Set("plugins", "anticheat", plugin);
             return go.Root.ToJsonString() != before;
         }
 
-        private void SaveIniSettings() => WriteIfChanged("Game options", IniFilePath, BuildIni());
-
-        private bool IniSettingsChanged() => !(File.Exists(IniFilePath) && File.ReadAllBytes(IniFilePath).AsSpan().SequenceEqual(BuildIni()));
-
-        // Options.ini with the edge scrolling and cursor lock choices; every other line stays as it is
-        private byte[] BuildIni()
+        // The Options.ini keys behind the boxes the player changed; one box sets both the game and the menu key
+        private Dictionary<string, string> IniChanges(Dictionary<string, string> now)
         {
-            bool cursorWin = chkCursorLockWindowed.IsChecked == true;
-            bool cursorFull = chkCursorLockFullscreen.IsChecked == true;
-            bool edgeFull = chkEdgeScrollingFullscreen.IsChecked == true;
-            bool edgeWin = chkEdgeScrollingWindowed.IsChecked == true;
-
-            var lines = File.Exists(IniFilePath)
-                ? File.ReadAllLines(IniFilePath).ToList()
-                : new List<string>();
-
-            bool wroteEdgeFull = false, wroteEdgeWin = false;
-            bool wroteCursorFull = false, wroteCursorWin = false;
-
-            for (int i = 0; i < lines.Count; i++)
+            var changes = new Dictionary<string, string>();
+            if (Changed(now, "ini/edgeFull"))
+                changes["ScreenEdgeScrollEnabledInFullscreenApp"] = Y(chkEdgeScrollingFullscreen.IsChecked == true);
+            if (Changed(now, "ini/edgeWin"))
+                changes["ScreenEdgeScrollEnabledInWindowedApp"] = Y(chkEdgeScrollingWindowed.IsChecked == true);
+            if (Changed(now, "ini/cursorFull"))
             {
-                if (lines[i].Contains("ScreenEdgeScrollEnabledInFullscreenApp")) { lines[i] = $"ScreenEdgeScrollEnabledInFullscreenApp = {Y(edgeFull)}"; wroteEdgeFull = true; }
-                else if (lines[i].Contains("ScreenEdgeScrollEnabledInWindowedApp")) { lines[i] = $"ScreenEdgeScrollEnabledInWindowedApp = {Y(edgeWin)}"; wroteEdgeWin = true; }
-                else if (lines[i].Contains("CursorCaptureEnabledInFullscreenGame")) { lines[i] = $"CursorCaptureEnabledInFullscreenGame = {Y(cursorFull)}"; wroteCursorFull = true; }
-                else if (lines[i].Contains("CursorCaptureEnabledInFullscreenMenu")) { lines[i] = $"CursorCaptureEnabledInFullscreenMenu = {Y(cursorFull)}"; wroteCursorFull = true; }
-                else if (lines[i].Contains("CursorCaptureEnabledInWindowedGame")) { lines[i] = $"CursorCaptureEnabledInWindowedGame = {Y(cursorWin)}"; wroteCursorWin = true; }
-                else if (lines[i].Contains("CursorCaptureEnabledInWindowedMenu")) { lines[i] = $"CursorCaptureEnabledInWindowedMenu = {Y(cursorWin)}"; wroteCursorWin = true; }
+                changes["CursorCaptureEnabledInFullscreenGame"] = Y(chkCursorLockFullscreen.IsChecked == true);
+                changes["CursorCaptureEnabledInFullscreenMenu"] = Y(chkCursorLockFullscreen.IsChecked == true);
             }
-
-            if (!wroteEdgeFull) lines.Add($"ScreenEdgeScrollEnabledInFullscreenApp = {Y(edgeFull)}");
-            if (!wroteEdgeWin) lines.Add($"ScreenEdgeScrollEnabledInWindowedApp = {Y(edgeWin)}");
-            if (!wroteCursorFull) { lines.Add($"CursorCaptureEnabledInFullscreenGame = {Y(cursorFull)}"); lines.Add($"CursorCaptureEnabledInFullscreenMenu = {Y(cursorFull)}"); }
-            if (!wroteCursorWin) { lines.Add($"CursorCaptureEnabledInWindowedGame = {Y(cursorWin)}"); lines.Add($"CursorCaptureEnabledInWindowedMenu = {Y(cursorWin)}"); }
-
-            return Encoding.UTF8.GetBytes(string.Join("\r\n", lines) + "\r\n");
-        }
-
-        // Saving goes through the backup list, so the change can be undone; an unchanged file is left alone
-        private static void WriteIfChanged(string title, string path, byte[] content)
-        {
-            if (File.Exists(path) && File.ReadAllBytes(path).AsSpan().SequenceEqual(content))
-                return;
-            BackupService.WriteFile(title, path, content, "Saved from the Options page");
+            if (Changed(now, "ini/cursorWin"))
+            {
+                changes["CursorCaptureEnabledInWindowedGame"] = Y(chkCursorLockWindowed.IsChecked == true);
+                changes["CursorCaptureEnabledInWindowedMenu"] = Y(chkCursorLockWindowed.IsChecked == true);
+            }
+            return changes;
         }
 
         private static string Y(bool b) => b ? "yes" : "no";

@@ -27,8 +27,11 @@ Generals Online launcher.
 
 - Every change is backed up first and can be undone.
 - Fixes move files to a quarantine folder instead of deleting them.
-- Nothing is written into the game folder except what you ask for: hotkey files, control bar archives and quarantine moves.
-- No DLL injection, no handles opened to the game process, no changes to Generals Online's own files.
+- Nothing is written into the game folder except what you ask for: hotkey files, control bar archives, fixes and quarantine moves.
+- Nothing in the game folder, `Options.ini` or `settings.json` is changed while the game is running.
+- Generals Online's `settings.json` and `launcher.json` are only written when you change a setting, and only the settings you changed;
+  fields Command Center does not know stay as they are. The anti-cheat choice is never changed for you.
+- No DLL injection, no handles opened to the game process, no changes to Generals Online's program files.
 - Hotkeys and control bars do not take part in the multiplayer check, so they never cause a mismatch.
 
 ## Next to the official launcher

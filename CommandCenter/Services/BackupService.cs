@@ -77,9 +77,24 @@ namespace CommandCenter.Services
                 throw new InvalidOperationException(OutsideMessage);
         }
 
+        public const string GameRunningMessage = "Close the game first. Command Center does not change the game's files while it is running.";
+
+        // The game keeps its folder open and reads Options.ini and settings.json when it starts (and writes them itself),
+        // so a change made while it runs is either refused by Windows or lost. Refused here, whatever asked for it.
+        public static void EnsureGameClosed(string path)
+        {
+            string full = Path.GetFullPath(path);
+            bool inGame = GamePaths.ZeroHourFound && full.StartsWith(GamePaths.Game.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase);
+            bool readByGame = string.Equals(full, Path.GetFullPath(GamePaths.Options), StringComparison.OrdinalIgnoreCase)
+                || string.Equals(full, Path.GetFullPath(GamePaths.GoSettings), StringComparison.OrdinalIgnoreCase);
+            if ((inGame || readByGame) && GameLauncher.IsGameRunning())
+                throw new InvalidOperationException(Loc.T(GameRunningMessage));
+        }
+
         public static BackupEntry WriteFile(string title, string target, byte[] content, string detail = "")
         {
             EnsureAllowed(target);
+            EnsureGameClosed(target);
             Directory.CreateDirectory(Root);
             var entry = new BackupEntry
             {
@@ -112,6 +127,7 @@ namespace CommandCenter.Services
         public static BackupEntry MoveToQuarantine(string title, string path, string detail = "")
         {
             EnsureAllowed(path);
+            EnsureGameClosed(path);
             string id = NewId();
             string folder = Path.Combine(Root, "Quarantine", id);
             Directory.CreateDirectory(folder);
@@ -170,6 +186,7 @@ namespace CommandCenter.Services
                 foreach (string path in paths)
                 {
                     EnsureAllowed(path);
+                    EnsureGameClosed(path);
                     var attributes = File.GetAttributes(path);
                     if (!attributes.HasFlag(FileAttributes.ReadOnly))
                         continue;
@@ -266,6 +283,9 @@ namespace CommandCenter.Services
 
         private static void Restore(BackupEntry entry)
         {
+            if (entry.Kind != "registry")
+                EnsureGameClosed(entry.Kind == "readonly" ? Path.Combine(entry.Target, "_") : entry.Target);
+
             if (entry.Kind == "move")
             {
                 if (entry.BackupFile != null && File.Exists(entry.BackupFile))
