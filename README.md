@@ -43,6 +43,13 @@ Command Center is a companion, not a replacement. It works alongside the General
 - `settings.json` and `launcher.json` are edited in place: fields Command Center does not know, such as ones added by newer Generals Online versions, are kept, and nothing is written when nothing changed.
 - Game settings are not saved while the game runs, because the game reads them only when it starts.
 - Control Bar Pro installed by the official launcher stays its business: Command Center shows it and leaves those files alone, as the official launcher does with files it did not install.
+- When Play cannot start the game (its program is missing, or it does not start), Command Center offers the official launcher instead.
+
+### Following Generals Online changes
+
+Generals Online's program names, the anti-cheat plugin name, the `launcher.json` channel key, which channels start through Easy Anti-Cheat and the service address live in [go-profile.json](go-profile.json). Every copy of Command Center reads it from this repository when it starts and keeps the last good one, so a rename by Generals Online is fixed by editing that file, without a new release. A profile is ignored unless every program is a plain `.exe` name (no folders) and the address is on `playgenerals.online` over https.
+
+Health compares the installed live client with the fingerprint Generals Online publishes for its own update check (`VersionManifest`, a CRC-32 of the whole file); the file is only read.
 
 ## Build
 
@@ -77,6 +84,7 @@ libraries. Options › Game folder shows which copy is used and lets you pick an
 | `--samples` | Add sample health problems to review the layout (their fixes do nothing) |
 | `--drawn-backdrop` | Show the background that copies without Steam art get |
 | `--update-url <url or file>` | Read the update manifest (`update.json`) from here instead of the latest GitHub release; a local file works for testing |
+| `--go-profile <file>` | Use this Generals Online profile instead of the one in this repository (for testing) |
 | `--lang ar` / `--lang en` | Show Command Center in Arabic (right to left) or English for this run only; the saved language is not changed. With `--capture`, untranslated strings are listed in `missing-ar.txt` |
 
 Command Center keeps its own files in `Documents\Command and Conquer Generals Zero Hour Data\CommandCenter`

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2
+
+- Generals Online's program names, the anti-cheat plugin name, the launcher.json channel key and the service address now come from `go-profile.json` in this repository. When Generals Online renames something, updating that file fixes every copy on its next start; a profile can only name programs in the game folder and Generals Online's own service.
+- Play starts the game the way the official launcher does today: the live client directly, the test client through Easy Anti-Cheat when it is selected.
+- When the program Play would start is missing, or the game does not start, Command Center offers to start the official launcher instead of failing silently.
+- Health checks the installed client against the version Generals Online publishes ("Generals Online is up to date" or "not the current version").
+- The player count and lobbies refresh every minute on the home page, and show "Unreachable" when the service cannot be reached instead of "Checking…" forever.
+
 ## 0.3.1
 
 - Options writes only the settings you change. Leaving the page without changing anything no longer rewrites `settings.json`, `launcher.json` or `Options.ini`, and values the page cannot show exactly (decimal camera heights, separate game and menu cursor settings) stay as they were.
