@@ -311,6 +311,10 @@
   "{0} found with your game": "في لعبتك {0}",
   "Generals Online was not found in {0}.": "لم يُعثر على Generals Online في {0}.",
   "Failed to launch the game: {0}": "تعذّر تشغيل اللعبة: {0}",
+  "{0} is not in the game folder, so Command Center cannot start this version of Generals Online.": "{0} غير موجود في مجلد اللعبة، لذا لا يستطيع Command Center تشغيل هذا الإصدار من Generals Online.",
+  "The game did not start. What happened is written in {0} in Command Center's folder.": "لم تبدأ اللعبة. ما حدث مكتوب في {0} داخل مجلد Command Center.",
+  "Start the official Generals Online launcher instead?": "هل تريد تشغيل مشغّل Generals Online الرسمي بدلًا من ذلك؟",
+  "Open the Generals Online download page?": "هل تريد فتح صفحة تنزيل Generals Online؟",
 
   // ── Tools sidebar ──
   "HEALTH": "الفحص",

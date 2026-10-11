@@ -23,6 +23,9 @@ namespace CommandCenter
             DispatcherUnhandledException += OnUnhandled;
             UpdateService.CleanUp();
 
+            // Generals Online's current program names and service address, in the background
+            _ = GoProfile.RefreshAsync();
+
             // --lang en|ar picks the language for this run only, without changing the saved setting
             Loc.Init(Loc.Normalize(Arg("--lang")) ?? AppSettings.Current.Language);
             if (Loc.Language != "en")
