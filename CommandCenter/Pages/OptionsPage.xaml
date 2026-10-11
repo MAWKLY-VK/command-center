@@ -355,33 +355,17 @@
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                 <Ellipse x:Name="dotGeo" Width="8" Height="8" Fill="#40FFFFFF"
                                          VerticalAlignment="Center" Margin="0,0,9,0"/>
-                                <TextBlock Text="{l:T Your Location}" Foreground="#A7AECB"
+                                <TextBlock Text="{l:T Your Country}" Foreground="#A7AECB"
                                            FontSize="12" VerticalAlignment="Center" MinWidth="210"/>
                                 <TextBlock x:Name="valGeo" Text="—" Foreground="#606080"
                                            FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"/>
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
                                 <Ellipse x:Name="dotCF" Width="8" Height="8" Fill="#40FFFFFF"
                                          VerticalAlignment="Center" Margin="0,0,9,0"/>
                                 <TextBlock Text="Cloudflare" Foreground="#A7AECB"
                                            FontSize="12" VerticalAlignment="Center" MinWidth="210"/>
                                 <TextBlock x:Name="valCF" Text="—" Foreground="#606080"
-                                           FontSize="12" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <Ellipse x:Name="dotDl" Width="8" Height="8" Fill="#40FFFFFF"
-                                         VerticalAlignment="Center" Margin="0,0,9,0"/>
-                                <TextBlock Text="{l:T Download Speed}" Foreground="#A7AECB"
-                                           FontSize="12" VerticalAlignment="Center" MinWidth="210"/>
-                                <TextBlock x:Name="valDl" Text="—" Foreground="#606080"
-                                           FontSize="12" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
-                                <Ellipse x:Name="dotUl" Width="8" Height="8" Fill="#40FFFFFF"
-                                         VerticalAlignment="Center" Margin="0,0,9,0"/>
-                                <TextBlock Text="{l:T Upload Speed}" Foreground="#A7AECB"
-                                           FontSize="12" VerticalAlignment="Center" MinWidth="210"/>
-                                <TextBlock x:Name="valUl" Text="—" Foreground="#606080"
                                            FontSize="12" VerticalAlignment="Center"/>
                             </StackPanel>
 
