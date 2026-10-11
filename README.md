@@ -16,12 +16,12 @@ Generals Online launcher.
 | Page | What it does |
 | --- | --- |
 | Home | Play, the client version, anti-cheat and which copy of the game is used, the server card (players, lobbies, ping), the last match with its result and Watch, a line when the health check finds something, Live / Test choice, tiles into the tools |
-| Health | A ring with how much of the game passed, then game files, original archives checked against Zero Hour 1.04 fingerprints, anti-cheat, wrapper and runtime DLLs, rule-changing archives, "Run as administrator" (error 740), compatibility modes, Visual C++, graphics driver, resolution, network; one-click fixes with Undo |
+| Health | A ring with how much of the game passed, then game files (any language edition), original archives checked against Zero Hour 1.04 fingerprints, the anti-cheat and its plugin, wrapper and runtime DLLs, rule-changing archives, "Run as administrator" (error 740), compatibility modes, Visual C++, graphics driver, resolution, the community data patch, network; one-click fixes with Undo. A Common questions tab answers what new players ask most (greyed-out rooms, camera height, dropped connections, anti-cheat, antivirus, GenTool, mismatches, replays, where to get the game) with buttons to the place that fixes it |
 | Maps | The online map library and the installed maps as cards with previews, player counts and sizes, filters by player count; install by click or by dropping a `.zip` / folder |
 | Replays | Every match from `Replays` and `ArchivedReplays` with map, players, armies, results and who left when, the selected one in a side panel; watch, keep, rename, copy, delete with Undo; turns the game's own *ArchiveReplays* option on or off |
 | Hotkeys | Unit and building buttons for all 12 armies drawn like the in-game bar, the game keys, and hotkey letters on the button pictures; checks duplicates and clashes before saving |
 | Add-ons | Control Bar Pro from TheSuperHackers in five sizes, checked against pinned SHA-256 hashes, with a before/after slider |
-| Options | Language first, then the game folder (which copy is used, pick another), then the official launcher's sections (camera, chat, input, graphics, social, network with diagnostics, data packs, plugins) and Launcher: updates and about |
+| Options | Language first, then the game folder (which copy is used, pick another), then the official launcher's sections (camera, chat, input, graphics, social, network with diagnostics of ping, loss, NAT and the servers, data packs, plugins) and Launcher: updates and about |
 
 ## Ground rules
 
@@ -33,6 +33,8 @@ Generals Online launcher.
   fields Command Center does not know stay as they are. The anti-cheat choice is never changed for you.
 - No DLL injection, no handles opened to the game process, no changes to Generals Online's program files.
 - Hotkeys and control bars do not take part in the multiplayer check, so they never cause a mismatch.
+- The network diagnostics contact only Generals Online's servers and Cloudflare, and run no speed test. They show your country (read over HTTPS from Cloudflare), not your internet provider, and the copied report hides the last part of your address.
+- A failure that shows no message is written to `errors.log` in Command Center's folder, to attach to a bug report.
 
 ## Next to the official launcher
 
@@ -59,7 +61,15 @@ Needs Windows 10 or 11 and the .NET 10 SDK.
 dotnet build CommandCenter/CommandCenter.csproj -c Release
 ```
 
-The program is `CommandCenter/bin/Release/net10.0-windows/CommandCenter.exe`.
+The program is `CommandCenter/bin/Release/net10.0-windows/CommandCenter.exe`. `CommandCenter.slnx` opens it together with its tests.
+
+The tests run 32-bit like the program, so they also need the x86 .NET 10 runtime (the Generals Online launcher installs it):
+
+```
+dotnet test CommandCenter.Tests/CommandCenter.Tests.csproj
+```
+
+GitHub builds and tests every push and pull request (`.github/workflows/build.yml`) and keeps the built program for two weeks.
 
 To make a release, run `tools\publish.ps1 -Notes "What changed"`. It writes a single-file `publish\CommandCenter.exe`
 (about 3 MB) and `publish\update.json`; attach both to a GitHub release tagged `v<version>`. Older copies of
@@ -80,7 +90,7 @@ libraries. Options › Game folder shows which copy is used and lets you pick an
 | `--game <folder>` | Use this game folder |
 | `--library-folder <folder>` | Use a local folder of maps as the map library |
 | `--user-data <folder>` | Use this folder instead of `Documents\Command and Conquer Generals Zero Hour Data` (for testing) |
-| `--capture <folder> --size 1100x640 --pages home,tools:maps,options:game` | Save screenshots of pages without showing the window |
+| `--capture <folder> --size 1100x640 --pages home,tools:maps,options:game` | Save screenshots of pages without showing the window; `tools:health:questions` opens a tab, `options:network:run` runs the diagnostics first |
 | `--samples` | Add sample health problems to review the layout (their fixes do nothing) |
 | `--drawn-backdrop` | Show the background that copies without Steam art get |
 | `--update-url <url or file>` | Read the update manifest (`update.json`) from here instead of the latest GitHub release; a local file works for testing |
