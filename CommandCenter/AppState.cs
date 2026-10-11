@@ -11,6 +11,9 @@ namespace CommandCenter
         public static ServerStats? Stats { get; private set; }
         public static event Action? StatsChanged;
 
+        // An answer was asked for at least once, so a missing one means the service could not be reached
+        public static bool StatsChecked { get; private set; }
+
         public static List<HealthResult> Health { get; private set; } = new();
         public static DateTime? HealthCheckedAt { get; private set; }
         public static event Action? HealthChanged;
@@ -26,6 +29,7 @@ namespace CommandCenter
         public static async Task RefreshStatsAsync()
         {
             Stats = await GoApi.GetStatsAsync();
+            StatsChecked = true;
             StatsChanged?.Invoke();
         }
 

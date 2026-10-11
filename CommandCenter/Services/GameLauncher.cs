@@ -9,19 +9,29 @@ namespace CommandCenter.Services
     // Starts the game the same way the official Generals Online launcher does, then watches for it to close.
     public static class GameLauncher
     {
-        public const string TestExe = "GeneralsOnlineZH_TestEnvironment.exe";
+        public static string TestExe => GoProfile.Current.TestExe;
 
         public static bool HasTestClient => File.Exists(Path.Combine(GamePaths.Game, TestExe));
 
         // Mirrors the official launcher: the live client starts directly; the test client goes through the
-        // Easy Anti-Cheat launcher when that anti-cheat is selected in settings.json.
+        // Easy Anti-Cheat launcher when that anti-cheat is selected in settings.json. Which channel goes through it
+        // comes from the profile, as the official launcher has changed this before.
         public static string ExecutableFor(Channel channel)
         {
-            bool eac = GoSettings.Load().AntiCheat.Equals("easyanticheat", StringComparison.OrdinalIgnoreCase);
-            if (HasTestClient)
-                return channel == Channel.Test ? (eac ? GamePaths.EacLauncher : TestExe) : GamePaths.GameExe;
-            return eac ? GamePaths.EacLauncher : GamePaths.GameExe;
+            var profile = GoProfile.Current;
+            bool eac = GoSettings.Load().AntiCheat.Equals(profile.EacPlugin, StringComparison.OrdinalIgnoreCase);
+            bool test = channel == Channel.Test && HasTestClient;
+            bool throughEac = eac && (test ? profile.TestThroughEac : profile.LiveThroughEac);
+            return throughEac ? profile.EacLauncherExe : test ? profile.TestExe : profile.LiveExe;
         }
+
+        // The program Play would start is not there: Generals Online has changed or is broken, so the official
+        // launcher (which knows its own programs) is the safe way to start the game
+        public static bool CanStart(Channel channel) => File.Exists(Path.Combine(GamePaths.Game, ExecutableFor(channel)));
+
+        public static bool HasOfficialLauncher => File.Exists(Path.Combine(GamePaths.Game, GoProfile.Current.OfficialLauncherExe));
+
+        public static void StartOfficialLauncher() => Start(GoProfile.Current.OfficialLauncherExe, "");
 
         public static string Arguments()
         {
@@ -46,13 +56,20 @@ namespace CommandCenter.Services
             Process.Start(info)?.Dispose();
         }
 
-        // The game, its anti-cheat launcher and the game's own updater. GeneralsOnlineZH.exe on its own is the official
-        // launcher, which stays open next to the game, so it does not count.
-        private static bool IsGameProcess(string name) =>
-            (name.StartsWith("GeneralsOnlineZH_", StringComparison.OrdinalIgnoreCase)
-             || name.StartsWith("GeneralsOnline_update", StringComparison.OrdinalIgnoreCase)
-             || name.Equals("generals", StringComparison.OrdinalIgnoreCase)
-             || name.Equals("EAC_LaunchGeneralsOnline", StringComparison.OrdinalIgnoreCase));
+        // The game, its anti-cheat launcher and the game's own updater. The official launcher stays open next to the
+        // game, so it does not count.
+        private static bool IsGameProcess(string name)
+        {
+            var profile = GoProfile.Current;
+            if (name.Equals(Path.GetFileNameWithoutExtension(profile.OfficialLauncherExe), StringComparison.OrdinalIgnoreCase))
+                return false;
+            return name.StartsWith("GeneralsOnlineZH_", StringComparison.OrdinalIgnoreCase)
+                   || name.StartsWith("GeneralsOnline_update", StringComparison.OrdinalIgnoreCase)
+                   || name.Equals("generals", StringComparison.OrdinalIgnoreCase)
+                   || name.Equals(Path.GetFileNameWithoutExtension(profile.LiveExe), StringComparison.OrdinalIgnoreCase)
+                   || name.Equals(Path.GetFileNameWithoutExtension(profile.TestExe), StringComparison.OrdinalIgnoreCase)
+                   || name.Equals(Path.GetFileNameWithoutExtension(profile.EacLauncherExe), StringComparison.OrdinalIgnoreCase);
+        }
 
         // Ids of the running game processes, by name only; no handle is opened to the game process
         private static HashSet<int> GameProcessIds()
@@ -91,7 +108,8 @@ namespace CommandCenter.Services
         // gives the focus to the window underneath, which is this program as long as it stays open (so it does,
         // like the official launcher). When that happens the game is put back in front at once, the same as a click
         // on its taskbar button. settled runs once, after the launch, when the game holds the foreground.
-        public static async Task WaitForGameAsync(IntPtr own, Action? settled = null, CancellationToken ct = default)
+        // Returns true when the game started (and has closed again), false when it did not start in time.
+        public static async Task<bool> WaitForGameAsync(IntPtr own, Action? settled = null, CancellationToken ct = default)
         {
             var log = new PlayLog();
             log.Add("Play pressed");
@@ -113,7 +131,7 @@ namespace CommandCenter.Services
                     if (seen ? ++missing >= (launching ? 12 : 3) : DateTime.Now - start > TimeSpan.FromSeconds(45))
                     {
                         log.Add(seen ? "Game closed" : "The game did not start");
-                        return;
+                        return seen;
                     }
                     continue;
                 }
@@ -151,6 +169,7 @@ namespace CommandCenter.Services
                     settled?.Invoke();
                 }
             }
+            return seen;
         }
 
         // Process names by id from one list of the running processes (no handle is opened to any of them)

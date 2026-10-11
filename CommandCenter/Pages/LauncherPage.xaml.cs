@@ -21,15 +21,20 @@ namespace CommandCenter.Pages
         private readonly DispatcherTimer _gameWatch = new() { Interval = TimeSpan.FromSeconds(3) };
         private readonly DispatcherTimer _sheen = new() { Interval = TimeSpan.FromSeconds(5) };
 
+        // The player count and lobbies are asked for again every minute while the home page shows
+        private readonly DispatcherTimer _statsTimer = new() { Interval = TimeSpan.FromMinutes(1) };
+
         public LauncherPage()
         {
             InitializeComponent();
             Loaded += LauncherPage_Loaded;
-            Loaded += (_, _) => { _gameWatch.Start(); GameWatch_Tick(null, EventArgs.Empty); };
-            Unloaded += (_, _) => { _gameWatch.Stop(); _sheen.Stop(); };
+            Loaded += (_, _) => { _gameWatch.Start(); GameWatch_Tick(null, EventArgs.Empty); if (!_still) _statsTimer.Start(); };
+            Unloaded += (_, _) => { _gameWatch.Stop(); _sheen.Stop(); _statsTimer.Stop(); };
             _gameWatch.Tick += GameWatch_Tick;
             _sheen.Tick += (_, _) => Shine();
+            _statsTimer.Tick += (_, _) => _ = AppState.RefreshStatsAsync();
             AppState.StatsChanged += () => Dispatcher.Invoke(ShowStats);
+            GoProfile.Changed += () => Dispatcher.Invoke(ShowGame);
             AppState.HealthChanged += () => Dispatcher.Invoke(ShowHealth);
             AppState.ReplaysChanged += () => Dispatcher.Invoke(ShowLastMatch);
         }
@@ -101,9 +106,12 @@ namespace CommandCenter.Pages
                 PlayersText.Text = "—";
                 LobbiesText.Text = "—";
                 PingText.Text = "—";
-                ServerState.Text = Loc.T("Checking…");
-                ServerState.Foreground = Views.Hint;
-                ServerDot.Fill = Views.Hint;
+                // Before the first answer it is being checked; after it, no answer means the service is out of reach
+                // (asked again every minute)
+                bool unreachable = AppState.StatsChecked;
+                ServerState.Text = unreachable ? Loc.T("Unreachable") : Loc.T("Checking…");
+                ServerState.Foreground = unreachable ? Views.Brush("#FF8A8A") : Views.Hint;
+                ServerDot.Fill = unreachable ? Views.Brush("#FF5A5F") : Views.Hint;
                 return;
             }
             Count(PlayersText, stats.Players);
@@ -329,19 +337,26 @@ namespace CommandCenter.Pages
                 return;
             }
 
+            var channel = ClientSelectorPanel.Visibility == Visibility.Visible && rbTestEnv.IsChecked == true ? Channel.Test : Channel.Live;
+            if (!GameLauncher.CanStart(channel))
+            {
+                OfferOfficialLauncher(Loc.T("{0} is not in the game folder, so Command Center cannot start this version of Generals Online.",
+                    Loc.Ltr(GameLauncher.ExecutableFor(channel))));
+                return;
+            }
+
             var window = Application.Current.MainWindow;
-            bool minimized = false;
+            bool minimized = false, started = true;
             try
             {
                 _playing = true;
                 ShowGameState(true, starting: true);
-                var channel = ClientSelectorPanel.Visibility == Visibility.Visible && rbTestEnv.IsChecked == true ? Channel.Test : Channel.Live;
                 GameLauncher.PlayOnline(channel);
 
                 // Stays open under the game while it starts (it hands the focus back to the game if Windows gives it
                 // here), then steps aside without taking the focus; back when the game closes
                 var handle = new WindowInteropHelper(window).Handle;
-                await GameLauncher.WaitForGameAsync(handle, () =>
+                started = await GameLauncher.WaitForGameAsync(handle, () =>
                 {
                     minimized = true;
                     Dispatcher.Invoke(() => ShowGameState(true));
@@ -365,6 +380,33 @@ namespace CommandCenter.Pages
             {
                 _playing = false;
                 ShowGameState(false);
+            }
+
+            if (!started)
+                OfferOfficialLauncher(Loc.T("The game did not start. What happened is written in {0} in Command Center's folder.", Loc.Ltr("play.log")));
+        }
+
+        // When Play cannot start the game, the official launcher, which knows its own programs, is offered instead
+        private void OfferOfficialLauncher(string reason)
+        {
+            if (!GameLauncher.HasOfficialLauncher)
+            {
+                if (MessageBox.Show(reason + "\n\n" + Loc.T("Open the Generals Online download page?"), "Command Center",
+                        MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.Yes, Loc.MessageBoxOptions) == MessageBoxResult.Yes)
+                    Views.Open(HealthService.DownloadPage);
+                return;
+            }
+            if (MessageBox.Show(reason + "\n\n" + Loc.T("Start the official Generals Online launcher instead?"), "Command Center",
+                    MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.Yes, Loc.MessageBoxOptions) != MessageBoxResult.Yes)
+                return;
+            try
+            {
+                GameLauncher.StartOfficialLauncher();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(Loc.T("Failed to launch the game: {0}", ex.Message), "Command Center",
+                    MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK, Loc.MessageBoxOptions);
             }
         }
 
