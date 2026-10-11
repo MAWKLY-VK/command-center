@@ -7,8 +7,10 @@ namespace CommandCenter.Services
     public static class GamePaths
     {
         public const string SteamAppId = "2732960";
-        public const string GameExe = "GeneralsOnlineZH_60.exe";
-        public const string EacLauncher = "EAC_LaunchGeneralsOnline.exe";
+
+        // Generals Online's program names come from its profile, which can change without a new Command Center
+        public static string GameExe => GoProfile.Current.LiveExe;
+        public static string EacLauncher => GoProfile.Current.EacLauncherExe;
 
         private static string? _game;
 

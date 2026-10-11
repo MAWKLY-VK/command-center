@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "liveExe": "GeneralsOnlineZH_60.exe",
+  "testExe": "GeneralsOnlineZH_TestEnvironment.exe",
+  "eacLauncherExe": "EAC_LaunchGeneralsOnline.exe",
+  "officialLauncherExe": "GeneralsOnlineZH.exe",
+  "eacPlugin": "easyanticheat",
+  "liveThroughEac": false,
+  "testThroughEac": true,
+  "channelKey": "prefer_experiemental_client",
+  "apiBase": "https://api.playgenerals.online/env/prod/contract/1/",
+  "manifestKey": "execrc_60"
+}

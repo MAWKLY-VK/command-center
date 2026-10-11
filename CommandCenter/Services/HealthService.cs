@@ -41,10 +41,15 @@ namespace CommandCenter.Services
 
         private const string LayersKey = @"Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers";
 
-        private static readonly string[] GameExecutables =
+        private static string[] GameExecutables
         {
-            "GeneralsOnlineZH_60.exe", "GeneralsOnlineZH.exe", "GeneralsOnlineZH_TestEnvironment.exe", "EAC_LaunchGeneralsOnline.exe", "generals.exe", "game.dat",
-        };
+            get
+            {
+                var p = GoProfile.Current;
+                return new[] { p.LiveExe, p.OfficialLauncherExe, p.TestExe, p.EacLauncherExe, "generals.exe", "game.dat" }
+                    .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            }
+        }
 
         // Archives that ship with the game; anything else in the game folder is an add-on
         private static readonly HashSet<string> KnownArchives = new(StringComparer.OrdinalIgnoreCase)
@@ -166,7 +171,7 @@ namespace CommandCenter.Services
 
         // ── GAME FILES ──
 
-        private static readonly string[] RequiredFiles = { "GeneralsOnlineZH_60.exe", "EAC_LaunchGeneralsOnline.exe", "xaudio2_9redist.dll", "INIZH.big", "EnglishZH.big", "W3DZH.big", "WindowZH.big" };
+        private static string[] RequiredFiles => new[] { GamePaths.GameExe, GamePaths.EacLauncher, "xaudio2_9redist.dll", "INIZH.big", "EnglishZH.big", "W3DZH.big", "WindowZH.big" };
 
         // ── Original archives ──
 
@@ -1158,6 +1163,9 @@ namespace CommandCenter.Services
                 ? new HealthResult { Id = "server", Group = GroupNetwork, Title = "Game server reachable", Detail = $"{stats.LatencyMs} ms to the Generals Online service", Status = HealthStatus.Passed }
                 : new HealthResult { Id = "server", Group = GroupNetwork, Title = "Game server not reachable", Detail = "Check your internet connection, VPN or firewall", Status = HealthStatus.Problem });
 
+            if (GamePaths.GameFound && await CheckClientVersionAsync() is { } version)
+                results.Add(version);
+
             try
             {
                 results.Add(CheckFirewall());
@@ -1167,6 +1175,29 @@ namespace CommandCenter.Services
                 // Firewall rules are optional information
             }
             return results;
+        }
+
+        // Compares the installed live client with the fingerprint Generals Online publishes for its own update check.
+        // Offline or without an answer there is no result rather than a guess.
+        private static async Task<HealthResult?> CheckClientVersionAsync()
+        {
+            if (await GoApi.GetLiveFingerprintAsync() is not { } expected)
+                return null;
+            string exe = Path.Combine(GamePaths.Game, GamePaths.GameExe);
+            uint actual = await Task.Run(() => Crc32.OfFile(exe));
+            if (actual == expected)
+                return new HealthResult
+                {
+                    Id = "goversion", Group = GroupNetwork, Title = "Generals Online is up to date", Status = HealthStatus.Passed,
+                    Detail = $"{GamePaths.GameExe} matches the version Generals Online publishes",
+                };
+            return new HealthResult
+            {
+                Id = "goversion", Group = GroupNetwork, Title = "Generals Online is not the current version", Status = HealthStatus.Warning,
+                Detail = "The game updates itself when it starts. If this stays after it has updated, install Generals Online again",
+                Note = $"{GamePaths.GameExe} differs from the version Generals Online publishes: an update came out, or the file was changed.",
+                GuideLabel = "Download", GuideTarget = DownloadPage,
+            };
         }
 
         private static HealthResult CheckFirewall()

@@ -13,7 +13,10 @@ namespace CommandCenter.Services
     // Public Generals Online status endpoint, the same one the official launcher shows on its home page.
     public static class GoApi
     {
-        private const string StatsUrl = "https://api.playgenerals.online/env/prod/contract/1/Monitoring/BasicStats";
+        private static string StatsUrl => GoProfile.Current.ApiBase + "Monitoring/BasicStats";
+
+        // The fingerprints of the current official clients, published by Generals Online for its own update check
+        private static string ManifestUrl => GoProfile.Current.ApiBase + "VersionManifest";
 
         public static readonly HttpClient Http = new(new SocketsHttpHandler { UseProxy = false, ConnectCallback = ConnectAsync })
         {
@@ -33,6 +36,22 @@ namespace CommandCenter.Services
                 int players = doc.RootElement.TryGetProperty("players", out var p) ? p.GetInt32() : 0;
                 int lobbies = doc.RootElement.TryGetProperty("lobbies", out var l) ? l.GetInt32() : 0;
                 return new ServerStats(players, lobbies, (int)watch.ElapsedMilliseconds);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        // The fingerprint (CRC-32 of the whole file) the current live client must have; null when it cannot be read
+        public static async Task<uint?> GetLiveFingerprintAsync()
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(await Http.GetStringAsync(ManifestUrl));
+                return doc.RootElement.TryGetProperty(GoProfile.Current.ManifestKey, out var value) && value.TryGetUInt32(out uint crc)
+                    ? crc
+                    : null;
             }
             catch
             {
@@ -155,11 +174,11 @@ namespace CommandCenter.Services
             }
         }
 
-        // The official launcher stores the channel under this (misspelt) name: true means the live client
+        // The official launcher stores the channel under a misspelt name (from the profile): true means the live client
         public bool PreferLive
         {
-            get => Read("prefer_experiemental_client", true);
-            set => Root["prefer_experiemental_client"] = value;
+            get => Read(GoProfile.Current.ChannelKey, true);
+            set => Root[GoProfile.Current.ChannelKey] = value;
         }
 
         public bool Windowed
