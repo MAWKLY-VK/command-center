@@ -147,7 +147,10 @@ namespace CommandCenter.Services
             AddMany(() => CheckExtraArchives(game));
             Add(() => CheckReadOnlyGameFiles(game));
             if (GamePaths.GameFound)
+            {
                 Add(() => CheckEacSettings(game));
+                Add(() => CheckAntiCheatPlugin(game));
+            }
 
             AddMany(() => CheckAdminFlag(game));
             Add(() => CheckCompatibilityMode(game));
@@ -625,6 +628,37 @@ namespace CommandCenter.Services
                 Id = "eacexe", Group = GroupFiles, Title = "Anti-cheat cannot find the game", Status = HealthStatus.Problem,
                 Detail = LocText.F("EasyAntiCheat looks for {0}, which is missing, so it stops with \"Invalid game executable path\"", exe),
                 Note = "Reinstall Generals Online, or restore the file if an antivirus removed it.",
+            };
+        }
+
+        // Generals Online loads the anti-cheat chosen in settings.json from plugins\<name>\<name>.dll; without it the game
+        // stops with "Failed to load the AntiCheat plugin from path: plugins/<name>/<name>.dll" (seen in Generals Online's
+        // tech-support channel). With none chosen yet, every installed plugin is checked.
+        private static HealthResult? CheckAntiCheatPlugin(string game)
+        {
+            string plugins = Path.Combine(game, "plugins");
+            string chosen = GoSettings.Load().AntiCheat;
+            var names = chosen.Length > 0 && !chosen.Any(c => Path.GetInvalidFileNameChars().Contains(c) || c == '.')
+                ? new List<string> { chosen }
+                : Directory.Exists(plugins)
+                    ? Directory.EnumerateDirectories(plugins).Where(d => Directory.EnumerateFiles(d, "*.json").Any()).Select(Path.GetFileName).OfType<string>().ToList()
+                    : new List<string>();
+            if (names.Count == 0)
+                return null;
+            var missing = names.Select(n => $@"plugins\{n}\{n}.dll").Where(f => !File.Exists(Path.Combine(game, f))).ToList();
+            if (missing.Count == 0)
+                return new HealthResult
+                {
+                    Id = "acplugin", Group = GroupFiles, Title = "Anti-cheat plugin in place", Status = HealthStatus.Passed,
+                    Detail = LocText.F("{0} is in the game folder", LocText.Names(names.Select(n => $@"plugins\{n}\{n}.dll").ToList())),
+                };
+            return new HealthResult
+            {
+                Id = "acplugin", Group = GroupFiles, Title = "Anti-cheat plugin is missing", Status = HealthStatus.Problem,
+                Detail = LocText.F("{0} is missing, so the game stops with \"Failed to load the AntiCheat plugin\"", LocText.Names(missing)),
+                Note = "Antivirus programs sometimes remove it by mistake because it is not signed. Restore it from the antivirus quarantine, add the game folder as an exclusion, or install Generals Online again.",
+                GuideLabel = "Show folder",
+                GuideTarget = "select:" + (Directory.Exists(plugins) ? plugins : game),
             };
         }
 
