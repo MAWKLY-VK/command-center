@@ -72,6 +72,13 @@ namespace CommandCenter
             Navigate(_tools);
         }
 
+        // Health › Common questions; with the game not found, where to get it comes first
+        public void ShowQuestions()
+        {
+            ShowTools("health");
+            _tools!.ShowPart("questions");
+        }
+
         public void ShowOptions(string? part = null)
         {
             SelectTab(null);

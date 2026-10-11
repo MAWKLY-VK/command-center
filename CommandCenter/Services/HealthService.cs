@@ -102,6 +102,9 @@ namespace CommandCenter.Services
 
         public const string DownloadPage = "https://www.playgenerals.online/";
 
+        // A guide target that opens Health › Common questions instead of a page or a folder
+        public const string QuestionsTarget = "questions";
+
         public static List<HealthResult> Run()
         {
             string game = GamePaths.Game;
@@ -114,6 +117,7 @@ namespace CommandCenter.Services
                 {
                     Id = "files", Group = GroupFiles, Title = "Zero Hour was not found", Status = HealthStatus.Problem,
                     Detail = "Command Center looks where Generals Online and the game's installer recorded it (Steam, EA app or another copy), in the Steam libraries and in its own folder. Press Play to choose the game folder",
+                    GuideLabel = "Where to get it", GuideTarget = QuestionsTarget,
                 });
                 return results;
             }

@@ -413,8 +413,13 @@ namespace CommandCenter.Pages
         // Zero Hour was not found by itself: the player picks its folder, which is remembered
         private bool LocateGame()
         {
-            var answer = MessageBox.Show(Loc.T("Command & Conquer Generals - Zero Hour was not found. Choose its folder now?"), "Command Center",
+            var answer = MessageBox.Show(Loc.T("Command & Conquer Generals - Zero Hour was not found. Choose its folder now?\n\nChoose No to see where to get the game."), "Command Center",
                 MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes, Loc.MessageBoxOptions);
+            if (answer == MessageBoxResult.No)
+            {
+                Views.Main.ShowQuestions();
+                return false;
+            }
             if (answer != MessageBoxResult.Yes || !Views.ChooseGameFolder(Window.GetWindow(this)))
                 return false;
             ShowGame();
