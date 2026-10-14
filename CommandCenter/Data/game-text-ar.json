@@ -1,0 +1,80 @@
+// Arabic text for the game (Options › Language › Game text in Arabic). Written by Command Center's contributors;
+// the community patch's Arabic (TheSuperHackers/GeneralsGamePatch, GPL-3.0) served as a reference.
+//
+// Rules (CommandCenter.Tests checks them):
+//  - Key: the label in the game's generals.csf. Value: plain Arabic in reading order. Command Center joins the
+//    letters and reverses each line for the game, and adds the button's hotkey as " (X)" at the end.
+//  - No harakat, no tatweel, digits 0-9, no '&'.
+//  - The values the game fills in (%d, %ls...) are written {1}, {2}... in the order of the English. Within a line
+//    a later value comes first in Arabic: "%ls does not have the map %ls" is "الخريطة {2} غير موجودة عند {1}".
+//  - Unit names are their English names in Arabic letters (همفي، كروسيدر، أوفرلورد); buildings and orders are translated.
+//  - A line break is \n. Long texts are broken into lines by Command Center; their own line breaks stay.
+//  - "added": labels Generals Online asks for that the game's table does not have.
+{
+  "version": 1,
+  "added": [],
+  "text": {
+    "menus": {
+      "GUI:SinglePlayer": "اللعب الفردي",
+      "GUI:Multiplayer": "اللعب الجماعي",
+      "GUI:Skirmish": "معركة سريعة",
+      "GUI:Options": "الإعدادات",
+      "GUI:MainMenuLoadReplay": "فتح إعادة",
+      "GUI:Exit": "الخروج من اللعبة",
+      "GUI:MainMenu": "خروج",
+      "GUI:Back": "رجوع",
+      "GUI:Cancel": "إلغاء",
+      "GUI:Ok": "موافق",
+      "GUI:Accept": "قبول",
+      "GUI:Victory": "النصر",
+      "GUI:Defeat": "الهزيمة",
+      "GUI:Score": "النقاط",
+      "GUI:SurrenderConfirmationTitle": "استسلام؟",
+      "GUI:SurrenderConfirmation": "هل أنت متأكد من الاستسلام؟"
+    },
+    "buttons": {
+      "CONTROLBAR:Guard": "حراسة",
+      "CONTROLBAR:AttackMove": "تقدم مع الهجوم",
+      "CONTROLBAR:Stop": "توقف",
+      "CONTROLBAR:Sell": "بيع",
+      "CONTROLBAR:ConstructAmericaDozer": "جرافة البناء",
+      "CONTROLBAR:ConstructAmericaPowerPlant": "مفاعل الاندماج البارد",
+      "CONTROLBAR:ConstructAmericaBarracks": "الثكنات",
+      "CONTROLBAR:ConstructAmericaSupplyCenter": "مركز الإمداد",
+      "CONTROLBAR:ConstructAmericaWarFactory": "مصنع الحرب",
+      "CONTROLBAR:ConstructAmericaInfantryRanger": "رينجر",
+      "CONTROLBAR:ConstructAmericaInfantryMissileDefender": "ميسايل ديفندر",
+      "CONTROLBAR:ConstructAmericaVehicleHumvee": "همفي",
+      "CONTROLBAR:ConstructAmericaTankCrusader": "كروسيدر"
+    },
+    "names": {
+      "OBJECT:Dozer": "جرافة البناء",
+      "OBJECT:PowerPlant": "محطة الطاقة",
+      "OBJECT:Barracks": "الثكنات",
+      "OBJECT:SupplyCenter": "مركز الإمداد",
+      "OBJECT:WarFactory": "مصنع الحرب",
+      "OBJECT:Ranger": "رينجر",
+      "OBJECT:Humvee": "همفي",
+      "OBJECT:Crusader": "كروسيدر",
+      "OBJECT:Overlord": "أوفرلورد"
+    },
+    "messages": {
+      "RADAR:UnderAttack": "نتعرض للهجوم",
+      "RADAR:UnitUnderAttack": "وحدة تتعرض للهجوم",
+      "RADAR:StructureUnderAttack": "مبنى يتعرض للهجوم",
+      "RADAR:HarvesterUnderAttack": "جامع الموارد يتعرض للهجوم",
+      "RADAR:Infiltration": "رصدنا تسلل العدو",
+      "DOZER:ConstructionComplete": "اكتمل البناء: {1}",
+      "DOZER:RepairComplete": "اكتمل الإصلاح",
+      "MESSAGE:StealthDiscovered": "كشفنا وحدة متخفية للعدو",
+      "MESSAGE:StealthNeutralized": "تعطلت قدرة التخفي",
+      "GUI:NotEnoughMoneyToBuild": "لا تملك مالا كافيا لبناء هذا",
+      "GUI:NotEnoughMoneyToUpgrade": "لا تملك مالا كافيا لهذه الترقية",
+      "GUI:PlayerNoMap": "الخريطة {2} غير موجودة عند {1}"
+    },
+    "tooltips": {
+      "TOOLTIP:ScienceCost": "التكلفة: {1}",
+      "CONTROLBAR:ToolTipUSABuildCrusader": "قوي ضد: العربات والمباني\nضعيف ضد: الطائرات والمشاة حاملي الصواريخ"
+    }
+  }
+}

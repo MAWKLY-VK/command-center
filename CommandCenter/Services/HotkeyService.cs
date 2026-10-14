@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
@@ -192,7 +192,7 @@ namespace CommandCenter.Services
         }
 
         // The game reads its language from the registry and falls back to English
-        private static string DetectLanguage()
+        internal static string DetectLanguage()
         {
             foreach (var view in new[] { RegistryView.Registry32, RegistryView.Registry64 })
             {
@@ -306,10 +306,7 @@ namespace CommandCenter.Services
             return CsfFile.WithoutHotkey(LabelText(original, KeyFor(label))).Replace("&&", "&");
         }
 
-        private static string LabelText(string original, char key) =>
-            key == CsfFile.HotkeyOf(original) ? original
-            : key == '\0' ? CsfFile.WithoutHotkey(original)
-            : CsfFile.WithHotkey(original, key);
+        private static string LabelText(string original, char key) => CsfFile.WithKey(original, key);
 
         public IssueLevel WorstIssue(HotkeyMenu menu, HotkeyButton button) =>
             ButtonIssues(menu, button).Select(i => i.Level).DefaultIfEmpty(IssueLevel.Ok).Max();
@@ -847,8 +844,13 @@ namespace CommandCenter.Services
 
         internal byte[] BuildCsf()
         {
+            // With the Arabic game text on, a changed button keeps its Arabic name and gets the new key
+            bool arabic = ArabicGameText.IsIn(_csf);
             foreach (var (label, key) in _pendingKeys)
-                _csf.Set(label, LabelText(_originalCsf.Get(label) ?? "", key));
+            {
+                string english = _originalCsf.Get(label) ?? "";
+                _csf.Set(label, (arabic ? ArabicGameText.LabelFor(label, english, key) : null) ?? LabelText(english, key));
+            }
             return _csf.ToBytes();
         }
 

@@ -25,6 +25,7 @@
     <Resource Include="Assets\logo.png" />
     <EmbeddedResource Include="Localization\*.json" Exclude="Localization\pending-*.json" LogicalName="Localization.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Data\game-files.json" LogicalName="GameFiles.json" />
+    <EmbeddedResource Include="Data\game-text-ar.json" LogicalName="GameTextAr.json" />
   </ItemGroup>
 
   <ItemGroup>

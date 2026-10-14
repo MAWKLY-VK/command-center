@@ -114,6 +114,26 @@
                             </StackPanel>
                         </DockPanel>
                     </Border>
+
+                    <!-- The game's own text in Arabic (ArabicGameText) -->
+                    <Border Style="{StaticResource GlassCardStyle}" Padding="18,14" MaxWidth="760" HorizontalAlignment="Left" Margin="0,12,0,0">
+                        <StackPanel>
+                            <DockPanel>
+                                <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="12" Background="#2452D273" Margin="0,0,14,0">
+                                    <c:Icon Kind="monitor" Width="20" Height="20" Foreground="#7BE39A"/>
+                                </Border>
+                                <Button x:Name="btnArabicOn" DockPanel.Dock="Right" Content="{l:T TURN ON}" Style="{StaticResource GoldButtonStyle}"
+                                        MinWidth="90" Margin="10,0,0,0" VerticalAlignment="Center" Click="ArabicOn_Click"/>
+                                <Button x:Name="btnArabicOff" DockPanel.Dock="Right" Content="{l:T TURN OFF}" Style="{StaticResource DiagButtonStyle}"
+                                        Margin="16,0,0,0" VerticalAlignment="Center" Click="ArabicOff_Click"/>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{l:T Game text in Arabic (test)}" FontSize="15" FontWeight="Bold"/>
+                                    <TextBlock x:Name="txtArabicState" Style="{StaticResource HintStyle}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <StackPanel x:Name="panelArabicNotes" Margin="56,10,0,0"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
 
                 <!-- GAME FOLDER: which Zero Hour this launcher plays, and where the game keeps its data -->

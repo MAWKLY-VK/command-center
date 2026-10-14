@@ -58,11 +58,48 @@ namespace CommandCenter.Services
                 label.Strings[0] = (label.Strings[0].Wide, text, label.Strings[0].Extra);
         }
 
+        public bool Contains(string name) => _byName.ContainsKey(name);
+
+        public IEnumerable<string> Labels => _labels.Select(l => l.Name);
+
+        // A label the table does not have yet, at the end (the game sorts the labels itself when it loads them)
+        public void Add(string name, string text)
+        {
+            if (_byName.ContainsKey(name))
+            {
+                Set(name, text);
+                return;
+            }
+            var label = new Label { Name = name };
+            label.Strings.Add((false, text, Array.Empty<byte>()));
+            _labels.Add(label);
+            _byName[name] = label;
+        }
+
+        public bool Remove(string name)
+        {
+            if (!_byName.Remove(name, out var label))
+                return false;
+            _labels.Remove(label);
+            return true;
+        }
+
+        // The label's text with the given button key: the original when that is its own key, else the marker moved
+        // (or added as " (&X)"), or taken away for no key
+        public static string WithKey(string original, char key) =>
+            key == HotkeyOf(original) ? original
+            : key == '\0' ? WithoutHotkey(original)
+            : WithHotkey(original, key);
+
         public byte[] ToBytes()
         {
             using var stream = new MemoryStream();
             using var writer = new BinaryWriter(stream);
-            writer.Write(_header);
+            // The header holds the number of labels and of strings; both change when labels are added or removed
+            byte[] header = (byte[])_header.Clone();
+            BitConverter.GetBytes(_labels.Count).CopyTo(header, 8);
+            BitConverter.GetBytes(_labels.Sum(l => l.Strings.Count)).CopyTo(header, 12);
+            writer.Write(header);
 
             foreach (var label in _labels)
             {
