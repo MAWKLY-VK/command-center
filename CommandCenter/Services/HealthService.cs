@@ -174,6 +174,7 @@ namespace CommandCenter.Services
                 Add(CheckGoSettings);
                 Add(CheckCommunityPatch);
             }
+            Add(CheckArabicGameText);
             Add(CheckDocumentsFolder);
             Add(CheckDataFolderName);
             Add(() => CheckDocumentsPath(game));
@@ -1122,6 +1123,33 @@ namespace CommandCenter.Services
                 Note = LocText.F("{0} belongs in the GeneralsOnlineGameData folder inside the game's Documents folder. Start the game once from the official launcher so it updates itself; if it is still missing, install Generals Online again.", file),
                 GuideLabel = "Show folder",
                 GuideTarget = "select:" + (Directory.Exists(GamePaths.GoGameData) ? GamePaths.GoGameData : GamePaths.UserData),
+            };
+        }
+
+        // Only shown while the Arabic game text is on. It is a copy of the game's table with Arabic in it, so after an
+        // update that changed the game's table, new texts would show as "MISSING" until it is built again.
+        private static HealthResult? CheckArabicGameText()
+        {
+            if (!GamePaths.ZeroHourFound)
+                return null;
+            var files = new GameFiles(GamePaths.Game);
+            string language = HotkeyService.DetectLanguage();
+            return ArabicGameText.Check(files, language) switch
+            {
+                ArabicGameText.State.On => new HealthResult
+                {
+                    Id = "arabictext", Group = GroupSettings, Title = "Arabic game text is on", Status = HealthStatus.Passed,
+                    Detail = LocText.N(ArabicGameText.Translation.Count, "{0} text of the game is in Arabic", "{0} texts of the game are in Arabic"),
+                },
+                ArabicGameText.State.Outdated => new HealthResult
+                {
+                    Id = "arabictext", Group = GroupSettings, Title = "Arabic game text is out of date", Status = HealthStatus.Warning,
+                    Detail = "The game's text changed in an update, so new texts can show as \"MISSING\" in the game until the Arabic text is built again",
+                    FixLabel = "Update",
+                    FixPreview = "Builds the Arabic text again from the game's current text, keeping your hotkeys. Undo puts the previous file back.",
+                    Fix = () => ArabicGameText.Apply(files, language),
+                },
+                _ => null,
             };
         }
 

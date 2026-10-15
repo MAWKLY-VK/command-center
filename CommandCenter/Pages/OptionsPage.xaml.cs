@@ -196,6 +196,7 @@ namespace CommandCenter.Pages
         {
             LoadGameSettings();
             LoadLauncherOptions();
+            _ = ShowArabicGameTextAsync();
         }
 
         private void Tab_Checked(object sender, RoutedEventArgs e)
@@ -806,6 +807,93 @@ namespace CommandCenter.Pages
                 start.ArgumentList.Add(arg);
             System.Diagnostics.Process.Start(start)?.Dispose();
             Application.Current.Shutdown();
+        }
+
+        // ─── Game text in Arabic ─────────────────────────────────────────────────
+
+        private bool _arabicBusy;
+
+        private static (GameFiles Files, string Language)? ArabicTarget() =>
+            GamePaths.ZeroHourFound ? (new GameFiles(GamePaths.Game), HotkeyService.DetectLanguage()) : null;
+
+        private async Task ShowArabicGameTextAsync()
+        {
+            var state = await Task.Run(() =>
+            {
+                try { return ArabicTarget() is { } t ? ArabicGameText.Check(t.Files, t.Language) : ArabicGameText.State.NoGame; }
+                catch { return ArabicGameText.State.NoGame; }
+            });
+            int count = ArabicGameText.Translation.Count;
+            txtArabicState.Text = state switch
+            {
+                ArabicGameText.State.On => Loc.T("On. Start the game to see it."),
+                ArabicGameText.State.Outdated => Loc.T("The game's text changed since it was turned on. Turn it on again to update it."),
+                ArabicGameText.State.GameHasArabic => Loc.T("The game already shows Arabic text."),
+                ArabicGameText.State.NoGame => Loc.T("Zero Hour was not found."),
+                _ => Loc.T("Off: the game's text is in English."),
+            };
+            btnArabicOn.Content = Loc.T(state == ArabicGameText.State.Outdated ? "UPDATE" : "TURN ON");
+            btnArabicOn.Visibility = state is ArabicGameText.State.Off or ArabicGameText.State.Outdated ? Visibility.Visible : Visibility.Collapsed;
+            btnArabicOff.Visibility = state is ArabicGameText.State.On or ArabicGameText.State.Outdated ? Visibility.Visible : Visibility.Collapsed;
+            btnArabicOn.IsEnabled = btnArabicOff.IsEnabled = !_arabicBusy;
+
+            panelArabicNotes.Children.Clear();
+            foreach (string note in new[]
+                     {
+                         Loc.N(count, "{0} text so far: the buttons, unit names, battle messages and menus seen most. More come with updates.",
+                             "{0} texts so far: the buttons, unit names, battle messages and menus seen most. More come with updates."),
+                         Loc.T("Hotkeys keep working: each button shows its key in brackets after the Arabic name."),
+                         Loc.T("Not part of the multiplayer check, so it never causes a mismatch."),
+                         Loc.T("Generals Online's own screens (login, lobby, chat) stay in English, and Arabic player names still show reversed: those are drawn by its program."),
+                     })
+            {
+                panelArabicNotes.Children.Add(new TextBlock { Text = "• " + note, FontSize = 12, Foreground = new SolidColorBrush(Color.FromRgb(0xA8, 0xA8, 0xC8)), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 3) });
+            }
+        }
+
+        private void ArabicOn_Click(object sender, RoutedEventArgs e) => _ = SwitchArabicAsync(on: true);
+
+        private void ArabicOff_Click(object sender, RoutedEventArgs e) => _ = SwitchArabicAsync(on: false);
+
+        private async Task SwitchArabicAsync(bool on)
+        {
+            if (_arabicBusy || ArabicTarget() is not { } target)
+                return;
+            if (GameLauncher.IsGameRunning())
+            {
+                Views.Main.Toast(Loc.T(BackupService.GameRunningMessage), isError: true);
+                return;
+            }
+            _arabicBusy = true;
+            btnArabicOn.IsEnabled = btnArabicOff.IsEnabled = false;
+            try
+            {
+                int count = await Task.Run(() =>
+                {
+                    if (!on)
+                    {
+                        ArabicGameText.Remove(target.Files, target.Language);
+                        return 0;
+                    }
+                    return ArabicGameText.Apply(target.Files, target.Language);
+                });
+                // The hotkey editor reads the table again, Arabic names and all
+                AppState.ForgetHotkeys();
+                if (on)
+                    Views.Main.Toast(Loc.N(count, "The game shows {0} text in Arabic from its next start.", "The game shows {0} texts in Arabic from its next start."),
+                        () => _ = SwitchArabicAsync(on: false));
+                else
+                    Views.Main.Toast(Loc.T("The game's text is in English again from its next start."), () => _ = SwitchArabicAsync(on: true));
+            }
+            catch (Exception ex)
+            {
+                Views.Main.Toast(Loc.T("Something went wrong: {0}", ex.Message), isError: true);
+            }
+            finally
+            {
+                _arabicBusy = false;
+                await ShowArabicGameTextAsync();
+            }
         }
 
         private async void BtnCheckUpdates_Click(object sender, RoutedEventArgs e)
