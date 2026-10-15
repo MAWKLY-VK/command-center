@@ -149,7 +149,9 @@ namespace CommandCenter.Tests
         public void Turning_on_translates_and_keeps_the_game_keys()
         {
             var built = ArabicGameText.Build(Original, CsfFile.Load(Original), out int translated);
-            Assert.Equal(3, translated);
+            // The three game labels, and the labels Generals Online asks for that the game's table lacks
+            Assert.Equal(3 + ArabicGameText.Translation.Added.Count, translated);
+            Assert.All(ArabicGameText.Translation.Added, label => Assert.True(ArabicShaping.HasArabic(built.Get(label))));
             Assert.True(ArabicGameText.IsIn(built));
             Assert.True(ArabicShaping.HasArabic(built.Get("OBJECT:Humvee")));
             Assert.Equal('V', CsfFile.HotkeyOf(built.Get("CONTROLBAR:ConstructAmericaVehicleHumvee")));
