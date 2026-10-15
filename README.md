@@ -16,23 +16,23 @@ Generals Online launcher.
 | Page | What it does |
 | --- | --- |
 | Home | Play, the client version, anti-cheat and which copy of the game is used, the server card (players, lobbies, ping), the last match with its result and Watch, a line when the health check finds something, Live / Test choice, tiles into the tools |
-| Health | A ring with how much of the game passed, then game files (any language edition), original archives checked against Zero Hour 1.04 fingerprints, the anti-cheat and its plugin, wrapper and runtime DLLs, rule-changing archives, "Run as administrator" (error 740), compatibility modes, Visual C++, graphics driver, resolution, the community data patch, network; one-click fixes with Undo. A Common questions tab answers what new players ask most (greyed-out rooms, camera height, dropped connections, anti-cheat, antivirus, GenTool, mismatches, replays, where to get the game) with buttons to the place that fixes it |
+| Health | A ring with how much of the game passed, then game files (any language edition), original archives checked against Zero Hour 1.04 fingerprints, the anti-cheat and its plugin, wrapper and runtime DLLs, rule-changing archives, "Run as administrator" (error 740), compatibility modes, Visual C++, graphics driver, resolution, the community data patch, the Arabic game text when it is on, network; one-click fixes with Undo. A Common questions tab answers what new players ask most (greyed-out rooms, camera height, dropped connections, anti-cheat, antivirus, GenTool, mismatches, replays, where to get the game) with buttons to the place that fixes it |
 | Maps | The online map library and the installed maps as cards with previews, player counts and sizes, filters by player count; install by click or by dropping a `.zip` / folder |
 | Replays | Every match from `Replays` and `ArchivedReplays` with map, players, armies, results and who left when, the selected one in a side panel; watch, keep, rename, copy, delete with Undo; turns the game's own *ArchiveReplays* option on or off |
 | Hotkeys | Unit and building buttons for all 12 armies drawn like the in-game bar, the game keys, and hotkey letters on the button pictures; checks duplicates and clashes before saving |
 | Add-ons | Control Bar Pro from TheSuperHackers in five sizes, checked against pinned SHA-256 hashes, with a before/after slider |
-| Options | Language first, then the game folder (which copy is used, pick another), then the official launcher's sections (camera, chat, input, graphics, social, network with diagnostics of ping, loss, NAT and the servers, data packs, plugins) and Launcher: updates and about |
+| Options | Language first (Command Center's own, and the game's text in Arabic), then the game folder (which copy is used, pick another), then the official launcher's sections (camera, chat, input, graphics, social, network with diagnostics of ping, loss, NAT and the servers, data packs, plugins) and Launcher: updates and about |
 
 ## Ground rules
 
 - Every change is backed up first and can be undone.
 - Fixes move files to a quarantine folder instead of deleting them.
-- Nothing is written into the game folder except what you ask for: hotkey files, control bar archives, fixes and quarantine moves.
+- Nothing is written into the game folder except what you ask for: hotkey files, control bar archives, the Arabic game text, fixes and quarantine moves.
 - Nothing in the game folder, `Options.ini` or `settings.json` is changed while the game is running.
 - Generals Online's `settings.json` and `launcher.json` are only written when you change a setting, and only the settings you changed;
   fields Command Center does not know stay as they are. The anti-cheat choice is never changed for you.
 - No DLL injection, no handles opened to the game process, no changes to Generals Online's program files.
-- Hotkeys and control bars do not take part in the multiplayer check, so they never cause a mismatch.
+- Hotkeys, control bars and the Arabic game text do not take part in the multiplayer check, so they never cause a mismatch.
 - The network diagnostics contact only Generals Online's servers and Cloudflare, and run no speed test. They show your country (read over HTTPS from Cloudflare), not your internet provider, and the copied report hides the last part of your address.
 - A failure that shows no message is written to `errors.log` in Command Center's folder, to attach to a bug report.
 
@@ -52,6 +52,18 @@ Command Center is a companion, not a replacement. It works alongside the General
 Generals Online's program names, the anti-cheat plugin name, the `launcher.json` channel key, which channels start through Easy Anti-Cheat and the service address live in [go-profile.json](go-profile.json). Every copy of Command Center reads it from this repository when it starts and keeps the last good one, so a rename by Generals Online is fixed by editing that file, without a new release. A profile is ignored unless every program is a plain `.exe` name (no folders) and the address is on `playgenerals.online` over https.
 
 Health compares the installed live client with the fingerprint Generals Online publishes for its own update check (`VersionManifest`, a CRC-32 of the whole file); the file is only read.
+
+## Game text in Arabic
+
+Options › Language › Game text in Arabic (a test) puts the game's own text in Arabic: 1594 texts so far, from unit
+names and buttons to descriptions, menus and the online screens Generals Online takes from the game. The translation
+is in [game-text-ar.json](CommandCenter/Data/game-text-ar.json).
+
+- The game draws one letter after another from left to right, so the Arabic is stored with its letters joined and each line reversed; numbers, the values the game fills in and the hotkey keep their places.
+- Turning it on writes `Data\<language>\generals.csf`, always built from the game's own table so the saved hotkeys stay, and `Data\<language>\Language\CommandCenterArabic.ini`, which names Arial for the Arabic letters. Both are backed up and can be undone; turning it off puts the English back.
+- Each button shows its hotkey in brackets after the Arabic name, and the hotkey editor keeps the Arabic names.
+- After a game update changes the game's text, Health offers to build the Arabic again.
+- Generals Online's own screens that its program draws (login, chat commands, parts of friends and matchmaking) stay in English, and Arabic player names still show reversed.
 
 ## Build
 
@@ -109,6 +121,7 @@ Copyright (C) 2026 Command Center contributors.
 
 - The interface, the Options page and the network diagnostics are based on the [Generals Online Launcher](https://github.com/GeneralsOnlineDevelopmentTeam/Launcher) by the GeneralsOnline Development Team (GPL-3.0).
 - Control Bar Pro: [TheSuperHackers/GeneralsControlBar](https://github.com/TheSuperHackers/GeneralsControlBar) (MIT).
+- The Arabic game text used the community patch's Arabic, [TheSuperHackers/GeneralsGamePatch](https://github.com/TheSuperHackers/GeneralsGamePatch) (GPL-3.0), as a reference.
 - The program icon is the Generals Online launcher icon (GPL-3.0), recoloured red and without its lettering (`toolsmake-icon.ps1`).
 - Map previews, icons and artwork are read at run time from the player's own game and Steam installation.
 

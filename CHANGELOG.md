@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0
+
+- Options › Language can show the game itself in Arabic (a test): 1594 texts so far, among them the names of units, buildings, upgrades and general powers, the buttons, battle messages, menus and options, the score screen, what each unit and building does, the ranks and the online screens Generals Online takes from the game. It is Modern Standard Arabic worded the way Syrian dubbing does. Turn on and Turn off can both be undone.
+- The game draws one letter after another from left to right, so the Arabic is stored with its letters joined and each line reversed. Numbers, the values the game fills in and the hotkey keep their places, and long text is broken into lines no wider than the English. A small `Language\CommandCenterArabic.ini` lets the game draw the Arabic letters with Arial, which every Windows has.
+- Hotkeys keep working: each button shows its key in brackets after the Arabic name, and saving hotkeys keeps the Arabic names.
+- The Arabic is always built from the game's own text table, so an update's new texts come through and saved hotkeys stay. Health says when a game update changed the game's text and builds the Arabic again with one click.
+- The game's text is not part of the multiplayer check, so the Arabic never causes a mismatch.
+- Still in English: the screens Generals Online draws itself (login, chat commands, parts of friends and matchmaking), and Arabic player names still show reversed. The old online service, the campaign and the challenge generals' biographies stay in English, as Generals Online players do not see them.
+- Tests check every translation: its values land where the English has them and "%%" stays after its value, and on a PC with the game installed, that the game still has every English text that is translated.
+
 ## 0.3.3
 
 - Health has a Common questions tab with what new players ask most in the Generals Online help channels: greyed-out rooms, the camera height in other players' rooms, dropped connections and slow loading, a game that does not start, antivirus, GenTool, mismatches, replays, where to get the game and where to ask for help. Each answer has buttons to the place that fixes it.
