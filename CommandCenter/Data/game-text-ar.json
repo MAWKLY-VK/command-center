@@ -809,6 +809,7 @@
       "GUI:SurrenderConfirmation": "هل أنت متأكد من الاستسلام؟"
     },
     "messages": {
+      "Mouse:SetRallyPoint": "تحديد نقطة التجمع",
       "RADAR:UnderAttack": "نتعرض للهجوم",
       "RADAR:UnitUnderAttack": "وحدة تتعرض للهجوم",
       "RADAR:StructureUnderAttack": "مبنى يتعرض للهجوم",

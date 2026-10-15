@@ -121,7 +121,8 @@ namespace CommandCenter.Services
         private static readonly Regex Units = new(
             @"(?<ltr>" + Token +
             @"|&[A-Za-z0-9]" +
-            @"|[A-Za-z0-9](?:[A-Za-z0-9&._:'/+\-]*[A-Za-z0-9%])?)" +
+            // a Latin word or number, with a percent sign after it ("25%") unless that sign starts "%%" or a token
+            @"|[A-Za-z0-9](?:[A-Za-z0-9&._:'/+\-]*[A-Za-z0-9])?(?:%(?![%\-+#0-9.hlIdiucsSf]))?)" +
             @"|(?<rtl>[؀-ۿﭐ-﷿ﹰ-﻿]+)" +
             @"|(?<n>.)",
             RegexOptions.Compiled | RegexOptions.Singleline);
@@ -131,6 +132,10 @@ namespace CommandCenter.Services
         // The printf tokens in the order the game fills them in (left to right in the stored text); "%%" is not one
         public static List<string> Tokens(string text) =>
             PrintfToken.Matches(text).Select(m => m.Value).Where(t => t != "%%").ToList();
+
+        // Tokens and "%%" together, in order: a "%%" moved in front of a token would turn that token into plain text
+        public static List<string> PercentSequence(string text) =>
+            PrintfToken.Matches(text).Select(m => m.Value).ToList();
 
         private static readonly Dictionary<char, char> Mirror = new()
         {

@@ -117,7 +117,9 @@ namespace CommandCenter.Services
             var order = Marker.Matches(visual).Select(m => int.Parse(m.Groups[1].Value)).ToList();
             if (!order.SequenceEqual(Enumerable.Range(1, tokens.Count)))
                 return null;
-            return Marker.Replace(visual, m => tokens[int.Parse(m.Groups[1].Value) - 1]);
+            string result = Marker.Replace(visual, m => tokens[int.Parse(m.Groups[1].Value) - 1]);
+            // "%%" has to stay where the English has it among the values, or the game prints "%.0f" as text
+            return ArabicShaping.PercentSequence(result).SequenceEqual(ArabicShaping.PercentSequence(english)) ? result : null;
         }
 
         // How wide a line may be: as wide as the widest line of the English text when it has several, the width of a

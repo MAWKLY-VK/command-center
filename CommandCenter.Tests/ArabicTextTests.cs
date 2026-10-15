@@ -79,6 +79,15 @@ namespace CommandCenter.Tests
             Assert.Null(ArabicGameText.Visual("%ls does not have the map %ls", "لا يملك {1} الخريطة {2}", '\0'));
         }
 
+        // Seen in the game: "%%" came out in front of "%.0f", so the progress showed "%.0f" instead of a number
+        [Fact]
+        public void A_percent_sign_stays_after_its_value()
+        {
+            string visual = ArabicGameText.Visual("Building: %.0f%%", "البناء: {1}%%", '\0')!;
+            Assert.StartsWith("%.0f%% :", visual);
+            Assert.Equal(new[] { "%.0f", "%%" }, ArabicShaping.PercentSequence(visual));
+        }
+
         [Theory]
         [InlineData("Cost: %d", "التكلفة: %d")]
         [InlineData("Cost: %d", "التكلفة")]
