@@ -823,7 +823,7 @@ namespace CommandCenter.Pages
                 try { return ArabicTarget() is { } t ? ArabicGameText.Check(t.Files, t.Language) : ArabicGameText.State.NoGame; }
                 catch { return ArabicGameText.State.NoGame; }
             });
-            int count = ArabicGameText.Translation.Text.Count;
+            int count = ArabicGameText.Translation.Count;
             txtArabicState.Text = state switch
             {
                 ArabicGameText.State.On => Loc.T("On. Start the game to see it."),

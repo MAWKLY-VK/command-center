@@ -1139,7 +1139,7 @@ namespace CommandCenter.Services
                 ArabicGameText.State.On => new HealthResult
                 {
                     Id = "arabictext", Group = GroupSettings, Title = "Arabic game text is on", Status = HealthStatus.Passed,
-                    Detail = LocText.N(ArabicGameText.Translation.Text.Count, "{0} text of the game is in Arabic", "{0} texts of the game are in Arabic"),
+                    Detail = LocText.N(ArabicGameText.Translation.Count, "{0} text of the game is in Arabic", "{0} texts of the game are in Arabic"),
                 },
                 ArabicGameText.State.Outdated => new HealthResult
                 {

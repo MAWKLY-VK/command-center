@@ -195,6 +195,10 @@ namespace CommandCenter.Tests
     {
         private static readonly System.Text.RegularExpressions.Regex Placeholder = new(@"\{(\d+)\}");
 
+        private static IEnumerable<(string Key, string Arabic)> AllTexts() =>
+            ArabicGameText.Translation.Text.Select(t => (t.Key, t.Value))
+                .Concat(ArabicGameText.Translation.ByEnglish.Select(t => ("\"" + t.Key + "\"", t.Value)));
+
         [Fact]
         public void Every_text_follows_the_rules()
         {
@@ -203,6 +207,9 @@ namespace CommandCenter.Tests
             {
                 if (!label.Contains(':'))
                     wrong.Add($"{label}: not a game label");
+            }
+            foreach (var (label, arabic) in AllTexts())
+            {
                 if (ArabicShaping.Normalize(arabic) != arabic)
                     wrong.Add($"{label}: harakat, tatweel, Persian letters or Arabic-Indic digits");
                 if (arabic.Contains('&'))
@@ -236,6 +243,14 @@ namespace CommandCenter.Tests
                     wrong.Add($"{label}: not in the game");
                 else if (ArabicGameText.Visual(english ?? "", arabic, CsfFile.HotkeyOf(english)) == null)
                     wrong.Add($"{label}: values out of place or missing");
+            }
+            var texts = table.Labels.Select(l => table.Get(l)).OfType<string>().ToHashSet(StringComparer.Ordinal);
+            foreach (var (english, arabic) in ArabicGameText.Translation.ByEnglish)
+            {
+                if (!texts.Contains(english))
+                    wrong.Add($"\"{english}\": no label has this English text");
+                else if (ArabicGameText.Visual(english, arabic, CsfFile.HotkeyOf(english)) == null)
+                    wrong.Add($"\"{english}\": values out of place or missing");
             }
             Assert.True(wrong.Count == 0, string.Join("\n", wrong));
         }

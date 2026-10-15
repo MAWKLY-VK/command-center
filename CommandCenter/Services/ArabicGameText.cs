@@ -41,10 +41,23 @@ namespace CommandCenter.Services
         public sealed class Table
         {
             public int Version { get; init; }
+
+            // By label, for one place in the game
             public Dictionary<string, string> Text { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+
+            // By the game's English text, for every label with exactly that text: a unit's name reads the same for
+            // every general and in every menu
+            public Dictionary<string, string> ByEnglish { get; init; } = new(StringComparer.Ordinal);
 
             // Labels Generals Online asks for but the game's table does not have (it shows its own English then)
             public HashSet<string> Added { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+
+            public int Count => Text.Count + ByEnglish.Count;
+
+            public string? ArabicFor(string label, string? english) =>
+                Text.TryGetValue(label, out var arabic) ? arabic
+                : english != null && ByEnglish.TryGetValue(english, out arabic) ? arabic
+                : null;
         }
 
         private static readonly Lazy<Table> _translation = new(() =>
@@ -64,6 +77,10 @@ namespace CommandCenter.Services
             foreach (var group in root.GetProperty("text").EnumerateObject())
                 foreach (var entry in group.Value.EnumerateObject())
                     table.Text[entry.Name] = entry.Value.GetString() ?? "";
+            if (root.TryGetProperty("byEnglish", out var byEnglish))
+                foreach (var group in byEnglish.EnumerateObject())
+                    foreach (var entry in group.Value.EnumerateObject())
+                        table.ByEnglish[entry.Name] = entry.Value.GetString() ?? "";
             if (root.TryGetProperty("added", out var added))
                 foreach (var label in added.EnumerateArray())
                     table.Added.Add(label.GetString() ?? "");
@@ -75,7 +92,7 @@ namespace CommandCenter.Services
         // The Arabic text the game should get for a label, with its button key; null when the label stays English
         // (no translation, or one whose values would be filled in the wrong places)
         public static string? LabelFor(string label, string english, char key) =>
-            Translation.Text.TryGetValue(label, out var arabic) ? Visual(english, arabic, key) : null;
+            Translation.ArabicFor(label, english) is { } arabic ? Visual(english, arabic, key) : null;
 
         // The values the game fills in (%d, %ls...) are written {1}, {2}... in the translation, numbered in the order of
         // the English. The game fills them in from left to right in the stored text, and a line is stored reversed, so
@@ -151,10 +168,11 @@ namespace CommandCenter.Services
             translated = 0;
             if (!arabic)
                 return result;
-            foreach (var (label, translation) in Translation.Text)
+            var labels = game.Labels.Concat(Translation.Added.Where(l => !game.Contains(l))).ToList();
+            foreach (string label in labels)
             {
                 string? english = game.Get(label);
-                if (english == null && !Translation.Added.Contains(label))
+                if (Translation.ArabicFor(label, english) is not { } translation)
                     continue;
                 char key = english == null ? '\0' : CsfFile.HotkeyOf(result.Get(label));
                 if (Visual(english ?? "", translation, key) is not { } text)
