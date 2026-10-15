@@ -101,7 +101,9 @@
                 <!-- LANGUAGE: Command Center's own interface language -->
                 <StackPanel x:Name="PanelLanguage" Visibility="Visible">
                     <TextBlock Text="{l:T LANGUAGE}" Style="{StaticResource SectionHeaderStyle}"/>
-                    <Border Style="{StaticResource GlassCardStyle}" Padding="18,14" MaxWidth="760" HorizontalAlignment="Left">
+                    <!-- Both cards as wide as the wider one -->
+                    <StackPanel MaxWidth="760" HorizontalAlignment="Left">
+                    <Border Style="{StaticResource GlassCardStyle}" Padding="18,14">
                         <DockPanel>
                             <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="12" Background="#29B07AFF" Margin="0,0,14,0">
                                 <c:Icon Kind="globe" Width="20" Height="20" Foreground="#C3A0FF"/>
@@ -116,7 +118,7 @@
                     </Border>
 
                     <!-- The game's own text in Arabic (ArabicGameText) -->
-                    <Border Style="{StaticResource GlassCardStyle}" Padding="18,14" MaxWidth="760" HorizontalAlignment="Left" Margin="0,12,0,0">
+                    <Border Style="{StaticResource GlassCardStyle}" Padding="18,14" Margin="0,12,0,0">
                         <StackPanel>
                             <DockPanel>
                                 <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="12" Background="#2452D273" Margin="0,0,14,0">
@@ -134,6 +136,7 @@
                             <StackPanel x:Name="panelArabicNotes" Margin="56,10,0,0"/>
                         </StackPanel>
                     </Border>
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- GAME FOLDER: which Zero Hour this launcher plays, and where the game keeps its data -->
