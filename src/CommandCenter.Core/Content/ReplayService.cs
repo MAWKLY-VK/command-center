@@ -558,12 +558,7 @@ namespace CommandCenter.Core.Content
                 relative = Path.Combine("CommandCenter", "watch.rep");
             }
 
-            var info = new ProcessStartInfo(Path.Combine(GamePaths.Game, GamePaths.GameExe), $"-replay \"{relative}\"")
-            {
-                WorkingDirectory = GamePaths.Game,
-                UseShellExecute = false,
-            };
-            Process.Start(info)?.Dispose();
+            ProcessRunner.Start(new StartRequest(StartKind.InGameFolder, GamePaths.GameExe, ["-replay", relative]))?.Dispose();
         }
 
         public static string Rename(ReplayEntry replay, string newName)

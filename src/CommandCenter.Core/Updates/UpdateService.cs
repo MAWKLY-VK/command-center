@@ -232,14 +232,10 @@ namespace CommandCenter.Core.Updates
         public static void Restart() =>
             OperationLog.Record("restart", Environment.ProcessPath ?? "", "After the update", () =>
             {
-                var (exe, _, _) = Files();
-                var start = new ProcessStartInfo(exe) { UseShellExecute = false, WorkingDirectory = Environment.CurrentDirectory };
                 // The test switch is not passed on, so a wrong manifest cannot cause an update loop. The new copy waits for
                 // this one to close before it takes the single-copy lock.
                 var args = Environment.GetCommandLineArgs().Skip(1).Where(a => !a.Equals("--update-auto", StringComparison.OrdinalIgnoreCase));
-                foreach (string arg in SingleInstance.ArgumentsForRestart(args))
-                    start.ArgumentList.Add(arg);
-                Process.Start(start)?.Dispose();
+                ProcessRunner.Start(new StartRequest(StartKind.Restart, "", SingleInstance.ArgumentsForRestart(args)))?.Dispose();
             });
 
         // Removes the copy an earlier update moved aside. That program may still be closing, so this keeps trying for a while.

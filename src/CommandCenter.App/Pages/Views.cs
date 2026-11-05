@@ -92,9 +92,9 @@ namespace CommandCenter.Pages
             try
             {
                 if (File.Exists(path))
-                    Process.Start("explorer.exe", $"/select,\"{path}\"")?.Dispose();
+                    ProcessRunner.Start(new StartRequest(StartKind.ShowInFolder, path))?.Dispose();
                 else if (Directory.Exists(path))
-                    Process.Start("explorer.exe", $"\"{path}\"")?.Dispose();
+                    ProcessRunner.Start(new StartRequest(StartKind.OpenFolder, path))?.Dispose();
             }
             catch { }
         }
@@ -123,11 +123,11 @@ namespace CommandCenter.Pages
             try
             {
                 if (target == "firewall")
-                    Process.Start(new ProcessStartInfo("control.exe", "firewall.cpl") { UseShellExecute = true })?.Dispose();
+                    ProcessRunner.Start(new StartRequest(StartKind.FirewallSettings))?.Dispose();
                 else if (target.StartsWith("select:"))
                     ShowInFolder(target[7..]);
                 else
-                    Process.Start(new ProcessStartInfo(target) { UseShellExecute = true })?.Dispose();
+                    ProcessRunner.Start(new StartRequest(StartKind.Shell, target))?.Dispose();
             }
             catch (Exception ex)
             {
