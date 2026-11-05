@@ -170,15 +170,15 @@ namespace CommandCenter.Pages
             int before = BackupService.Load().Count;
             try
             {
-                OperationLog.Record("fix", result.Id, result.Title.ToString(), result.Fix!);
+                OperationLog.Record("fix", result.Id, result.Title, result.Fix!);
             }
             catch (Exception ex)
             {
-                Main.Toast($"{result.Title.Localized}: {ex.Message}", isError: true);
+                Main.Toast($"{result.Title}: {ex.Message}", isError: true);
                 return;
             }
             var made = BackupService.Load().Skip(before).ToList();
-            Main.Toast(Loc.T("Fixed: {0}", result.Title.Localized), made.Count == 0 ? null : () =>
+            Main.Toast(Loc.T("Fixed: {0}", result.Title), made.Count == 0 ? null : () =>
             {
                 foreach (var entry in Enumerable.Reverse(made))
                     BackupService.Undo(entry);

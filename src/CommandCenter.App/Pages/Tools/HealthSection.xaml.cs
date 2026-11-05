@@ -225,7 +225,7 @@ namespace CommandCenter.Pages.Tools
 
             var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             text.Children.Add(new TextBlock { Text = Plain(result.Title), FontSize = 14, FontWeight = FontWeights.Bold, TextWrapping = TextWrapping.Wrap });
-            if (!result.Detail.IsEmpty)
+            if (result.Detail.Length > 0)
                 text.Children.Add(new TextBlock { Text = Plain(result.Detail), FontSize = 12, Foreground = DetailBrush, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
             if (result.Note != null)
                 text.Children.Add(new TextBlock { Text = Plain(result.Note), FontSize = 11.5, Foreground = Views.Hint, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
@@ -404,7 +404,7 @@ namespace CommandCenter.Pages.Tools
             foreach (var result in real)
             {
                 try { result.Fix!(); }
-                catch (Exception ex) { failed.Add($"{result.Title.Localized}: {ex.Message}"); }
+                catch (Exception ex) { failed.Add($"{result.Title}: {ex.Message}"); }
             }
             var made = BackupService.Load().Skip(before).ToList();
             // A fix can change the game's text table, which the hotkey editor reads
@@ -647,10 +647,7 @@ namespace CommandCenter.Pages.Tools
         private static string Upper(string text) => text.ToUpperInvariant();
 
         // Check results are written in English; in right-to-left mode they are kept in their own reading order
-        // A check's text in the player's language
-        private static string Plain(LocText? text) => text == null ? "" : Plain(text.Localized);
-
-        private static string Plain(string text) =>
-            Loc.IsRightToLeft && !text.Any(c => c is >= '؀' and <= 'ۿ') ? Loc.Ltr(text) : text;
+        private static string Plain(string? text) =>
+            text == null ? "" : Loc.IsRightToLeft && !text.Any(c => c is >= '؀' and <= 'ۿ') ? Loc.Ltr(text) : text;
     }
 }

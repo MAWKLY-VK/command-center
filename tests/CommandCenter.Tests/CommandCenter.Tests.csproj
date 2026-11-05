@@ -35,6 +35,7 @@
     <Using Include="CommandCenter.Core.Net" />
     <Using Include="CommandCenter.Core.Safety" />
     <Using Include="CommandCenter.Core.Settings" />
+    <Using Include="CommandCenter.Core.Text" />
     <Using Include="CommandCenter.Core.Updates" />
   </ItemGroup>
 
