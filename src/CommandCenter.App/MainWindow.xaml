@@ -191,7 +191,11 @@
                 <DropShadowEffect BlurRadius="30" ShadowDepth="10" Opacity="0.55" Color="Black"/>
             </Border.Effect>
             <StackPanel Orientation="Horizontal">
-                <TextBlock x:Name="ToastText" Foreground="White" FontSize="13" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="480"/>
+                <StackPanel VerticalAlignment="Center" MaxWidth="480">
+                    <!-- Only the one-time English-only notice has an Arabic paragraph -->
+                    <TextBlock x:Name="ToastArabic" Style="{StaticResource ToastArabicStyle}" Visibility="Collapsed"/>
+                    <TextBlock x:Name="ToastText" Foreground="White" FontSize="13" TextWrapping="Wrap"/>
+                </StackPanel>
                 <Button x:Name="ToastAction" Style="{StaticResource SmallButtonStyle}" Margin="14,0,0,0" Content="UNDO"
                         Click="ToastAction_Click" Visibility="Collapsed"/>
                 <Button Style="{StaticResource ChromeButtonStyle}" Width="28" Height="28" Margin="6,0,0,0" Click="ToastClose_Click"

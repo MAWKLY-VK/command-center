@@ -195,6 +195,124 @@ namespace CommandCenter.Tests
             Assert.Equal(changes.Count, BackupService.Load().Count);
         }
 
+        // ── The one-time step at the first start ──
+
+        private static AppSettings Settings(string? language = "en") => new() { Language = language };
+
+        private static System.Text.Json.JsonElement SavedSettings() =>
+            System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(GamePaths.AppData, "settings.json"))).RootElement;
+
+        [Fact]
+        public void The_step_runs_once_and_clears_the_old_language()
+        {
+            using var game = NewGame();
+            TurnedOn(game, "English", humveeKey: 'H');
+            var settings = Settings("ar");
+
+            var result = ArabicGameTextRemoval.RunOnce(settings, windowsArabic: false);
+
+            Assert.Equal(2, result?.Changes.Count);
+            Assert.Empty(ArabicGameTextRemoval.Find(game.Game));
+            Assert.True(SavedSettings().GetProperty("EnglishOnlyStepDone").GetBoolean());
+            Assert.Equal(System.Text.Json.JsonValueKind.Null, SavedSettings().GetProperty("Language").ValueKind);
+            // Arabic game text that turns up later is left to Health
+            TurnedOn(game, "German");
+            Assert.Null(ArabicGameTextRemoval.RunOnce(settings, windowsArabic: false));
+            Assert.Equal(ArabicTable(), File.ReadAllBytes(Table(game, "German")));
+        }
+
+        [Fact]
+        public void The_step_waits_while_the_game_runs_and_runs_at_the_next_start()
+        {
+            using var game = NewGame();
+            TurnedOn(game, "English", humveeKey: 'H');
+            var settings = Settings();
+
+            using (new GameRunning())
+                Assert.Null(ArabicGameTextRemoval.RunOnce(settings, windowsArabic: false));
+
+            Assert.Equal(ArabicTable('H'), File.ReadAllBytes(Table(game, "English")));
+            Assert.False(settings.EnglishOnlyStepDone);
+            Assert.NotNull(ArabicGameTextRemoval.RunOnce(settings, windowsArabic: false));
+            Assert.Empty(ArabicGameTextRemoval.Find(game.Game));
+        }
+
+        [Fact]
+        public void A_step_that_fails_is_not_recorded()
+        {
+            using var game = NewGame();
+            TurnedOn(game, "English", humveeKey: 'H');
+            var settings = Settings();
+
+            using (new FileStream(Font(game, "English"), FileMode.Open, FileAccess.Read, FileShare.Read))
+                Assert.ThrowsAny<IOException>(() => ArabicGameTextRemoval.RunOnce(settings, windowsArabic: false));
+
+            Assert.False(settings.EnglishOnlyStepDone);
+            Assert.False(File.Exists(Path.Combine(GamePaths.AppData, "settings.json")));
+            Assert.Equal(ArabicTable('H'), File.ReadAllBytes(Table(game, "English")));
+        }
+
+        [Fact]
+        public void After_undo_the_step_is_not_redone()
+        {
+            using var game = NewGame();
+            TurnedOn(game, "English", humveeKey: 'H');
+            var settings = Settings();
+            var result = ArabicGameTextRemoval.RunOnce(settings, windowsArabic: false)!;
+            Assert.True(ArabicGameTextRemoval.TryUndo(result.Changes, out string reason), reason);
+
+            Assert.Null(ArabicGameTextRemoval.RunOnce(settings, windowsArabic: false));
+
+            Assert.Equal(ArabicTable('H'), File.ReadAllBytes(Table(game, "English")));
+        }
+
+        [Theory]
+        // The saved language, Windows' display language in Arabic, 0.4.0's Arabic game text in the game -> notice
+        [InlineData("en", false, false, false)]
+        [InlineData("en", true, false, false)]
+        [InlineData("ar", false, false, true)]
+        [InlineData(null, true, false, true)]
+        [InlineData(null, false, false, false)]
+        [InlineData("fr", true, false, true)]
+        [InlineData("en", false, true, true)]
+        public void The_notice_is_due_after_an_arabic_interface_or_changed_files(string? language, bool windowsArabic, bool arabicGameText, bool due)
+        {
+            using var game = NewGame();
+            if (arabicGameText)
+                TurnedOn(game, "English");
+
+            Assert.Equal(due, ArabicGameTextRemoval.RunOnce(Settings(language), windowsArabic)?.NoticeDue);
+        }
+
+        [Fact]
+        public void Without_a_game_folder_the_step_still_completes()
+        {
+            using var game = NewGame();
+            GamePaths.Game = "";
+
+            var result = ArabicGameTextRemoval.RunOnce(Settings("ar"), windowsArabic: false);
+
+            Assert.Empty(result!.Changes);
+            Assert.True(result.NoticeDue);
+        }
+
+        // ── Health ──
+
+        [Fact]
+        public void Health_warns_while_arabic_game_text_is_left_and_its_fix_removes_it()
+        {
+            using var game = NewGame();
+            Assert.Null(HealthService.CheckArabicGameText());
+            TurnedOn(game, "German");
+
+            var warning = HealthService.CheckArabicGameText();
+
+            Assert.Equal(HealthStatus.Warning, warning?.Status);
+            warning!.Fix!();
+            Assert.Empty(ArabicGameTextRemoval.Find(game.Game));
+            Assert.Null(HealthService.CheckArabicGameText());
+        }
+
         [Fact]
         public void A_table_with_nothing_else_left_goes_to_quarantine_so_the_game_reads_its_own()
         {

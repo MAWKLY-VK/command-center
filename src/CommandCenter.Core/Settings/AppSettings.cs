@@ -12,6 +12,9 @@ namespace CommandCenter.Core.Settings
         // "en" or "ar"; empty means English unless Windows is in Arabic
         public string? Language { get; set; }
 
+        // True once the one-time step of the English-only version has run (ArabicGameTextRemoval.RunOnce)
+        public bool EnglishOnlyStepDone { get; set; }
+
         // Hotkey letters drawn on the unit and building pictures in the game (IconLettersService)
         public bool IconLetters { get; set; }
 

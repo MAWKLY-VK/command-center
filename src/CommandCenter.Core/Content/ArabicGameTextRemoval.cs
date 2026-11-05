@@ -103,6 +103,46 @@ namespace CommandCenter.Core.Content
             }
         }
 
+        // What the one-time step did: the changes, for Undo, and whether the notice is due
+        public sealed record StepResult(List<BackupEntry> Changes, bool NoticeDue);
+
+        // The one-time step, at the first start of a version without the Arabic game text: removes it from the game and
+        // clears 0.4.0's interface language. Returns null when it does not run: it ran before (an Undo does not bring
+        // it back), or the game is running, and then it runs at the next start. A failure is thrown and not recorded,
+        // so the step runs again at the next start too.
+        public static StepResult? RunOnce(AppSettings settings, bool windowsArabic)
+        {
+            if (settings.EnglishOnlyStepDone || GameLauncher.IsGameRunning())
+                return null;
+            string game = GamePaths.ZeroHourFound ? GamePaths.Game : "";
+            List<BackupEntry> changes;
+            try
+            {
+                changes = game.Length > 0 ? Remove(game) : new List<BackupEntry>();
+            }
+            catch (Exception ex)
+            {
+                OperationLog.Failed("english-only step", game, ex.Message);
+                throw;
+            }
+            bool arabicInterface = ShowedArabic(settings.Language, windowsArabic);
+            settings.EnglishOnlyStepDone = true;
+            settings.Language = null;
+            settings.Save();
+            OperationLog.Done("english-only step", game,
+                (changes.Count == 0 ? "No Arabic game text" : $"{changes.Count} files changed") + (arabicInterface ? " · the interface was Arabic" : ""));
+            return new StepResult(changes, changes.Count > 0 || arabicInterface);
+        }
+
+        // 0.4.0 showed its interface in Arabic when the saved language was Arabic, or when no language it knew was saved
+        // and Windows' display language is Arabic (the rule of 0.4.0's Loc.Init)
+        private static bool ShowedArabic(string? saved, bool windowsArabic)
+        {
+            string code = (saved ?? "").Trim().ToLowerInvariant();
+            code = code.Length > 2 ? code[..2] : code;
+            return code is "en" or "ar" ? code == "ar" : windowsArabic;
+        }
+
         // Undoes all the changes, or none of them: false, with the reason, while the game runs or when a file changed
         // since (for example, hotkeys were saved after the removal)
         public static bool TryUndo(IReadOnlyList<BackupEntry> changes, out string reason)

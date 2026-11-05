@@ -1126,30 +1126,19 @@ namespace CommandCenter.Core.Integrity
             };
         }
 
-        // Only shown while the Arabic game text is on. It is a copy of the game's table with Arabic in it, so after an
-        // update that changed the game's table, new texts would show as "MISSING" until it is built again.
-        private static HealthResult? CheckArabicGameText()
+        // 0.4.0's Arabic game text, still in the game: the player undid the one-time removal, or it could not run. Its
+        // table is a copy of an older game table, so after a game update new texts would show as "MISSING".
+        internal static HealthResult? CheckArabicGameText()
         {
-            if (!GamePaths.ZeroHourFound)
+            if (!GamePaths.ZeroHourFound || ArabicGameTextRemoval.Find(GamePaths.Game).Count == 0)
                 return null;
-            var files = new GameFiles(GamePaths.Game);
-            string language = HotkeyService.DetectLanguage();
-            return ArabicGameText.Check(files, language) switch
+            return new HealthResult
             {
-                ArabicGameText.State.On => new HealthResult
-                {
-                    Id = "arabictext", Group = GroupSettings, Title = "Arabic game text is on", Status = HealthStatus.Passed,
-                    Detail = LocText.N(ArabicGameText.Translation.Count, "{0} text of the game is in Arabic", "{0} texts of the game are in Arabic"),
-                },
-                ArabicGameText.State.Outdated => new HealthResult
-                {
-                    Id = "arabictext", Group = GroupSettings, Title = "Arabic game text is out of date", Status = HealthStatus.Warning,
-                    Detail = "The game's text changed in an update, so new texts can show as \"MISSING\" in the game until the Arabic text is built again",
-                    FixLabel = "Update",
-                    FixPreview = "Builds the Arabic text again from the game's current text, keeping your hotkeys. Undo puts the previous file back.",
-                    Fix = () => ArabicGameText.Apply(files, language),
-                },
-                _ => null,
+                Id = "arabictext", Group = GroupSettings, Title = "Arabic game text from an older version", Status = HealthStatus.Warning,
+                Detail = "Command Center no longer has the Arabic game text, and after a game update new texts can show as \"MISSING\" in the game",
+                FixLabel = "Remove",
+                FixPreview = "Puts the game's English text back, keeping your saved hotkeys, and moves CommandCenterArabic.ini to quarantine. Undo puts them back.",
+                Fix = () => ArabicGameTextRemoval.Remove(GamePaths.Game),
             };
         }
 
