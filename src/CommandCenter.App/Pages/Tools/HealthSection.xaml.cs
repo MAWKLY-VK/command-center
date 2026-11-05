@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -27,9 +28,9 @@ namespace CommandCenter.Pages.Tools
         public HealthSection()
         {
             InitializeComponent();
-            TabChecks.Content = Loc.T("CHECKS");
-            TabQuestions.Content = Loc.T("COMMON QUESTIONS");
-            CheckButton.ToolTip = Loc.T("Runs every check again. Nothing is changed.");
+            TabChecks.Content = "CHECKS";
+            TabQuestions.Content = "COMMON QUESTIONS";
+            CheckButton.ToolTip = "Runs every check again. Nothing is changed.";
             AppState.HealthChanged += () => Dispatcher.Invoke(ShowResults);
             BackupService.Changed += () => Dispatcher.BeginInvoke(QueueHistory);
             _clock.Tick += (_, _) => ShowCheckedAt();
@@ -90,41 +91,40 @@ namespace CommandCenter.Pages.Tools
 
             if (!ready)
             {
-                Summary.Text = Loc.T("Checking your game…");
+                Summary.Text = "Checking your game…";
             }
             else if (issues == 0)
             {
-                Summary.Text = Loc.N(all.Count, "{0} check passed. Check again after installing mods or patches.",
-                    "All {0} checks passed. Check again after installing mods or patches.");
+                Summary.Text = English.Plural(all.Count, "{0} check passed. Check again after installing mods or patches.", "All {0} checks passed. Check again after installing mods or patches.");
             }
             else
             {
                 var found = new List<string>();
                 if (problems.Count > 0)
-                    found.Add(Loc.N(problems.Count, "{0} problem", "{0} problems"));
+                    found.Add(English.Plural(problems.Count, "{0} problem", "{0} problems"));
                 if (warnings.Count > 0)
-                    found.Add(Loc.N(warnings.Count, "{0} warning", "{0} warnings"));
-                Summary.Text = Loc.T("{0} found.", Loc.List(found)) + " " + Loc.T("Nothing changes until you press a button, and every fix can be undone.");
+                    found.Add(English.Plural(warnings.Count, "{0} warning", "{0} warnings"));
+                Summary.Text = string.Format("{0} found.", English.List(found)) + " Nothing changes until you press a button, and every fix can be undone.";
             }
 
             var fixable = problems.Concat(warnings).Where(h => h.Fix != null).ToList();
-            FixAllText.Text = Loc.T("FIX ALL ({0})", fixable.Count);
+            FixAllText.Text = string.Format("FIX ALL ({0})", fixable.Count);
             FixAllButton.Visibility = fixable.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-            FixAllButton.ToolTip = fixable.Count > 0 ? string.Join("\n", fixable.Select(f => "• " + Plain(f.FixPreview ?? f.Title))) : null;
+            FixAllButton.ToolTip = fixable.Count > 0 ? string.Join("\n", fixable.Select(f => "• " + (f.FixPreview ?? f.Title))) : null;
 
             ShowRing(ready, passed.Count, warnings.Count, problems.Count);
 
             ChecksList.Children.Clear();
             if (!ready)
             {
-                ChecksList.Children.Add(Message(Loc.T("Checking game files, Windows, settings and network…")));
+                ChecksList.Children.Add(Message("Checking game files, Windows, settings and network…"));
             }
             else
             {
-                AddIssues(Loc.T("Problems"), problems);
-                AddIssues(Loc.T("Warnings"), warnings);
+                AddIssues("Problems", problems);
+                AddIssues("Warnings", warnings);
                 foreach (var group in passed.GroupBy(p => p.Group))
-                    AddPassed(Loc.T(group.Key), group.ToList());
+                    AddPassed(group.Key, group.ToList());
             }
             ShowCheckedAt();
         }
@@ -133,20 +133,20 @@ namespace CommandCenter.Pages.Tools
         private void ShowRing(bool ready, int passed, int warnings, int problems)
         {
             int all = passed + warnings + problems;
-            PassedCount.Text = ready ? passed.ToString(Loc.Culture) : "—";
-            WarningCount.Text = ready ? warnings.ToString(Loc.Culture) : "—";
-            ProblemCount.Text = ready ? problems.ToString(Loc.Culture) : "—";
+            PassedCount.Text = ready ? passed.ToString(CultureInfo.CurrentCulture) : "—";
+            WarningCount.Text = ready ? warnings.ToString(CultureInfo.CurrentCulture) : "—";
+            ProblemCount.Text = ready ? problems.ToString(CultureInfo.CurrentCulture) : "—";
             if (!ready || all == 0)
             {
                 PercentText.Text = "—";
-                RingLabel.Text = Loc.T("Checking…");
+                RingLabel.Text = "Checking…";
                 Ring.Visibility = Visibility.Hidden;
                 return;
             }
 
             double share = (double)passed / all;
             PercentText.Text = $"{Math.Round(share * 100)}%";
-            RingLabel.Text = problems > 0 ? Loc.T("needs fixing") : warnings > 0 ? Loc.T("playable") : Loc.T("healthy");
+            RingLabel.Text = problems > 0 ? "needs fixing" : warnings > 0 ? "playable" : "healthy";
             Ring.Stroke = problems > 0 ? Views.Problem : warnings > 0 ? Views.Warning : Views.Passed;
             Ring.Visibility = share > 0 ? Visibility.Visible : Visibility.Hidden;
 
@@ -224,13 +224,13 @@ namespace CommandCenter.Pages.Tools
             });
 
             var text = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-            text.Children.Add(new TextBlock { Text = Plain(result.Title), FontSize = 14, FontWeight = FontWeights.Bold, TextWrapping = TextWrapping.Wrap });
+            text.Children.Add(new TextBlock { Text = result.Title, FontSize = 14, FontWeight = FontWeights.Bold, TextWrapping = TextWrapping.Wrap });
             if (result.Detail.Length > 0)
-                text.Children.Add(new TextBlock { Text = Plain(result.Detail), FontSize = 12, Foreground = DetailBrush, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
+                text.Children.Add(new TextBlock { Text = result.Detail, FontSize = 12, Foreground = DetailBrush, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
             if (result.Note != null)
-                text.Children.Add(new TextBlock { Text = Plain(result.Note), FontSize = 11.5, Foreground = Views.Hint, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
+                text.Children.Add(new TextBlock { Text = result.Note, FontSize = 11.5, Foreground = Views.Hint, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 3, 0, 0) });
             if (result.FixPreview != null && result.Fix != null)
-                text.Children.Add(new TextBlock { Text = Plain(result.FixPreview), FontSize = 11.5, Foreground = PreviewBrush, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 5, 0, 0) });
+                text.Children.Add(new TextBlock { Text = result.FixPreview, FontSize = 11.5, Foreground = PreviewBrush, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 5, 0, 0) });
             Grid.SetColumn(text, 1);
             grid.Children.Add(text);
 
@@ -257,8 +257,8 @@ namespace CommandCenter.Pages.Tools
         {
             var row = new StackPanel { Orientation = Orientation.Horizontal };
             row.Children.Add(new Controls.Icon { Kind = "check", Width = 11, Height = 11, StrokeThickness = 3, Foreground = Views.Passed, Margin = new Thickness(0, 0, 6, 0) });
-            row.Children.Add(new TextBlock { Text = Plain(result.Title), FontSize = 12, Foreground = ChipText, VerticalAlignment = VerticalAlignment.Center });
-            string tip = Plain(result.Detail) + (result.Note != null ? "\n" + Plain(result.Note) : "");
+            row.Children.Add(new TextBlock { Text = result.Title, FontSize = 12, Foreground = ChipText, VerticalAlignment = VerticalAlignment.Center });
+            string tip = result.Detail + (result.Note != null ? "\n" + result.Note : "");
             return new Border
             {
                 Child = row,
@@ -286,13 +286,13 @@ namespace CommandCenter.Pages.Tools
 
             grid.Children.Add(Dot(result.Status, new Thickness(0, 5, 10, 0)));
 
-            var title = new TextBlock { Text = Plain(result.Title), FontSize = 12, Foreground = PassedBrush, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 14, 0) };
+            var title = new TextBlock { Text = result.Title, FontSize = 12, Foreground = PassedBrush, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 14, 0) };
             Grid.SetColumn(title, 1);
             grid.Children.Add(title);
 
-            var detail = new TextBlock { Text = Plain(result.Detail), FontSize = 12, Foreground = Views.Hint, TextWrapping = TextWrapping.Wrap };
+            var detail = new TextBlock { Text = result.Detail, FontSize = 12, Foreground = Views.Hint, TextWrapping = TextWrapping.Wrap };
             if (result.Note != null)
-                detail.ToolTip = Plain(result.Note);
+                detail.ToolTip = result.Note;
             Grid.SetColumn(detail, 2);
             grid.Children.Add(detail);
 
@@ -310,23 +310,23 @@ namespace CommandCenter.Pages.Tools
             Button button;
             if (result.Fix != null && result.FixLabel != null && result.Status != HealthStatus.Passed)
             {
-                button = new Button { Content = WithIcon("wrench", Upper(Loc.T(result.FixLabel))), Style = (Style)FindResource("DiagButtonStyle") };
-                button.ToolTip = result.FixPreview != null ? Plain(result.FixPreview) : null;
+                button = new Button { Content = WithIcon("wrench", Upper(result.FixLabel)), Style = (Style)FindResource("DiagButtonStyle") };
+                button.ToolTip = result.FixPreview;
                 button.Click += (_, _) => Views.ApplyFix(result);
             }
             else if (result.GuideTarget != null && result.GuideLabel != null)
             {
                 string target = result.GuideTarget;
-                button = SmallButton(Upper(Loc.T(result.GuideLabel)));
+                button = SmallButton(Upper(result.GuideLabel));
                 if (target == HealthService.QuestionsTarget)
                 {
-                    button.Content = WithIcon("info", Upper(Loc.T(result.GuideLabel)));
+                    button.Content = WithIcon("info", Upper(result.GuideLabel));
                     button.Click += (_, _) => TabQuestions.IsChecked = true;
                 }
                 else
                 {
                     if (!target.StartsWith("select:", StringComparison.Ordinal))
-                        button.Content = WithIcon("external", Upper(Loc.T(result.GuideLabel)));
+                        button.Content = WithIcon("external", Upper(result.GuideLabel));
                     button.Click += (_, _) => Views.Open(target);
                 }
             }
@@ -350,8 +350,8 @@ namespace CommandCenter.Pages.Tools
         };
 
         private void ShowCheckedAt() =>
-            CheckedAt.Text = _checking ? Loc.T("Checking…")
-                : AppState.HealthCheckedAt is { } at ? Loc.T("Last check: {0}", Views.Ago(at))
+            CheckedAt.Text = _checking ? "Checking…"
+                : AppState.HealthCheckedAt is { } at ? string.Format("Last check: {0}", Views.Ago(at))
                 : "";
 
         private async void Check_Click(object sender, RoutedEventArgs e) => await CheckAsync();
@@ -369,7 +369,7 @@ namespace CommandCenter.Pages.Tools
             }
             catch (Exception ex)
             {
-                Views.Main.Toast(Loc.T("Something went wrong: {0}", ex.Message), isError: true);
+                Views.Main.Toast(string.Format("Something went wrong: {0}", ex.Message), isError: true);
             }
             finally
             {
@@ -395,7 +395,7 @@ namespace CommandCenter.Pages.Tools
             var real = fixable.Where(f => !f.Id.StartsWith("sample:")).ToList();
             if (real.Count == 0)
             {
-                Views.Main.Toast(Loc.T("These are sample problems; nothing was changed."));
+                Views.Main.Toast("These are sample problems; nothing was changed.");
                 return;
             }
 
@@ -412,17 +412,17 @@ namespace CommandCenter.Pages.Tools
                 AppState.ForgetHotkeys();
             if (failed.Count > 0)
             {
-                Views.Main.Toast(Loc.T("Some fixes failed: {0}", string.Join("; ", failed)), isError: true);
+                Views.Main.Toast(string.Format("Some fixes failed: {0}", string.Join("; ", failed)), isError: true);
             }
             else
             {
-                Views.Main.Toast(Loc.N(real.Count, "Applied {0} fix.", "Applied {0} fixes."), made.Count == 0 ? null : () =>
+                Views.Main.Toast(English.Plural(real.Count, "Applied {0} fix.", "Applied {0} fixes."), made.Count == 0 ? null : () =>
                 {
                     foreach (var entry in Enumerable.Reverse(made))
                         BackupService.Undo(entry);
                     AppState.ForgetHotkeys();
                     _ = AppState.RefreshHealthAsync();
-                    Views.Main.Toast(Loc.T("All fixes undone"));
+                    Views.Main.Toast("All fixes undone");
                 });
             }
             _ = AppState.RefreshHealthAsync();
@@ -447,7 +447,7 @@ namespace CommandCenter.Pages.Tools
         private void ShowHistory()
         {
             var entries = BackupService.Load().OrderByDescending(e => e.When).Take(60).ToList();
-            TabHistory.Content = entries.Count > 0 ? Loc.T("FIX HISTORY ({0})", entries.Count) : Loc.T("FIX HISTORY");
+            TabHistory.Content = entries.Count > 0 ? string.Format("FIX HISTORY ({0})", entries.Count) : "FIX HISTORY";
             if (TabHistory.IsChecked != true)
             {
                 _historyStale = true;
@@ -458,7 +458,7 @@ namespace CommandCenter.Pages.Tools
             HistoryList.Children.Clear();
             if (entries.Count == 0)
             {
-                HistoryList.Children.Add(Message(Loc.T("No fixes yet. Every change appears here with an Undo button.")));
+                HistoryList.Children.Add(Message("No fixes yet. Every change appears here with an Undo button."));
                 return;
             }
 
@@ -477,17 +477,17 @@ namespace CommandCenter.Pages.Tools
                     FontSize = 12,
                     Foreground = Views.Hint,
                     Margin = new Thickness(0, 1, 10, 0),
-                    ToolTip = entry.When.ToString("g", Loc.Culture),
+                    ToolTip = entry.When.ToString("g", CultureInfo.CurrentCulture),
                 });
 
                 var text = new StackPanel();
-                text.Children.Add(new TextBlock { Text = Plain(entry.Title), FontSize = 13, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
+                text.Children.Add(new TextBlock { Text = entry.Title, FontSize = 13, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
                 if (entry.Detail.Length > 0)
-                    text.Children.Add(new TextBlock { Text = Plain(entry.Detail), FontSize = 11.5, Foreground = Views.Hint, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) });
+                    text.Children.Add(new TextBlock { Text = entry.Detail, FontSize = 11.5, Foreground = Views.Hint, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 0, 0) });
                 Grid.SetColumn(text, 1);
                 grid.Children.Add(text);
 
-                var undo = SmallButton(Loc.T("UNDO"));
+                var undo = SmallButton("UNDO");
                 undo.MinWidth = 64;
                 undo.VerticalAlignment = VerticalAlignment.Top;
                 undo.Margin = new Thickness(14, 0, 0, 0);
@@ -518,8 +518,8 @@ namespace CommandCenter.Pages.Tools
             {
                 buttons[i].Undo.IsEnabled = undoable[i];
                 buttons[i].Undo.ToolTip = undoable[i]
-                    ? Loc.T("Put back what was there before")
-                    : Loc.T("Changed again since, so this cannot be undone here");
+                    ? "Put back what was there before"
+                    : "Changed again since, so this cannot be undone here";
                 ToolTipService.SetShowOnDisabled(buttons[i].Undo, true);
             }
         }
@@ -531,14 +531,14 @@ namespace CommandCenter.Pages.Tools
                 if (BackupService.Undo(entry))
                 {
                     AppState.ForgetHotkeys();
-                    Views.Main.Toast(Loc.T("Undone: {0}", Plain(entry.Title)));
+                    Views.Main.Toast(string.Format("Undone: {0}", entry.Title));
                 }
                 else
-                    Views.Main.Toast(Loc.T("Changed again since, so this cannot be undone here"), isError: true);
+                    Views.Main.Toast("Changed again since, so this cannot be undone here", isError: true);
             }
             catch (Exception ex)
             {
-                Views.Main.Toast(Loc.T("Something went wrong: {0}", ex.Message), isError: true);
+                Views.Main.Toast(string.Format("Something went wrong: {0}", ex.Message), isError: true);
             }
             _ = AppState.RefreshHealthAsync();
         }
@@ -569,10 +569,10 @@ namespace CommandCenter.Pages.Tools
             HistoryView.Visibility = history ? Visibility.Visible : Visibility.Collapsed;
             BackupsButton.Visibility = history ? Visibility.Visible : Visibility.Collapsed;
             FooterHint.Text = history
-                ? Loc.T("Every change the launcher makes is backed up first. Undo puts back what was there before.")
+                ? "Every change the launcher makes is backed up first. Undo puts back what was there before."
                 : questions
-                    ? Loc.T("What new players ask most. Each button opens the place that fixes it.")
-                    : Loc.T("Checks only read your files. Fixes run when you press a button, and each one can be undone.");
+                    ? "What new players ask most. Each button opens the place that fixes it."
+                    : "Checks only read your files. Fixes run when you press a button, and each one can be undone.";
             if (history && _historyStale)
                 ShowHistory();
             if (questions)
@@ -596,15 +596,15 @@ namespace CommandCenter.Pages.Tools
         private Border QuestionCard(Question question)
         {
             var text = new StackPanel();
-            text.Children.Add(new TextBlock { Text = Loc.T(question.Title), FontSize = 14, FontWeight = FontWeights.Bold, TextWrapping = TextWrapping.Wrap });
-            text.Children.Add(new TextBlock { Text = Loc.T(question.Answer), FontSize = 12.5, Foreground = DetailBrush, TextWrapping = TextWrapping.Wrap, LineHeight = 19, Margin = new Thickness(0, 5, 0, 0) });
+            text.Children.Add(new TextBlock { Text = question.Title, FontSize = 14, FontWeight = FontWeights.Bold, TextWrapping = TextWrapping.Wrap });
+            text.Children.Add(new TextBlock { Text = question.Answer, FontSize = 12.5, Foreground = DetailBrush, TextWrapping = TextWrapping.Wrap, LineHeight = 19, Margin = new Thickness(0, 5, 0, 0) });
             if (question.Actions.Count > 0)
             {
                 var buttons = new WrapPanel { Margin = new Thickness(0, 10, 0, 0) };
                 foreach (var action in question.Actions)
                 {
                     var button = SmallButton("");
-                    button.Content = WithIcon(action.Icon, Upper(Loc.T(action.Label)));
+                    button.Content = WithIcon(action.Icon, Upper(action.Label));
                     button.Margin = new Thickness(0, 0, 8, 0);
                     button.Click += (_, _) => action.Run();
                     buttons.Children.Add(button);
@@ -645,9 +645,5 @@ namespace CommandCenter.Pages.Tools
         };
 
         private static string Upper(string text) => text.ToUpperInvariant();
-
-        // Check results are written in English; in right-to-left mode they are kept in their own reading order
-        private static string Plain(string? text) =>
-            text == null ? "" : Loc.IsRightToLeft && !text.Any(c => c is >= '؀' and <= 'ۿ') ? Loc.Ltr(text) : text;
     }
 }

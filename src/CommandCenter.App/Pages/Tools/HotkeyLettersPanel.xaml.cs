@@ -27,9 +27,9 @@ namespace CommandCenter.Pages.Tools
             InitializeComponent();
             foreach (string text in new[]
             {
-                Loc.T("Only pictures change, so it does not cause mismatches online."),
-                Loc.T("The letters follow the hotkeys saved in the game. After you change hotkeys, press Update letters."),
-                Loc.T("Every picture is backed up first. Turning it off puts the game's own pictures back."),
+                "Only pictures change, so it does not cause mismatches online.",
+                "The letters follow the hotkeys saved in the game. After you change hotkeys, press Update letters.",
+                "Every picture is backed up first. Turning it off puts the game's own pictures back.",
             })
                 LettersNotes.Children.Add(Note(text, NoteDot));
             Refresh();
@@ -55,14 +55,14 @@ namespace CommandCenter.Pages.Tools
 
             if (!GamePaths.ZeroHourFound)
             {
-                LettersState.Text = Loc.T("Folder not found");
-                LettersDetail.Text = Loc.T("Zero Hour was not found. Press Play on the home page to choose the game folder.");
+                LettersState.Text = "Folder not found";
+                LettersDetail.Text = "Zero Hour was not found. Press Play on the home page to choose the game folder.";
                 return;
             }
-            LettersState.Text = on ? Loc.T("Hotkey letters are on") : Loc.T("Hotkey letters are off");
+            LettersState.Text = on ? "Hotkey letters are on" : "Hotkey letters are off";
             LettersDetail.Text = on
-                ? Loc.T("They show on the buttons the next time the game starts.")
-                : Loc.T("Turning them on adds pictures with letters to the game folder. They show the next time the game starts.");
+                ? "They show on the buttons the next time the game starts."
+                : "Turning them on adds pictures with letters to the game folder. They show the next time the game starts.";
         }
 
         private void LettersOn_Click(object sender, RoutedEventArgs e) => TurnOn();
@@ -72,25 +72,24 @@ namespace CommandCenter.Pages.Tools
         private void LettersUpdate_Click(object sender, RoutedEventArgs e) => _ = RunLettersAsync(async () =>
         {
             int count = await DrawLettersAsync();
-            Views.Main.Toast(Loc.N(count, "Letters redrawn on {0} picture for your saved hotkeys.", "Letters redrawn on {0} pictures for your saved hotkeys."));
+            Views.Main.Toast(English.Plural(count, "Letters redrawn on {0} picture for your saved hotkeys.", "Letters redrawn on {0} pictures for your saved hotkeys."));
         });
 
         private void TurnOn() => _ = RunLettersAsync(async () =>
         {
             int count = await DrawLettersAsync();
-            Views.Main.Toast(Loc.N(count, "Hotkey letters drawn on {0} picture. They show the next time the game starts.",
-                "Hotkey letters drawn on {0} pictures. They show the next time the game starts."), TurnOff);
+            Views.Main.Toast(English.Plural(count, "Hotkey letters drawn on {0} picture. They show the next time the game starts.", "Hotkey letters drawn on {0} pictures. They show the next time the game starts."), TurnOff);
         });
 
         private void TurnOff() => _ = RunLettersAsync(async () =>
         {
             await Task.Run(IconLettersService.Remove);
-            Views.Main.Toast(Loc.T("Hotkey letters removed. The game's own pictures are back."), TurnOn);
+            Views.Main.Toast("Hotkey letters removed. The game's own pictures are back.", TurnOn);
         });
 
         private static async Task<int> DrawLettersAsync()
         {
-            var hotkeys = await AppState.Hotkeys() ?? throw new InvalidOperationException(Loc.T("The game's hotkeys could not be read."));
+            var hotkeys = await AppState.Hotkeys() ?? throw new InvalidOperationException("The game's hotkeys could not be read.");
             return await Task.Run(() => IconLettersService.Apply(hotkeys));
         }
 
@@ -100,14 +99,14 @@ namespace CommandCenter.Pages.Tools
                 return;
             _lettersBusy = true;
             Refresh();
-            LettersDetail.Text = Loc.T("Working…");
+            LettersDetail.Text = "Working…";
             try
             {
                 await work();
             }
             catch (Exception ex)
             {
-                Views.Main.Toast(Loc.T("Something went wrong: {0}", Plain(ex.Message)), isError: true);
+                Views.Main.Toast(string.Format("Something went wrong: {0}", ex.Message), isError: true);
             }
             finally
             {
@@ -120,7 +119,7 @@ namespace CommandCenter.Pages.Tools
 
         private async Task LoadPreviewAsync()
         {
-            PreviewMessage.Text = Loc.T("Loading the game's button pictures…");
+            PreviewMessage.Text = "Loading the game's button pictures…";
             HotkeyService? hotkeys = null;
             try
             {
@@ -129,7 +128,7 @@ namespace CommandCenter.Pages.Tools
             catch { }
             if (hotkeys == null || hotkeys.Armies.Count == 0)
             {
-                PreviewMessage.Text = Loc.T("The game's button pictures could not be read, so there is no preview.");
+                PreviewMessage.Text = "The game's button pictures could not be read, so there is no preview.";
                 return;
             }
             _hotkeys = hotkeys;
@@ -174,13 +173,13 @@ namespace CommandCenter.Pages.Tools
                     BeforeIcons.Children.Add(Icon(hotkeys.Images.Get(buttons[i].Image)!, name));
                     AfterIcons.Children.Add(Icon(lettered[i], name));
                 }
-                PreviewTitle.Text = Loc.T("PREVIEW: {0}", menu.Name.ToUpperInvariant());
+                PreviewTitle.Text = string.Format("PREVIEW: {0}", menu.Name.ToUpperInvariant());
                 PreviewMessage.Visibility = Visibility.Collapsed;
                 PreviewRows.Visibility = Visibility.Visible;
             }
             catch (Exception ex)
             {
-                PreviewMessage.Text = Loc.T("Something went wrong: {0}", Plain(ex.Message));
+                PreviewMessage.Text = string.Format("Something went wrong: {0}", ex.Message);
                 PreviewMessage.Visibility = Visibility.Visible;
                 PreviewRows.Visibility = Visibility.Collapsed;
             }
@@ -208,13 +207,6 @@ namespace CommandCenter.Pages.Tools
             row.Children.Add(mark);
             row.Children.Add(new TextBlock { Text = text, FontSize = 12, Foreground = NoteBrush, TextWrapping = TextWrapping.Wrap });
             return row;
-        }
-
-        // Messages from the services are written in English; in right-to-left mode they keep their own reading order
-        private static string Plain(string text)
-        {
-            text = Loc.T(text);
-            return Loc.IsRightToLeft && !text.Any(c => c is >= '؀' and <= 'ۿ') ? Loc.Ltr(text) : text;
         }
     }
 }
