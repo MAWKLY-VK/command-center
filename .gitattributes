@@ -6,3 +6,5 @@
 *.md text eol=lf
 *.jpg binary
 *.png binary
+# Test data sets keep their exact bytes (backups.json records file hashes)
+tools/capture-data/** -text

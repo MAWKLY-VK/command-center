@@ -22,6 +22,9 @@ param(
     [Parameter(Mandatory)] [string] $Out,
     [string] $Size = '1600x1000',
     [string] $GoProfile = (Join-Path $PSScriptRoot '..\go-profile.json'),
+    # A data set copied into the data folder first, for example tools\capture-data\0.4.0. In its .json files
+    # __DATA__ becomes the data folder and __GAME__ the game folder.
+    [string] $DataTemplate = '',
     [int] $TimeoutSeconds = 600
 )
 $ErrorActionPreference = 'Stop'
@@ -61,11 +64,26 @@ function Get-Fingerprint([string] $folder) {
         ForEach-Object { '{0}|{1}|{2}' -f $_.FullName.Substring($folder.Length), $_.Length, $_.LastWriteTimeUtc.Ticks }
 }
 
+function Copy-Template([string] $template, [string] $data) {
+    foreach ($file in Get-ChildItem -LiteralPath $template -Recurse -File) {
+        $target = Join-Path $data $file.FullName.Substring($template.Length).TrimStart('\')
+        [void][IO.Directory]::CreateDirectory((Split-Path $target))
+        if ($file.Extension -eq '.json') {
+            $text = [IO.File]::ReadAllText($file.FullName).Replace('__DATA__', $data.Replace('\', '\\')).Replace('__GAME__', $Game.Replace('\', '\\'))
+            [IO.File]::WriteAllText($target, $text, [Text.UTF8Encoding]::new($false))
+        }
+        else {
+            Copy-Item -LiteralPath $file.FullName -Destination $target
+        }
+    }
+}
+
 function Invoke-Capture([string] $folder, [string[]] $pageList, [switch] $Samples) {
     # Always the same path, emptied first: pages show the data folder's path, so a random name would differ per run
     $data = Join-Path ([IO.Path]::GetTempPath()) 'cc-capture-data'
     if (Test-Path -LiteralPath $data) { [IO.Directory]::Delete($data, $true) }
     [void][IO.Directory]::CreateDirectory($data)
+    if ($DataTemplate) { Copy-Template (Resolve-Path -LiteralPath $DataTemplate).Path $data }
     try {
         $info = [System.Diagnostics.ProcessStartInfo]::new($Exe)
         $info.UseShellExecute = $false
