@@ -198,4 +198,14 @@ namespace CommandCenter.Tests
         private static void BigEndian(BinaryWriter w, int value) =>
             w.Write(new[] { (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value });
     }
+
+    // The registry tests change values under their own key, HKCU\Software\CommandCenterTests; Command Center itself
+    // changes only Windows' compatibility layers key. Allowed once, when the test assembly loads.
+    internal static class TestRegistryKeys
+    {
+#pragma warning disable CA2255 // A module initializer is the one place that runs before every test
+        [System.Runtime.CompilerServices.ModuleInitializer]
+#pragma warning restore CA2255
+        internal static void Allow() => BackupService.AllowedRegistryKeys.Add(@"Software\CommandCenterTests\");
+    }
 }
