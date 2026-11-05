@@ -26,8 +26,17 @@ namespace CommandCenter
 
             // A second copy for the same data folder brings the first one to the front and closes quietly
             string[] commandLine = Environment.GetCommandLineArgs();
-            _instance = SingleInstance.Acquire(GamePaths.UserData, SingleInstance.RestartOf(commandLine));
-            if (!_instance.IsFirst)
+            try
+            {
+                _instance = SingleInstance.Acquire(GamePaths.UserData, SingleInstance.RestartOf(commandLine));
+            }
+            catch (Exception ex)
+            {
+                // For example a copy started as administrator holds the names: run without the lock rather than not at all
+                LogError(ex);
+                _instance = null;
+            }
+            if (_instance is { IsFirst: false })
             {
                 _instance.AskFirstToShow();
                 _instance.Dispose();
@@ -35,7 +44,7 @@ namespace CommandCenter
                 Shutdown();
                 return;
             }
-            _instance.OnShowRequested(() => Dispatcher.BeginInvoke(ShowWindowAgain));
+            _instance?.OnShowRequested(() => Dispatcher.BeginInvoke(ShowWindowAgain));
 
             DispatcherUnhandledException += OnUnhandled;
             // A background task that fails with nobody waiting for it (a refresh, a download) would vanish without a trace

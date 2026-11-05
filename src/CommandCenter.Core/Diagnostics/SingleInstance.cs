@@ -48,7 +48,8 @@ namespace CommandCenter.Core.Diagnostics
             bool first;
             try
             {
-                first = mutex.WaitOne(0);
+                // A restarted copy keeps waiting for the old one's lock, so a slow exit never leaves nothing running
+                first = mutex.WaitOne(restartOf != null ? TimeSpan.FromSeconds(30) : TimeSpan.Zero);
             }
             catch (AbandonedMutexException)
             {

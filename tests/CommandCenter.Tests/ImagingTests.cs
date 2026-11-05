@@ -122,14 +122,12 @@ namespace CommandCenter.Tests
     // A game folder with one 4 x 2 atlas holding two pictures, and an empty user data folder
     public sealed class GameImagesTests : IDisposable
     {
-        private readonly string _root = Path.Combine(Path.GetTempPath(), "cc-test-" + Guid.NewGuid().ToString("N"));
-        private readonly string _previousUserData = GamePaths.UserData;
+        private readonly TempGame _temp = new();
         private readonly GameImages _images;
 
         public GameImagesTests()
         {
-            string game = Path.Combine(_root, "game");
-            GamePaths.UserData = Path.Combine(_root, "user");
+            string game = _temp.Game;
             WriteText(game, @"Data\INI\MappedImages\TextureSize_512\Test.ini", """
                 MappedImage TestUpright
                   Texture = TestAtlas.tga
@@ -201,8 +199,7 @@ namespace CommandCenter.Tests
 
         public void Dispose()
         {
-            GamePaths.UserData = _previousUserData;
-            try { Directory.Delete(_root, recursive: true); } catch { }
+            _temp.Dispose();
         }
 
         private static void WriteText(string root, string relative, string text) =>

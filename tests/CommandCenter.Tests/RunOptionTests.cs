@@ -75,14 +75,8 @@ namespace CommandCenter.Tests
             }
             """;
 
-        private readonly string _root = Path.Combine(Path.GetTempPath(), "cc-test-" + Guid.NewGuid().ToString("N"));
-        private readonly string _previousUserData = GamePaths.UserData;
-
-        public AppServicesTests()
-        {
-            Directory.CreateDirectory(_root);
-            GamePaths.UserData = Path.Combine(_root, "user");
-        }
+        private readonly TempGame _game = new();
+        private string _root => _game.Root;
 
         [Fact]
         public void A_go_profile_file_given_at_startup_is_used_instead_of_the_cached_one()
@@ -125,8 +119,7 @@ namespace CommandCenter.Tests
         {
             AppServices.Configure(["CommandCenter.exe"]);
             GoProfile.Reset();
-            GamePaths.UserData = _previousUserData;
-            try { Directory.Delete(_root, recursive: true); } catch { }
+            _game.Dispose();
         }
     }
 
