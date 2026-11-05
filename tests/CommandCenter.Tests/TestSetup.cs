@@ -53,11 +53,13 @@ namespace CommandCenter.Tests
         }
 
         // A file under the root (game, user or anywhere else in it) with this text; returns its full path
-        public string Write(string relative, string text)
+        public string Write(string relative, string text) => Write(relative, System.Text.Encoding.UTF8.GetBytes(text));
+
+        public string Write(string relative, byte[] content)
         {
             string path = System.IO.Path.Combine(Root, relative);
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
-            File.WriteAllText(path, text);
+            File.WriteAllBytes(path, content);
             return path;
         }
 
@@ -136,6 +138,40 @@ namespace CommandCenter.Tests
             w.Flush();
             return stream.ToArray();
         }
+    }
+
+    // A game archive (.big) holding these files, in the format GameFiles reads: "BIGF", the archive size
+    // (little-endian), the file count and the offset of the first file (big-endian), then each file's offset and size
+    // (big-endian) and zero-terminated name, then the files themselves
+    internal static class BigArchives
+    {
+        public static void Write(string path, params (string Name, byte[] Data)[] files)
+        {
+            int indexSize = 16 + files.Sum(f => 8 + f.Name.Length + 1);
+            using var stream = new MemoryStream();
+            using var w = new BinaryWriter(stream);
+            w.Write(System.Text.Encoding.ASCII.GetBytes("BIGF"));
+            w.Write(indexSize + files.Sum(f => f.Data.Length));
+            BigEndian(w, files.Length);
+            BigEndian(w, indexSize);
+            int offset = indexSize;
+            foreach (var (name, data) in files)
+            {
+                BigEndian(w, offset);
+                BigEndian(w, data.Length);
+                w.Write(System.Text.Encoding.ASCII.GetBytes(name));
+                w.Write((byte)0);
+                offset += data.Length;
+            }
+            foreach (var (_, data) in files)
+                w.Write(data);
+            w.Flush();
+            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
+            File.WriteAllBytes(path, stream.ToArray());
+        }
+
+        private static void BigEndian(BinaryWriter w, int value) =>
+            w.Write(new[] { (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value });
     }
 
     // Runs a test in Arabic and puts English back afterwards

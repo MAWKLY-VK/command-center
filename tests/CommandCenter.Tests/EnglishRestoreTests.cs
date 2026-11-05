@@ -41,7 +41,7 @@ namespace CommandCenter.Tests
                 .ToArray());
 
         private static byte[] Restore(byte[] gameTable, byte[] tableInUse) =>
-            ArabicGameText.Strip(gameTable, CsfFile.Load(tableInUse)).ToBytes();
+            ArabicGameTextRemoval.EnglishTable(gameTable, tableInUse);
 
         [Fact]
         public void With_nothing_else_left_the_games_own_table_comes_back_byte_for_byte() =>
