@@ -368,7 +368,7 @@ namespace CommandCenter
             catch (Exception ex)
             {
                 // The step runs again at the next start
-                App.LogError(ex);
+                ErrorLog.Write(ex);
             }
         }
 

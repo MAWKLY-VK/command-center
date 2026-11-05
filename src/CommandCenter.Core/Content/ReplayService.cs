@@ -87,6 +87,12 @@ namespace CommandCenter.Core.Content
     {
         public static string LastReplayPath => Path.Combine(GamePaths.Replays, "00000000.rep");
 
+        // Larger replays are skipped and written to the error log; a long match takes a few megabytes
+        public const long MaxReplaySize = 256L * 1024 * 1024;
+
+        // A text in a replay's header is a name, a version or the game options; one longer than this has no end
+        private const int MaxHeaderText = 4096;
+
         // Order of PlayerTemplate.ini in Zero Hour; slot strings refer to these by index
         private static readonly (Faction Faction, string General)[] Templates =
         {
@@ -135,6 +141,8 @@ namespace CommandCenter.Core.Content
             try
             {
                 using var stream = File.OpenRead(path);
+                if (stream.Length > MaxReplaySize)
+                    throw TooLarge();
                 using var reader = new BinaryReader(stream);
 
                 var header = ReadHeader(reader);
@@ -158,11 +166,18 @@ namespace CommandCenter.Core.Content
                     header.Quit,
                     stream.Length);
             }
+            catch (InvalidDataException ex)
+            {
+                ErrorLog.Skipped(path, ex.Message);
+                return null;
+            }
             catch
             {
                 return null;
             }
         }
+
+        private static InvalidDataException TooLarge() => new($"It is larger than {BoundedFile.Describe(MaxReplaySize)}.");
 
         private sealed record Header(uint Start, uint End, uint Frames, bool Desync, bool Quit, bool[] Disconnected, string Title, string Version, string Options);
 
@@ -279,7 +294,11 @@ namespace CommandCenter.Core.Content
         {
             var sb = new StringBuilder();
             for (char c = (char)reader.ReadUInt16(); c != '\0'; c = (char)reader.ReadUInt16())
+            {
+                if (sb.Length == MaxHeaderText)
+                    throw NoEnd();
                 sb.Append(c);
+            }
             return sb.ToString();
         }
 
@@ -287,9 +306,15 @@ namespace CommandCenter.Core.Content
         {
             var bytes = new List<byte>();
             for (byte c = reader.ReadByte(); c != 0; c = reader.ReadByte())
+            {
+                if (bytes.Count == MaxHeaderText)
+                    throw NoEnd();
                 bytes.Add(c);
+            }
             return Encoding.UTF8.GetString(bytes.ToArray());
         }
+
+        private static InvalidDataException NoEnd() => new($"A text in its header runs past {MaxHeaderText} characters.");
 
         // ── Results ──
 
@@ -326,14 +351,21 @@ namespace CommandCenter.Core.Content
             try
             {
                 var info = new FileInfo(path);
-                if (!info.Exists || info.Length > 256L * 1024 * 1024)
+                if (!info.Exists)
                     return null;
+                if (info.Length > MaxReplaySize)
+                    throw TooLarge();
                 if (ResultCache.TryGetValue(path, out var hit) && hit.Size == info.Length && hit.Written == info.LastWriteTimeUtc)
                     return hit.Results;
 
-                var results = ParseResults(File.ReadAllBytes(path));
+                var results = ParseResults(BoundedFile.Read(path, MaxReplaySize));
                 ResultCache[path] = (info.Length, info.LastWriteTimeUtc, results);
                 return results;
+            }
+            catch (InvalidDataException ex)
+            {
+                ErrorLog.Skipped(path, ex.Message);
+                return null;
             }
             catch
             {

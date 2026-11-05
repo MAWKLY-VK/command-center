@@ -113,22 +113,33 @@ namespace CommandCenter.Core.Imaging
                 if (eq < 0)
                     continue;
                 string key = line[..eq].Trim(), value = line[(eq + 1)..].Trim();
-                if (key.Equals("Texture", StringComparison.OrdinalIgnoreCase)) current.Texture = value;
+                if (key.Equals("Texture", StringComparison.OrdinalIgnoreCase))
+                {
+                    // A name that would lead out of the texture folders is not the game's, and is ignored
+                    if (IsPlainTextureName(value))
+                        current.Texture = value;
+                }
                 else if (key.Equals("TextureWidth", StringComparison.OrdinalIgnoreCase)) int.TryParse(value, out current.Width);
                 else if (key.Equals("TextureHeight", StringComparison.OrdinalIgnoreCase)) int.TryParse(value, out current.Height);
                 else if (key.Equals("Status", StringComparison.OrdinalIgnoreCase)) current.Rotated = value.Contains("ROTATED_90_CLOCKWISE", StringComparison.OrdinalIgnoreCase);
-                else if (key.Equals("Coords", StringComparison.OrdinalIgnoreCase) && CoordsValue.Match(value) is { Success: true } c)
+                else if (key.Equals("Coords", StringComparison.OrdinalIgnoreCase) && CoordsValue.Match(value) is { Success: true } c
+                         && Int(c.Groups[1].Value) is { } l && Int(c.Groups[2].Value) is { } t && Int(c.Groups[3].Value) is { } r && Int(c.Groups[4].Value) is { } b)
                 {
                     // The game turns coordinates into fractions of the texture size known at this point
-                    int l = Int(c.Groups[1].Value), t = Int(c.Groups[2].Value), r = Int(c.Groups[3].Value), b = Int(c.Groups[4].Value);
-                    current.Coords = new ImageRect(l, t, Math.Max(1, r - l), Math.Max(1, b - t));
+                    current.Coords = new ImageRect(l, t, (int)Math.Clamp((long)r - l, 1, int.MaxValue), (int)Math.Clamp((long)b - t, 1, int.MaxValue));
                     current.CoordsWidth = current.Width;
                     current.CoordsHeight = current.Height;
                 }
             }
         }
 
-        private static int Int(string s) => int.Parse(s, CultureInfo.InvariantCulture);
+        // Null for a number too large for the game's coordinates
+        private static int? Int(string s) => int.TryParse(s, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int value) ? value : null;
+
+        // A texture name the game looks up in its texture folders: no drive, no network or rooted path, no ".." step
+        internal static bool IsPlainTextureName(string name) =>
+            name.Length > 0 && !Path.IsPathRooted(name) && name.IndexOf(':') < 0
+            && !name.Split('\\', '/').Any(part => part == "..");
 
         // Where a picture sits in a texture of the given size: coordinates are fractions of the declared size
         public static ImageRect? PixelRect(MappedImage map, int textureWidth, int textureHeight)
@@ -152,7 +163,7 @@ namespace CommandCenter.Core.Imaging
             try
             {
                 if (ResolveTexture(name) is { } file)
-                    image = file.IsDds ? Dds.Decode(file.Data) : TgaImage.Decode(file.Data, keepAlpha: true);
+                    image = file.IsDds ? Dds.Decode(file.Data, file.Path) : TgaImage.Decode(file.Data, keepAlpha: true, source: file.Path);
             }
             catch
             {
@@ -181,19 +192,22 @@ namespace CommandCenter.Core.Imaging
         // skipped, so this is always the picture without our letters.
         public TextureFile? ResolveTexture(string name)
         {
+            if (!IsPlainTextureName(name))
+                return null;
             foreach (var (path, isDds, inUserFolder) in TextureCandidates(name))
             {
                 if (inUserFolder)
                 {
                     if (File.Exists(path))
-                        return new TextureFile(path, isDds, File.ReadAllBytes(path));
+                        return GameFiles.ReadLoose(path) is { } own ? new TextureFile(path, isDds, own) : null;
                     continue;
                 }
 
                 string loose = _files.LoosePath(path);
                 if (File.Exists(loose))
                 {
-                    byte[] data = File.ReadAllBytes(loose);
+                    if (GameFiles.ReadLoose(loose) is not { } data)
+                        return null;
                     if (!IconLetterFiles.IsGenerated(data))
                         return new TextureFile(path, isDds, data);
                     // Ours: the file it replaced, if there was one, otherwise whatever the archives hold here
@@ -218,7 +232,9 @@ namespace CommandCenter.Core.Imaging
 
         public static int BlockSize(string fourcc) => fourcc == "DXT1" ? 8 : 16;
 
-        public static DecodedImage? Decode(byte[] d)
+        // Null when the texture is not one the game reads, or is damaged; a damaged one is written to the error log under
+        // source, when given
+        public static DecodedImage? Decode(byte[] d, string? source = null)
         {
             try
             {
@@ -227,15 +243,30 @@ namespace CommandCenter.Core.Imaging
                 int h = BitConverter.ToInt32(d, 12), w = BitConverter.ToInt32(d, 16);
                 return new DecodedImage(w, h, DecodePixels(d, fourcc, w, h, HeaderSize));
             }
+            catch (InvalidDataException ex)
+            {
+                if (source != null)
+                    ErrorLog.Skipped(source, ex.Message);
+                return null;
+            }
             catch
             {
                 return null;
             }
         }
 
-        // Straight (not premultiplied) BGRA pixels of the first level
+        // Straight (not premultiplied) BGRA pixels of the first level. A size beyond the texture limit, or one that needs
+        // more blocks than the data holds, is refused before anything is allocated.
         public static byte[] DecodePixels(byte[] d, string fourcc, int w, int h, int offset)
         {
+            if (w <= 0 || h <= 0)
+                throw new InvalidDataException("The texture's size cannot be read.");
+            if (w > ImageLimits.Texture || h > ImageLimits.Texture)
+                throw new InvalidDataException($"The texture is {w} x {h}, larger than {ImageLimits.Texture} x {ImageLimits.Texture}.");
+            long needed = (long)((w + 3) / 4) * ((h + 3) / 4) * BlockSize(fourcc);
+            if (offset < 0 || offset + needed > d.Length)
+                throw new InvalidDataException("The texture holds less data than its size needs.");
+
             byte[] px = new byte[w * h * 4];
             int p = offset, block = BlockSize(fourcc);
             var col = new (int R, int G, int B, int A)[4];

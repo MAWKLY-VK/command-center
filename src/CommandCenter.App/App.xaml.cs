@@ -41,7 +41,7 @@ namespace CommandCenter
             catch (Exception ex)
             {
                 // For example a copy started as administrator holds the names: run without the lock rather than not at all
-                LogError(ex);
+                ErrorLog.Write(ex);
                 _instance = null;
             }
             if (_instance is { IsFirst: false })
@@ -59,7 +59,7 @@ namespace CommandCenter
             TaskScheduler.UnobservedTaskException += (_, args) =>
             {
                 args.SetObserved();
-                LogError(args.Exception);
+                ErrorLog.Write(args.Exception);
             };
             // The run options reach the services before anything reads them
             AppServices.Configure(commandLine);
@@ -116,24 +116,10 @@ namespace CommandCenter
             base.OnExit(e);
         }
 
-        // errors.log in Command Center's folder, to attach to a bug report; it starts over past 256 KB
-        public static void LogError(Exception ex)
-        {
-            try
-            {
-                Directory.CreateDirectory(GamePaths.AppData);
-                string path = Path.Combine(GamePaths.AppData, "errors.log");
-                if (File.Exists(path) && new FileInfo(path).Length > 256 * 1024)
-                    File.Delete(path);
-                File.AppendAllText(path, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {AppState.Version}  {ex}{Environment.NewLine}{Environment.NewLine}");
-            }
-            catch { }
-        }
-
         private void OnUnhandled(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
             e.Handled = true;
-            LogError(e.Exception);
+            ErrorLog.Write(e.Exception);
             if (MainWindow is MainWindow main && main.IsVisible)
                 main.Toast(string.Format("Something went wrong: {0}", e.Exception.Message), isError: true);
             else

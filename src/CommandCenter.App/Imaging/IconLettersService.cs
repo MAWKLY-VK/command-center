@@ -162,6 +162,11 @@ namespace CommandCenter.Imaging
                     if (BuildTexture(images, group.Key, group.Select(x => (x.Map!, x.Key))) is { } texture)
                         result.Add(texture);
                 }
+                catch (InvalidDataException ex)
+                {
+                    // A damaged texture stays as the game has it
+                    ErrorLog.Skipped(group.Key, ex.Message);
+                }
                 catch
                 {
                     // A texture we cannot read stays as the game has it
@@ -189,7 +194,7 @@ namespace CommandCenter.Imaging
             }
             else
             {
-                if (TgaImage.Decode(source.Data, keepAlpha: true) is not { } tga)
+                if (TgaImage.Decode(source.Data, keepAlpha: true, source: source.Path) is not { } tga)
                     return null;
                 width = tga.Width;
                 height = tga.Height;

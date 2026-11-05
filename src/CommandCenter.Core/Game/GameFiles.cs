@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.IO;
 using System.Text;
 
@@ -71,16 +72,34 @@ namespace CommandCenter.Core.Game
         public string? ArchiveOf(string relativePath) =>
             _index.TryGetValue(Normalize(relativePath), out var list) ? list[0].Archive : null;
 
+        // The largest file Command Center reads from the game: a 32-bit texture at the texture limit, with room for its
+        // header. A larger one is skipped and written to the error log.
+        public const int ReadLimit = ImageLimits.Texture * ImageLimits.Texture * 4 + 1024 * 1024;
+
         public byte[]? Read(string relativePath)
         {
             string loose = LoosePath(relativePath);
             if (File.Exists(loose))
-                return File.ReadAllBytes(loose);
+                return ReadLoose(loose);
             return ReadFromArchive(relativePath);
         }
 
         public string ReadText(string relativePath) =>
             Read(relativePath) is { } data ? Encoding.Latin1.GetString(data) : "";
+
+        // A file on disk, or null when it is larger than the read limit
+        public static byte[]? ReadLoose(string path)
+        {
+            try
+            {
+                return BoundedFile.Read(path, ReadLimit);
+            }
+            catch (InvalidDataException ex)
+            {
+                ErrorLog.Skipped(path, ex.Message);
+                return null;
+            }
+        }
 
         public byte[]? ReadFromArchive(string relativePath)
         {
@@ -88,6 +107,11 @@ namespace CommandCenter.Core.Game
                 return null;
 
             var entry = list[0];
+            if (entry.Size > ReadLimit)
+            {
+                ErrorLog.Skipped($"{relativePath} in {entry.Archive}", $"It is larger than {BoundedFile.Describe(ReadLimit)}.");
+                return null;
+            }
             using var stream = File.OpenRead(entry.Archive);
             stream.Position = entry.Offset;
             byte[] data = new byte[entry.Size];
@@ -118,7 +142,10 @@ namespace CommandCenter.Core.Game
             try
             {
                 string name = Path.GetFileName(archive);
-                foreach (var (file, offset, size) in ReadIndex(archive))
+                var entries = ReadIndex(archive, out string? damage);
+                if (damage != null)
+                    ErrorLog.Skipped(archive, damage);
+                foreach (var (file, offset, size) in entries)
                 {
                     var entry = new Entry(archive, offset, size);
                     string key = Normalize(file);
@@ -163,34 +190,60 @@ namespace CommandCenter.Core.Game
             }
         }
 
+        // A name in an archive's index is a path in the game folder, so no longer than a Windows path
+        private const int MaxName = 260;
+
         // BIG header: "BIGF", archive size (LE), file count (BE), first offset (BE),
         // then per file: offset (BE), size (BE), zero-terminated name. The game skips any other kind (BIG4).
-        private static IEnumerable<(string Name, uint Offset, uint Size)> ReadIndex(string archive)
+        // A damaged index keeps the entries that make sense: entries that lie outside the archive are left out, and a name
+        // with no end stops the reading. damage then says what was wrong.
+        private static List<(string Name, uint Offset, uint Size)> ReadIndex(string archive, out string? damage)
         {
+            var entries = new List<(string Name, uint Offset, uint Size)>();
+            damage = null;
             using var reader = new BinaryReader(File.OpenRead(archive));
-            string magic = Encoding.ASCII.GetString(reader.ReadBytes(4));
-            if (magic != "BIGF")
-                yield break;
+            long length = reader.BaseStream.Length;
+            if (length < 16 || Encoding.ASCII.GetString(reader.ReadBytes(4)) != "BIGF")
+                return entries;
 
             reader.ReadUInt32();
             uint count = ReadBigEndian(reader);
             reader.ReadUInt32();
 
-            for (uint i = 0; i < count; i++)
+            int outside = 0;
+            var name = new StringBuilder();
+            try
             {
-                uint offset = ReadBigEndian(reader);
-                uint size = ReadBigEndian(reader);
-                var name = new StringBuilder();
-                for (byte c = reader.ReadByte(); c != 0; c = reader.ReadByte())
-                    name.Append((char)c);
-                yield return (name.ToString(), offset, size);
+                for (uint i = 0; i < count && damage == null; i++)
+                {
+                    uint offset = ReadBigEndian(reader);
+                    uint size = ReadBigEndian(reader);
+                    name.Clear();
+                    for (byte c = reader.ReadByte(); c != 0 && damage == null; c = reader.ReadByte())
+                    {
+                        if (name.Length == MaxName)
+                            damage = $"A name in its index runs past {MaxName} characters, so the rest of the index was left out.";
+                        else
+                            name.Append((char)c);
+                    }
+                    if (damage != null)
+                        break;
+                    if ((long)offset + size > length)
+                        outside++;
+                    else
+                        entries.Add((name.ToString(), offset, size));
+                }
             }
+            catch (EndOfStreamException)
+            {
+                damage = "Its index ends early, so its last entries were left out.";
+            }
+            if (outside > 0)
+                damage = English.Plural(outside, "{0} entry of its index lies outside the archive and was left out.",
+                    "{0} entries of its index lie outside the archive and were left out.") + (damage != null ? " " + damage : "");
+            return entries;
         }
 
-        private static uint ReadBigEndian(BinaryReader reader)
-        {
-            byte[] b = reader.ReadBytes(4);
-            return (uint)(b[0] << 24 | b[1] << 16 | b[2] << 8 | b[3]);
-        }
+        private static uint ReadBigEndian(BinaryReader reader) => BinaryPrimitives.ReverseEndianness(reader.ReadUInt32());
     }
 }

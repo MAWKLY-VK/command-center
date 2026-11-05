@@ -234,12 +234,14 @@ namespace CommandCenter.Core.Content
         {
             try
             {
-                byte[] data = File.ReadAllBytes(mapFile);
-                if (RefPack.IsCompressed(data))
-                    data = RefPack.Decompress(data);
-                string text = Encoding.ASCII.GetString(data);
+                string text = Encoding.ASCII.GetString(RefPack.ReadMap(mapFile));
                 int players = Regex.Matches(text, @"Player_(\d)_Start").Select(m => m.Groups[1].Value).Distinct().Count();
                 return (players, new List<MapPoint>());
+            }
+            catch (InvalidDataException ex)
+            {
+                ErrorLog.Skipped(mapFile, ex.Message);
+                return (0, new List<MapPoint>());
             }
             catch
             {

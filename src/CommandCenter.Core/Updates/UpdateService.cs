@@ -291,9 +291,9 @@ namespace CommandCenter.Core.Updates
             byte[] program;
             try
             {
-                program = ReadAtMost(downloaded, DownloadService.UpdateProgramLimit);
+                program = BoundedFile.Read(downloaded, DownloadService.UpdateProgramLimit);
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException)
             {
                 return StepNotTheDownload;
             }
@@ -546,16 +546,6 @@ namespace CommandCenter.Core.Updates
         // A plain path on a local drive, not a network or device path
         private static bool IsLocalPath(string path) =>
             Path.IsPathFullyQualified(path) && !path.StartsWith(@"\\", StringComparison.Ordinal);
-
-        private static byte[] ReadAtMost(string path, long limit)
-        {
-            using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-            if (file.Length > limit)
-                throw new IOException("The download is too large.");
-            var data = new byte[file.Length];
-            file.ReadExactly(data);
-            return data;
-        }
 
         private static bool IsWeb(string source) =>
             source.StartsWith("https://", StringComparison.OrdinalIgnoreCase) || source.StartsWith("http://", StringComparison.OrdinalIgnoreCase);
