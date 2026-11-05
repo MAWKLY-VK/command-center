@@ -36,6 +36,11 @@ dotnet build tools/MapLibraryBuilder/MapLibraryBuilder.csproj -c Release
   private key, and never ask for or choose its password. Run `tools/New-SigningKey.cs` again only for a key
   replacement the user asks for: start `dotnet run --file tools/New-SigningKey.cs -- <folder outside any repository>`
   in the user's terminal, and the user types the password.
+- Signing files (ADR 0007, Format): start `dotnet run --file tools/Sign-File.cs -- <update|go-profile|map-catalog>
+  <file> <key file>` in the user's Terminal panel, and the user types the password. It writes `<file>.sig`, or signs
+  `update.json` in place with an expiry one year ahead. `--stdin-password` is only for throwaway test keys.
+- Test builds: `-p:TestKeys=true` makes a build that also trusts a public key given with `--test-key <pem file>`,
+  so the update path can be tried with a throwaway key. Never publish one.
 
 ### Running the app
 
