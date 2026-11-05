@@ -62,12 +62,20 @@ namespace CommandCenter.Controls
         public static readonly DependencyProperty KindProperty =
             DependencyProperty.Register(nameof(Kind), typeof(string), typeof(Icon), new PropertyMetadata("", (d, _) => ((Icon)d).Build()));
 
+        // The text colour around the icon; with none, the theme's primary text colour
         public static readonly DependencyProperty ForegroundProperty =
-            TextElement.ForegroundProperty.AddOwner(typeof(Icon), new FrameworkPropertyMetadata(Brushes.White,
+            TextElement.ForegroundProperty.AddOwner(typeof(Icon), new FrameworkPropertyMetadata(null,
                 FrameworkPropertyMetadataOptions.Inherits, (d, _) => ((Icon)d).Build()));
 
+        // In grid units; unset (NaN), the theme's Icon.Stroke, which matches the weight of the text beside the icon
         public static readonly DependencyProperty StrokeThicknessProperty =
-            DependencyProperty.Register(nameof(StrokeThickness), typeof(double), typeof(Icon), new PropertyMetadata(1.8, (d, _) => ((Icon)d).Build()));
+            DependencyProperty.Register(nameof(StrokeThickness), typeof(double), typeof(Icon), new PropertyMetadata(double.NaN, (d, _) => ((Icon)d).Build()));
+
+        // Used only where the theme is not loaded (tests, the designer)
+        private const double DefaultStroke = 1.8;
+
+        // Mitre joins on sharp corners are cut back at this length so they never spike
+        private const double MiterLimit = 4;
 
         public string Kind
         {
@@ -93,20 +101,25 @@ namespace CommandCenter.Controls
             SnapsToDevicePixels = true;
         }
 
+        // One family on a 24 grid with a live area of 20 (plan 3-c): square ends and mitre joins, so a dot is a small
+        // square. Filled shapes mark what is selected or active.
         private void Build()
         {
             var canvas = new Canvas { Width = 24, Height = 24 };
+            var brush = Foreground ?? TryFindResource("Text.Primary") as Brush;
+            double thickness = !double.IsNaN(StrokeThickness) ? StrokeThickness : TryFindResource("Icon.Stroke") is double themed ? themed : DefaultStroke;
             if (Filled.TryGetValue(Kind, out var fill))
-                canvas.Children.Add(new Path { Data = Geometry.Parse(fill), Fill = Foreground, Stroke = Foreground, StrokeThickness = 1.5, StrokeLineJoin = PenLineJoin.Round });
+                canvas.Children.Add(new Path { Data = Geometry.Parse(fill), Fill = brush, Stroke = brush, StrokeThickness = thickness, StrokeLineJoin = PenLineJoin.Miter, StrokeMiterLimit = MiterLimit });
             else if (Shapes.TryGetValue(Kind, out var shape))
                 canvas.Children.Add(new Path
                 {
                     Data = Geometry.Parse(shape),
-                    Stroke = Foreground,
-                    StrokeThickness = StrokeThickness,
-                    StrokeStartLineCap = PenLineCap.Round,
-                    StrokeEndLineCap = PenLineCap.Round,
-                    StrokeLineJoin = PenLineJoin.Round,
+                    Stroke = brush,
+                    StrokeThickness = thickness,
+                    StrokeStartLineCap = PenLineCap.Square,
+                    StrokeEndLineCap = PenLineCap.Square,
+                    StrokeLineJoin = PenLineJoin.Miter,
+                    StrokeMiterLimit = MiterLimit,
                 });
             Child = canvas;
         }

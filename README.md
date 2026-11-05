@@ -158,7 +158,8 @@ Copyright (C) 2026 Command Center contributors.
 - The interface, the Options page and the network diagnostics are based on the [Generals Online Launcher](https://github.com/GeneralsOnlineDevelopmentTeam/Launcher) by the GeneralsOnline Development Team (GPL-3.0).
 - Control Bar Pro: [TheSuperHackers/GeneralsControlBar](https://github.com/TheSuperHackers/GeneralsControlBar) (MIT).
 - The program icon is the Generals Online launcher icon (GPL-3.0), recoloured red and without its lettering (`toolsmake-icon.ps1`).
-- Map previews, icons and artwork are read at run time from the player's own game and Steam installation.
+- The interface's line icons are drawn from [Feather](https://feathericons.com) by Cole Bemis (MIT), with square ends. The licence texts are in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+- Map previews, game icons and artwork are read at run time from the player's own game and Steam installation.
 
 Command & Conquer is a trademark of Electronic Arts. This project is not affiliated with Electronic Arts
 or the Generals Online team.

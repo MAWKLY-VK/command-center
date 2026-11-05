@@ -129,7 +129,6 @@ namespace CommandCenter.Tests
         // tokens (the ticket or phase is noted), and the test fails when a file here no longer needs to be listed.
         private static readonly string[] NotYetMoved =
         [
-            @"Controls\Icon.cs",                          // ticket 04
             @"Imaging\FactionArt.cs",                     // phase 6 (the dossier)
             @"MainWindow.xaml",                           // ticket 06
             @"MainWindow.xaml.cs",                        // ticket 06

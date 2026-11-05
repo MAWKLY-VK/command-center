@@ -83,9 +83,10 @@
     <CornerRadius x:Key="Radius.Small">2</CornerRadius>
     <CornerRadius x:Key="Radius.Medium">4</CornerRadius>
 
-    <!-- Lines and targets -->
+    <!-- Lines and targets. Icon.Stroke is in the icons' 24-unit grid and matches the weight of the text beside them. -->
     <Thickness x:Key="Line.Thin">1</Thickness>
     <Thickness x:Key="Line.Focus">2</Thickness>
+    <sys:Double x:Key="Icon.Stroke">1.8</sys:Double>
     <sys:Double x:Key="Target.Min">32</sys:Double>
 
     <!-- Motion shows a change of state only -->
