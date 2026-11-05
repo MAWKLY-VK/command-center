@@ -1,0 +1,13 @@
+# Weekly update proposals for the pinned GitHub Actions and the NuGet packages (with their lock files). Each pull
+# request is reviewed like any other, and nothing merges by itself.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly

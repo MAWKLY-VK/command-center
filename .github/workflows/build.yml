@@ -1,5 +1,7 @@
 # Builds Command Center and runs its tests on every push to main and on every pull request, on Windows like the
-# program itself. The tests run 32-bit, as Command Center does, so the 32-bit .NET runtime is installed first.
+# program itself. Everything runs on the 32-bit .NET SDK, as Command Center and its tests are 32-bit. Actions are pinned
+# to a commit, with their release in a comment, and NuGet restores only what the lock files name (CI=true makes every
+# restore locked, see Directory.Build.props).
 name: Build and test
 
 on:
@@ -20,29 +22,30 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-dotnet@v4
+      # The 32-bit SDK brings the 32-bit runtimes the tests need, with no install script of our own
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: 10.0.x
+          architecture: x86
 
-      - name: Install the 32-bit .NET runtime for the tests
-        shell: pwsh
-        run: |
-          $dir = Join-Path ${env:ProgramFiles(x86)} "dotnet"
-          Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile "$env:RUNNER_TEMP\dotnet-install.ps1"
-          & "$env:RUNNER_TEMP\dotnet-install.ps1" -Channel 10.0 -Runtime dotnet -Architecture x86 -InstallDir $dir -NoPath
-          & "$env:RUNNER_TEMP\dotnet-install.ps1" -Channel 10.0 -Runtime windowsdesktop -Architecture x86 -InstallDir $dir -NoPath
-          "DOTNET_ROOT_X86=$dir" >> $env:GITHUB_ENV
+      - name: Restore from the lock files
+        run: dotnet restore CommandCenter.slnx --locked-mode
 
       - name: Test
-        run: dotnet test tests/CommandCenter.Tests/CommandCenter.Tests.csproj -c Release --logger "console;verbosity=normal"
+        run: dotnet test tests/CommandCenter.Tests/CommandCenter.Tests.csproj -c Release --no-restore --logger "console;verbosity=normal"
+
+      - name: Build the map library tool
+        run: dotnet build tools/MapLibraryBuilder/MapLibraryBuilder.csproj -c Release
 
       - name: Build the release program
         run: dotnet publish src/CommandCenter.App/CommandCenter.App.csproj -c Release -r win-x86 --self-contained false -o out -p:PublishSingleFile=true
 
       - name: Keep the program for trying out
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: CommandCenter-${{ github.sha }}
           path: out/CommandCenter.exe

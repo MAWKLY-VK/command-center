@@ -21,8 +21,12 @@ dotnet test tests/CommandCenter.Tests/CommandCenter.Tests.csproj --filter "Fully
 dotnet build tools/MapLibraryBuilder/MapLibraryBuilder.csproj -c Release
 ```
 
-- The tests run in a 32-bit test host (`PlatformTarget x86`), so they need the x86 .NET 10 runtime. CI installs it
-  (`.github/workflows/build.yml`); on this PC it is already installed. Baseline at 0.4.0: 93 tests, all passing.
+- The tests run in a 32-bit test host (`PlatformTarget x86`), so they need the x86 .NET 10 runtime. CI runs on the
+  x86 SDK (`.github/workflows/build.yml`); on this PC the x86 runtime is already installed. Baseline at 0.4.0: 93
+  tests, all passing.
+- Packages are locked (`Directory.Build.props`): every project has a `packages.lock.json`, and CI restores in locked
+  mode. After changing `Directory.Packages.props` or a package reference, run `dotnet restore CommandCenter.slnx` and
+  `dotnet restore tools/MapLibraryBuilder/MapLibraryBuilder.csproj`, then commit the changed lock files.
 - Test parallelization is off (`tests/CommandCenter.Tests/TestSetup.cs`) because the game paths and the run options are
   global state.
 - `tools/MapLibraryBuilder` is not in the solution but references the App, so build it after any change to the

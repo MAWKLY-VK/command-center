@@ -6,4 +6,18 @@
     <DebugType>embedded</DebugType>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
+
+  <!-- NuGet: every project restores from its packages.lock.json, and CI (where GitHub sets CI=true) accepts nothing
+       else. The lock files also hold the win-x86 graph the program is published for. The single-file analyzer is off:
+       it brings a package whose version follows the installed SDK, which would break the lock files at every SDK
+       update. The vulnerability audit covers indirect packages too, and a high or critical finding fails the build. -->
+  <PropertyGroup>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode Condition="'$(CI)' == 'true'">true</RestoreLockedMode>
+    <RuntimeIdentifiers>win-x86</RuntimeIdentifiers>
+    <EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <WarningsAsErrors>$(WarningsAsErrors);NU1903;NU1904</WarningsAsErrors>
+  </PropertyGroup>
 </Project>
