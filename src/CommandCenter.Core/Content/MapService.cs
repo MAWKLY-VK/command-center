@@ -1,5 +1,4 @@
 using System.IO;
-using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -53,6 +52,9 @@ namespace CommandCenter.Core.Content
             ".map", ".tga", ".ini", ".str", ".txt", ".scb", ".wak",
         };
 
+        // What a map zip gives: those files, at most 64 MB each (the largest map in the library is 2.3 MB)
+        public static readonly ExtractRules ZipRules = new(name => MapFileTypes.Contains(Path.GetExtension(name)), 64L * 1024 * 1024);
+
         // Installs every map folder found under a folder or inside a .zip. Returns the installed map names.
         public static List<string> Install(string source)
         {
@@ -69,17 +71,18 @@ namespace CommandCenter.Core.Content
             }
         }
 
+        // A zip is extracted (and checked) in full before any map is written. Maps already written stay when a later one
+        // in the same zip fails.
         private static List<string> InstallFrom(string source)
         {
-            string? temp = null;
+            string? staging = null;
             try
             {
                 string root = source;
                 if (File.Exists(source) && source.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                 {
-                    temp = Path.Combine(Path.GetTempPath(), "GOLauncherMap-" + Guid.NewGuid().ToString("N"));
-                    ExtractZip(source, temp);
-                    root = temp;
+                    staging = ArchiveExtractor.Extract(source, ZipRules);
+                    root = staging;
                 }
                 else if (!Directory.Exists(source))
                 {
@@ -94,13 +97,14 @@ namespace CommandCenter.Core.Content
                 foreach (string folder in mapFolders.OfType<string>())
                 {
                     string name = Path.GetFileName(folder);
-                    if (string.Equals(folder.TrimEnd('\\'), root.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase) && temp != null)
+                    if (string.Equals(folder.TrimEnd('\\'), root.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase) && staging != null)
                         name = Path.GetFileNameWithoutExtension(Directory.EnumerateFiles(folder, "*.map").First());
+                    if (ArchiveExtractor.NameRefusal(name) is { } reason)
+                        throw new InvalidDataException($"\"{name}\" cannot be a map's name: {reason}.");
 
                     string target = Path.Combine(UserMapsFolder, name);
-                    Directory.CreateDirectory(target);
                     foreach (string file in Directory.EnumerateFiles(folder).Where(f => MapFileTypes.Contains(Path.GetExtension(f))))
-                        File.Copy(file, Path.Combine(target, Path.GetFileName(file)), overwrite: true);
+                        Place(Path.Combine(target, Path.GetFileName(file)), BoundedFile.Read(file, ZipRules.FileLimit), name);
                     installed.Add(name);
                 }
 
@@ -108,28 +112,18 @@ namespace CommandCenter.Core.Content
             }
             finally
             {
-                if (temp != null)
-                {
-                    try { Directory.Delete(temp, recursive: true); } catch { }
-                }
+                if (staging != null)
+                    ArchiveExtractor.Discard(staging);
             }
         }
 
-        // Extracts only map files and refuses entries that would land outside the target folder.
-        private static void ExtractZip(string zipPath, string target)
+        // A new file is written as it is; one that is already there is backed up first, with its own Undo
+        private static void Place(string target, byte[] content, string map)
         {
-            string fullTarget = Path.GetFullPath(target) + Path.DirectorySeparatorChar;
-            using var zip = ZipFile.OpenRead(zipPath);
-            foreach (var entry in zip.Entries)
-            {
-                if (string.IsNullOrEmpty(entry.Name) || !MapFileTypes.Contains(Path.GetExtension(entry.Name)))
-                    continue;
-                string destination = Path.GetFullPath(Path.Combine(target, entry.FullName));
-                if (!destination.StartsWith(fullTarget, StringComparison.OrdinalIgnoreCase))
-                    continue;
-                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-                entry.ExtractToFile(destination, overwrite: true);
-            }
+            if (File.Exists(target))
+                BackupService.WriteFile("Map file replaced", target, content, $"{map} · {Path.GetFileName(target)}");
+            else
+                BackupService.CreateFile(target, content);
         }
 
         public static void Remove(MapEntry map) =>

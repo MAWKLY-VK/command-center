@@ -152,6 +152,27 @@ namespace CommandCenter.Core.Safety
             return entry;
         }
 
+        // A file where there was none, such as an installed map's: nothing to back up, so no Undo entry, but the place is
+        // checked like every change. A file that is already there is refused; WriteFile backs it up first.
+        public static void CreateFile(string target, byte[] content)
+        {
+            EnsureAllowed(target);
+            EnsureGameClosed(target);
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            var file = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            try
+            {
+                file.Write(content);
+            }
+            catch
+            {
+                file.Dispose();
+                TryDelete(target);
+                throw;
+            }
+            file.Dispose();
+        }
+
         // Moves a file into the launcher's quarantine folder; undo moves it back.
         public static BackupEntry MoveToQuarantine(string title, string path, string detail = "") =>
             OperationLog.Record("quarantine", path, OperationLog.Describe(title, detail), () => Quarantine(title, path, detail));
