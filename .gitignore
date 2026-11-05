@@ -10,3 +10,6 @@ publish/
 # Local test output
 captures/
 *.log
+
+# Personal Claude Code settings (per machine, never committed)
+.claude/settings.local.json
