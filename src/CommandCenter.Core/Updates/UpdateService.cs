@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Net.Http;
 using System.Reflection;
@@ -9,58 +10,113 @@ namespace CommandCenter.Core.Updates
 {
     public sealed record UpdateInfo(Version Version, string VersionText, string Url, string Sha256, string Notes);
 
-    // Mandatory updates. Each release carries an update.json next to the program:
-    // { "version": "0.2.0", "url": "https://.../CommandCenter.exe", "sha256": "<hex>", "notes": "..." }
-    // When it names a newer version, this copy stops working until the new program is installed.
+    // Mandatory updates. Each release carries an update.json next to the program. Its old fields (version, url, sha256,
+    // notes) are for 0.4.0; this version reads only the signed payload (ADR 0007, Format). When that names a newer
+    // version, this copy stops working until the new program is installed.
     public static class UpdateService
     {
         public const string ManifestUrl = "https://github.com/MAWKLY-VK/command-center/releases/latest/download/update.json";
         public const string ReleasePage = "https://github.com/MAWKLY-VK/command-center/releases/latest";
 
-        private static readonly HttpClient Http = CreateClient();
+        // A signed update may only download from this repository's releases
+        public const string ReleaseDownloads = "https://github.com/MAWKLY-VK/command-center/releases/download/";
 
-        private static HttpClient CreateClient()
-        {
-            // No overall timeout: the download can take minutes, so each step has its own limit instead
-            var client = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("CommandCenter/" + Current.ToString(3));
-            return client;
-        }
+        // Test builds (and the tests) also accept a download from a local file, to try the update path; release builds
+        // never set it
+        internal static bool AllowLocalDownloads { get; set; }
 
         // The program's own version: CommandCenter.exe, whose <Version> tools/publish.ps1 also reads. Not this
         // assembly's: the services live in CommandCenter.Core.dll, which has no version of its own.
         public static Version Current => Normalize(Assembly.GetEntryAssembly()?.GetName().Version ?? new Version(0, 0));
 
-        // Reads the manifest from a web address or a local file. Offline, missing or broken manifests
-        // mean "no update" so the program keeps working.
+        // Reads the manifest from a web address or a local file. Offline, missing or broken manifests mean "no update",
+        // so the program keeps working. A manifest that breaks a rule is refused, and the operation log says why.
         public static async Task<UpdateInfo?> CheckAsync(string source)
         {
+            byte[] manifest;
             try
             {
-                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-                bool web = IsWeb(source);
-                string json = web
-                    ? await Http.GetStringAsync(source, timeout.Token)
-                    : await File.ReadAllTextAsync(LocalPath(source), timeout.Token);
-
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-                string versionText = Text(root, "version");
-                string url = Text(root, "url");
-                string sha = Text(root, "sha256").ToLowerInvariant();
-                if (ParseVersion(versionText) is not { } version || version <= Current)
-                    return null;
-                if (sha.Length != 64 || !sha.All(Uri.IsHexDigit))
-                    return null;
-                // A manifest from the web may only point at a web download; local files are for testing
-                if (url.Length == 0 || (web && !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
-                    return null;
-                return new UpdateInfo(version, versionText.Trim(), url, sha, Text(root, "notes").Trim());
+                manifest = IsWeb(source)
+                    ? await DownloadService.GetBytesAsync(new Uri(source), DownloadService.SmallFileLimit, TimeSpan.FromSeconds(8))
+                    : await ReadLocalAsync(LocalPath(source));
             }
             catch
             {
                 return null;
             }
+            if (Read(manifest, out var update) is { } refusal)
+                OperationLog.Failed("check update", source, refusal);
+            return update;
+        }
+
+        // The update a manifest offers. Returns the reason when it breaks a rule; update is null then, and also when it
+        // names no newer version.
+        private static string? Read(byte[] manifest, out UpdateInfo? update)
+        {
+            update = null;
+            if (Json(manifest) is not { } root)
+                return "It is not a JSON object.";
+            byte[] payload;
+            try { payload = Convert.FromBase64String(Text(root, "signed")); }
+            catch (FormatException) { return "Its signed part is damaged."; }
+            if (!ManifestVerifier.Verify(SignedKind.Update, payload, Text(root, "signature"), out string reason))
+                return reason;
+            if (Json(payload) is not { } signed)
+                return "Its signed part is not a JSON object.";
+            foreach (string field in new[] { "version", "url", "sha256", "expires" })
+            {
+                if (Text(signed, field).Length == 0)
+                    return $"It is missing {field}.";
+            }
+            string versionText = Text(signed, "version").Trim();
+            if (ParseVersion(versionText) is not { } version)
+                return "Its version cannot be read.";
+            if (version <= Current)
+                return null;
+            if (!DateTime.TryParse(Text(signed, "expires"), CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var expires))
+                return "Its expiry date cannot be read.";
+            if (expires <= DateTime.UtcNow)
+                return $"It expired on {expires.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}.";
+            string url = Text(signed, "url").Trim();
+            if (!IsAllowedDownload(url))
+                return "Its download is not one of Command Center's GitHub releases.";
+            string sha = Text(signed, "sha256").Trim().ToLowerInvariant();
+            if (sha.Length != 64 || !sha.All(Uri.IsHexDigit))
+                return "Its SHA-256 is not 64 hexadecimal characters.";
+            update = new UpdateInfo(version, versionText, url, sha, Text(signed, "notes").Trim());
+            return null;
+        }
+
+        // A release download of this repository (checked after the address is normalised, so dot segments cannot leave
+        // it), or a local file in a test build
+        private static bool IsAllowedDownload(string url)
+        {
+            if (!IsWeb(url))
+                return AllowLocalDownloads;
+            return Uri.TryCreate(url, UriKind.Absolute, out var uri)
+                   && uri.Scheme == Uri.UriSchemeHttps
+                   && uri.AbsoluteUri.StartsWith(ReleaseDownloads, StringComparison.Ordinal);
+        }
+
+        private static JsonElement? Json(byte[] data)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(data);
+                return doc.RootElement.ValueKind == JsonValueKind.Object ? doc.RootElement.Clone() : null;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
+        private static async Task<byte[]> ReadLocalAsync(string path)
+        {
+            if (new FileInfo(path).Length > DownloadService.SmallFileLimit)
+                throw new InvalidDataException("The manifest is too large.");
+            return await File.ReadAllBytesAsync(path);
         }
 
         // Fails early when the program's folder cannot be written, before anything is downloaded
@@ -78,78 +134,66 @@ namespace CommandCenter.Core.Updates
             }
         }
 
-        // Downloads the new program to a temporary file and checks its SHA-256. Returns the file's path.
+        // Downloads the new program to a private temporary file, checks its SHA-256 and that it is the version the
+        // manifest names. Returns the file's path.
         public static Task<string> DownloadAsync(UpdateInfo update, IProgress<(long Done, long Total)> progress) =>
             OperationLog.RecordAsync("download update", update.Url, "Version " + update.VersionText, () => DownloadFileAsync(update, progress));
 
         private static async Task<string> DownloadFileAsync(UpdateInfo update, IProgress<(long Done, long Total)> progress)
         {
-            string temp = Path.Combine(Path.GetTempPath(), $"CommandCenter-{update.Version.ToString(3)}.exe.download");
-            using var stall = new CancellationTokenSource();
-            HttpResponseMessage? response = null;
-            Stream? source = null;
+            if (!IsAllowedDownload(update.Url))
+                throw new InvalidDataException("The update's download is not one of Command Center's GitHub releases.");
+            string file;
             try
             {
-                long total;
-                stall.CancelAfter(TimeSpan.FromSeconds(30));
-                if (IsWeb(update.Url))
-                {
-                    response = await Http.GetAsync(update.Url, HttpCompletionOption.ResponseHeadersRead, stall.Token);
-                    response.EnsureSuccessStatusCode();
-                    total = response.Content.Headers.ContentLength ?? -1;
-                    source = await response.Content.ReadAsStreamAsync(stall.Token);
-                }
-                else
-                {
-                    source = File.OpenRead(LocalPath(update.Url));
-                    total = source.Length;
-                }
+                file = IsWeb(update.Url)
+                    ? await DownloadService.DownloadFileAsync(new Uri(update.Url), DownloadService.UpdateProgramLimit, update.Sha256,
+                        (done, total) => progress.Report((done, total)), default, ".exe.download")
+                    : await CopyLocalAsync(LocalPath(update.Url), update.Sha256, progress);
+            }
+            catch (ChecksumMismatchException)
+            {
+                throw new InvalidDataException("The downloaded file failed its SHA-256 check, so it was not installed.");
+            }
+            catch (TimeoutException)
+            {
+                throw new IOException("The download stopped responding.");
+            }
+            catch (Exception ex) when (ex is not InvalidDataException)
+            {
+                throw new IOException("Could not download the update: " + ex.Message, ex);
+            }
 
+            // A wrong upload is caught here, before it replaces anything
+            var info = FileVersionInfo.GetVersionInfo(file);
+            string actual = new Version(info.FileMajorPart, info.FileMinorPart, info.FileBuildPart).ToString(3);
+            if (actual != update.Version.ToString(3))
+            {
+                TryDelete(file);
+                throw new InvalidDataException($"The downloaded program is version {actual}, not {update.VersionText}, so it was not installed.");
+            }
+            return file;
+        }
+
+        // A test build's local download, with the same limit and checksum
+        private static async Task<string> CopyLocalAsync(string source, string sha256, IProgress<(long Done, long Total)> progress)
+        {
+            string temp = DownloadService.NewTempPath(".exe.download");
+            try
+            {
                 using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-                await using (var target = File.Create(temp))
-                {
-                    var buffer = new byte[81920];
-                    long done = 0;
-                    int shown = -1;
-                    while (true)
-                    {
-                        // Gives up when no data arrives for 30 seconds
-                        stall.CancelAfter(TimeSpan.FromSeconds(30));
-                        int read = await source.ReadAsync(buffer, stall.Token);
-                        if (read == 0)
-                            break;
-                        await target.WriteAsync(buffer.AsMemory(0, read));
-                        hash.AppendData(buffer, 0, read);
-                        done += read;
-                        int percent = total > 0 ? (int)(done * 100 / total) : (int)(done >> 20);
-                        if (percent != shown)
-                        {
-                            shown = percent;
-                            progress.Report((done, total));
-                        }
-                    }
-                    progress.Report((done, total));
-                }
-
-                string actual = Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
-                if (actual != update.Sha256)
-                    throw new InvalidDataException("The downloaded file failed its SHA-256 check, so it was not installed.");
+                long total = new FileInfo(source).Length;
+                await using (var input = File.OpenRead(source))
+                await using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                    await DownloadService.CopyAsync(input, output, DownloadService.UpdateProgramLimit, hash, done => progress.Report((done, total)), default);
+                if (!Convert.ToHexString(hash.GetHashAndReset()).Equals(sha256, StringComparison.OrdinalIgnoreCase))
+                    throw new ChecksumMismatchException("The download does not match its checksum.");
                 return temp;
             }
-            catch (Exception ex)
+            catch
             {
                 TryDelete(temp);
-                throw ex switch
-                {
-                    InvalidDataException => ex,
-                    OperationCanceledException => new IOException("The download stopped responding."),
-                    _ => new IOException("Could not download the update: " + ex.Message, ex),
-                };
-            }
-            finally
-            {
-                source?.Dispose();
-                response?.Dispose();
+                throw;
             }
         }
 

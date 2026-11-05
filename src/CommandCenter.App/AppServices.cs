@@ -16,7 +16,10 @@ namespace CommandCenter
             // Test builds only (built with -p:TestKeys=true and never published): the signed files may also come from the
             // test key in this file, so the update path can be tried without the maintainer's key
             if (Value(args, "--test-key") is { } testKey)
+            {
                 ManifestVerifier.TestKey = ManifestVerifier.KeyFromPem(System.IO.File.ReadAllText(testKey));
+                UpdateService.AllowLocalDownloads = true;
+            }
 #endif
         }
 

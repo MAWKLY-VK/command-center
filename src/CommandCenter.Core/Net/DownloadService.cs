@@ -81,9 +81,10 @@ namespace CommandCenter.Core.Net
             return buffer.ToArray();
         }
 
-        // Downloads to a new private temporary file and checks the SHA-256 when it is given. Returns the file's path; the
-        // caller deletes it. On any failure the file is removed.
-        public static async Task<string> DownloadFileAsync(Uri url, long limit, string? sha256 = null, Action<long>? progress = null,
+        // Downloads to a new private temporary file and checks the SHA-256 when it is given. Progress gets the bytes so
+        // far and the announced size (-1 when unknown). Returns the file's path; the caller deletes it. On any failure
+        // the file is removed.
+        public static async Task<string> DownloadFileAsync(Uri url, long limit, string? sha256 = null, Action<long, long>? progress = null,
             CancellationToken ct = default, string extension = ".download")
         {
             string? temp = null;
@@ -97,7 +98,10 @@ namespace CommandCenter.Core.Net
                 temp = NewTempPath(extension);
                 await using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true))
                 await using (var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false))
-                    await CopyAsync(stream, output, limit, hash, progress, ct).ConfigureAwait(false);
+                {
+                    long total = response.Content.Headers.ContentLength ?? -1;
+                    await CopyAsync(stream, output, limit, hash, progress == null ? null : done => progress(done, total), ct).ConfigureAwait(false);
+                }
                 if (hash != null && !Convert.ToHexString(hash.GetHashAndReset()).Equals(sha256, StringComparison.OrdinalIgnoreCase))
                     throw new ChecksumMismatchException("The download does not match its checksum.");
                 return temp;

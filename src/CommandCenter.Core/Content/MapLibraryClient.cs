@@ -328,7 +328,8 @@ namespace CommandCenter.Core.Content
             {
                 try
                 {
-                    return await DownloadService.DownloadFileAsync(new Uri(_web, map.Zip), limit, map.Sha256, progress, ct, ".zip").ConfigureAwait(false);
+                    return await DownloadService.DownloadFileAsync(new Uri(_web, map.Zip), limit, map.Sha256,
+                        progress == null ? null : (done, _) => progress(done), ct, ".zip").ConfigureAwait(false);
                 }
                 catch (DownloadTooLargeException) { throw new InvalidDataException(TooLarge); }
                 catch (ChecksumMismatchException) { throw new InvalidDataException(NotTheLibrarysFile); }
