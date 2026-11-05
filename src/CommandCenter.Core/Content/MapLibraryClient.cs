@@ -140,25 +140,32 @@ namespace CommandCenter.Core.Content
             var saved = new FileInfo(cached);
             if (!refresh && saved.Exists && DateTime.UtcNow - saved.LastWriteTimeUtc < CatalogMaxAge)
             {
-                try { return new CatalogResult(Parse(await File.ReadAllBytesAsync(cached, ct).ConfigureAwait(false)), null, null, saved.LastWriteTime); }
+                try { return new CatalogResult(await ReadCachedAsync(cached, ct).ConfigureAwait(false), null, null, saved.LastWriteTime); }
                 catch (Exception) when (!ct.IsCancellationRequested) { }   // damaged copy: download it again
             }
 
             try
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(_web!, "catalog.json"));
-                if (saved.Exists && File.Exists(etagFile))
+                // An unsigned copy left by an older version is never confirmed as unchanged: the catalog comes again
+                if (saved.Exists && File.Exists(etagFile) && (!IsOnlineLibrary || File.Exists(cached + ".sig")))
                     request.Headers.TryAddWithoutValidation("If-None-Match", File.ReadAllText(etagFile).Trim());
                 using var response = await DownloadService.SendAsync(request, null, ct).ConfigureAwait(false);
                 if (response.StatusCode == HttpStatusCode.NotModified && saved.Exists)
                 {
-                    var unchanged = Parse(await File.ReadAllBytesAsync(cached, ct).ConfigureAwait(false));
+                    var unchanged = await ReadCachedAsync(cached, ct).ConfigureAwait(false);
                     File.SetLastWriteTimeUtc(cached, DateTime.UtcNow);
                     return new CatalogResult(unchanged, null, null, DateTime.Now);
                 }
                 DownloadService.EnsureSuccess(response);
 
                 byte[] data = await DownloadService.ReadAsync(response, DownloadService.CatalogLimit, ct).ConfigureAwait(false);
+                string? signature = null;
+                if (IsOnlineLibrary)
+                {
+                    signature = await SignatureAsync(ct).ConfigureAwait(false);
+                    RequireSignature(data, signature);
+                }
                 var catalog = Parse(data);
 
                 // Saved only once it reads correctly
@@ -168,6 +175,8 @@ namespace CommandCenter.Core.Content
                     string temp = cached + ".tmp";
                     await File.WriteAllBytesAsync(temp, data, ct).ConfigureAwait(false);
                     File.Move(temp, cached, overwrite: true);
+                    if (signature != null)
+                        await File.WriteAllTextAsync(cached + ".sig", signature, ct).ConfigureAwait(false);
                     if (response.Headers.ETag is { } etag)
                         File.WriteAllText(etagFile, etag.ToString());
                     else if (File.Exists(etagFile))
@@ -183,12 +192,45 @@ namespace CommandCenter.Core.Content
                     reason += " The library may be private or may have moved.";
                 if (saved.Exists)
                 {
-                    try { return new CatalogResult(Parse(await File.ReadAllBytesAsync(cached, ct).ConfigureAwait(false)), "Couldn't check for new maps", reason, saved.LastWriteTime); }
+                    try { return new CatalogResult(await ReadCachedAsync(cached, ct).ConfigureAwait(false), "Couldn't check for new maps", reason, saved.LastWriteTime); }
                     catch (Exception) when (!ct.IsCancellationRequested) { }
                 }
-                string title = IsOnlineLibrary ? "The online map library can't be reached right now" : "This map library can't be reached right now";
+                string title = ex is SignatureRefusedException ? "The online map library can't be read"
+                    : IsOnlineLibrary ? "The online map library can't be reached right now" : "This map library can't be reached right now";
                 return new CatalogResult(null, title, reason, null);
             }
+        }
+
+        // The online library's catalog counts only with the maintainer's signature (ADR 0007); a missing signature file
+        // is refused like a wrong one
+        private async Task<string?> SignatureAsync(CancellationToken ct)
+        {
+            try
+            {
+                byte[] signature = await DownloadService.GetBytesAsync(new Uri(_web!, "catalog.json.sig"), DownloadService.SmallFileLimit, null, ct).ConfigureAwait(false);
+                return Encoding.ASCII.GetString(signature);
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+        }
+
+        private sealed class SignatureRefusedException(string message) : IOException(message);
+
+        private static void RequireSignature(byte[] catalog, string? signature)
+        {
+            if (!ManifestVerifier.Verify(SignedKind.MapCatalog, catalog, signature, out string reason))
+                throw new SignatureRefusedException("The catalog's signature was refused. " + reason);
+        }
+
+        // The saved copy, checked again: the online library's copy counts only with its signature
+        private async Task<LibraryCatalog> ReadCachedAsync(string cached, CancellationToken ct)
+        {
+            byte[] data = await File.ReadAllBytesAsync(cached, ct).ConfigureAwait(false);
+            if (IsOnlineLibrary)
+                RequireSignature(data, File.Exists(cached + ".sig") ? await File.ReadAllTextAsync(cached + ".sig", ct).ConfigureAwait(false) : null);
+            return Parse(data);
         }
 
         // Entries that could point outside the library or the Maps folder are left out

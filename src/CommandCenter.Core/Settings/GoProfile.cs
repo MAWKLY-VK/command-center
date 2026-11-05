@@ -1,5 +1,6 @@
 using System.IO;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -51,47 +52,67 @@ namespace CommandCenter.Core.Settings
 
         private static string CachePath => Path.Combine(GamePaths.AppData, "cache", "go-profile.json");
 
-        // --go-profile <file>: a local file used instead of the fetched profile (for tests and screenshots). AppServices
-        // sets it at startup, before anything reads Current.
+        // --go-profile <file>: a local file used instead of the fetched profile (for tests and screenshots). Like every
+        // profile it counts only with its signature next to it (<file>.sig). AppServices sets it at startup, before
+        // anything reads Current.
         public static string? FileOverride { get; set; }
 
         // Forgets the profile in use, so the next read of Current loads it again (for tests)
         internal static void Reset() => _current = null;
 
-        // The --go-profile file, otherwise the last profile fetched, else the built-in values
+        // The --go-profile file, otherwise the last profile fetched, else the built-in values. A file counts only with
+        // the maintainer's signature (ADR 0007), so a profile Command Center did not verify never names a program.
         private static GoProfile LoadLocal()
         {
             string? path = FileOverride ?? (File.Exists(CachePath) ? CachePath : null);
             try
             {
-                if (path != null && Parse(File.ReadAllText(path)) is { } profile)
+                string? signature = path != null && File.Exists(path + ".sig") ? File.ReadAllText(path + ".sig") : null;
+                if (path != null && Verified(File.ReadAllBytes(path), signature, path) is { } profile)
                     return profile;
             }
-            catch { }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { }
             return new GoProfile();
         }
 
-        // Fetches the current profile in the background; an offline or broken answer keeps the one in use
+        // Fetches the current profile and its signature in the background; an offline, unsigned or broken answer keeps
+        // the one in use
         public static async Task RefreshAsync()
         {
             if (FileOverride != null)
                 return;
             try
             {
-                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
-                http.DefaultRequestHeaders.UserAgent.ParseAdd("CommandCenter/" + UpdateService.Current.ToString(3));
-                string json = await http.GetStringAsync(RemoteUrl);
-                if (Parse(json) is not { } profile)
+                var wait = TimeSpan.FromSeconds(8);
+                byte[] json = await DownloadService.GetBytesAsync(new Uri(RemoteUrl), DownloadService.SmallFileLimit, wait);
+                byte[] signature = await DownloadService.GetBytesAsync(new Uri(RemoteUrl + ".sig"), DownloadService.SmallFileLimit, wait);
+                if (Verified(json, Encoding.ASCII.GetString(signature), RemoteUrl) is not { } profile)
                     return;
                 Directory.CreateDirectory(Path.GetDirectoryName(CachePath)!);
-                await File.WriteAllTextAsync(CachePath, json);
+                await File.WriteAllBytesAsync(CachePath, json);
+                await File.WriteAllBytesAsync(CachePath + ".sig", signature);
                 Current = profile;
                 Changed?.Invoke();
             }
             catch
             {
-                // Offline: the cached or built-in profile stays
+                // Offline, or no signature published: the cached or built-in profile stays
             }
+        }
+
+        // The profile in these bytes when the maintainer signed them and they pass Parse; otherwise null, and the
+        // operation log says why
+        private static GoProfile? Verified(byte[] json, string? signature, string source)
+        {
+            if (!ManifestVerifier.Verify(SignedKind.GoProfile, json, signature, out string reason))
+            {
+                OperationLog.Failed("verify GO profile", source, reason);
+                return null;
+            }
+            var text = json.AsSpan();
+            if (text.StartsWith(Encoding.UTF8.Preamble))
+                text = text[Encoding.UTF8.Preamble.Length..];
+            return Parse(Encoding.UTF8.GetString(text));
         }
 
         private static readonly Regex ExeName = new(@"^[A-Za-z0-9 _.\-]{1,64}\.exe$", RegexOptions.IgnoreCase);
