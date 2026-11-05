@@ -21,6 +21,12 @@
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
+  <!-- A test build (TestKeys=true) also trusts a test key named on its command line. CI and publish never set it, so a
+       released Command Center trusts only the maintainer's key (ADR 0007). -->
+  <PropertyGroup Condition="'$(TestKeys)' == 'true'">
+    <DefineConstants>$(DefineConstants);TEST_KEYS</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <Resource Include="Assets\**\*.jpg" />
     <Resource Include="Assets\app.ico" />

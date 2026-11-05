@@ -28,6 +28,23 @@ Authenticode is not used. The SmartScreen warning is accepted and explained in t
   with the new key. Access to the repository and the URL restriction remain a second barrier. This procedure has
   applied since the key was created on 2026-11-05 (setup step 10).
 
+## Format
+
+Added on 2026-11-05 (phase 3). 0.5.0 and later verify exactly these bytes, so the format does not change:
+
+- **Algorithm:** ECDSA P-256 with SHA-256. The signature is in IEEE P1363 form (64 bytes) and is written as base64.
+- **Signed message:** the UTF-8 text `command-center:<kind>`, a line feed, then the content bytes.
+  - The kinds are `update`, `go-profile` and `map-catalog`, so a signature for one kind never passes for another.
+- **Signature files:** `go-profile.json.sig` and `catalog.json.sig` hold the base64 signature on one line, next to
+  their file. Their content is the file's exact bytes.
+- **`update.json`:** it keeps its old fields (`version`, `url`, `sha256`, `notes`) for 0.4.0, and adds two fields.
+  - `signed` is the base64 of a UTF-8 JSON payload with `version`, `url`, `sha256`, `notes` and `expires` (UTC, one
+    year after signing).
+  - `signature` is the signature of kind `update` over the payload bytes.
+  - A version that verifies reads only the payload.
+- **Test builds:** a build made with `-p:TestKeys=true` also trusts a test key given with `--test-key <file>`.
+  It is never published.
+
 ## Public key
 
 Created on 2026-11-05 with `tools/New-SigningKey.cs`. The app embeds exactly this key, and a replacement key is
