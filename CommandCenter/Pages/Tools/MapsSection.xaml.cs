@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using CommandCenter.Imaging;
 using CommandCenter.Services;
 
 namespace CommandCenter.Pages.Tools
@@ -204,7 +205,7 @@ namespace CommandCenter.Pages.Tools
         {
             if (tile.Client != null && tile.Info.Entry != null)
                 return await tile.Client.PreviewFileAsync(tile.Info.Entry).ConfigureAwait(false) is { } file ? Png(file) : null;
-            return tile.Info.PreviewPath != null ? TgaImage.Load(tile.Info.PreviewPath) : null;
+            return tile.Info.PreviewPath != null ? Bitmaps.LoadTga(tile.Info.PreviewPath) : null;
         }
 
         private static BitmapSource? Png(string file)

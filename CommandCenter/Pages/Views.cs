@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using CommandCenter.Imaging;
 using CommandCenter.Services;
 
 namespace CommandCenter.Pages
@@ -54,7 +55,7 @@ namespace CommandCenter.Pages
                 if (Previews.TryGetValue(key, out var cached))
                     return cached;
             }
-            var image = ReplayService.PreviewFor(mapPath, mapName) is { } path ? TgaImage.Load(path) : null;
+            var image = ReplayService.PreviewFor(mapPath, mapName) is { } path ? Bitmaps.LoadTga(path) : null;
             lock (Previews)
                 Previews[key] = image;
             return image;

@@ -5,8 +5,9 @@ using System.Text;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using CommandCenter.Services;
 
-namespace CommandCenter.Services
+namespace CommandCenter.Imaging
 {
     // A texture with hotkey letters drawn on its button pictures, ready to be written as a loose file
     public sealed record LetteredTexture(string Texture, string RelativePath, byte[] Content, int Icons);
@@ -31,10 +32,8 @@ namespace CommandCenter.Services
     {
         public const string Title = "Hotkey letters on icons";
 
-        private const string Marker = "CCHotkeyLetters";
-
         // On when the setting is on and the game folder still holds our textures
-        public static bool IsEnabled => AppSettings.Current.IconLetters && OwnTargets().Any(t => File.Exists(t) && IsGeneratedFile(t));
+        public static bool IsEnabled => AppSettings.Current.IconLetters && OwnTargets().Any(t => File.Exists(t) && IconLetterFiles.IsGeneratedFile(t));
 
         // Writes the textures for the keys the game uses now (the saved ones); returns how many pictures got a letter
         public static int Apply(HotkeyService hotkeys)
@@ -193,13 +192,12 @@ namespace CommandCenter.Services
             {
                 if (TgaImage.Decode(source.Data, keepAlpha: true) is not { } tga)
                     return null;
-                width = tga.PixelWidth;
-                height = tga.PixelHeight;
-                original = new byte[width * height * 4];
-                tga.CopyPixels(original, width * 4, 0);
+                width = tga.Width;
+                height = tga.Height;
+                original = tga.Pixels;
             }
 
-            var badges = new List<(Int32Rect Rect, bool Rotated, char Key)>();
+            var badges = new List<(ImageRect Rect, bool Rotated, char Key)>();
             foreach (var (map, key) in pictures)
             {
                 if (GameImages.PixelRect(map, width, height) is { } rect && !badges.Any(b => b.Rect == rect))
@@ -261,13 +259,13 @@ namespace CommandCenter.Services
                 if (changed)
                     Dxt.EncodeBlock(block, level.AsSpan((by * blocksWide + bx) * blockSize, blockSize), fourcc);
             }
-            return Dxt.WriteDds(width, height, fourcc, level, Marker);
+            return Dxt.WriteDds(width, height, fourcc, level, IconLetterFiles.Marker);
         }
 
         // 32-bit TGA laid out like the game's own (bottom-up, 2.0 footer), with the marker as the image ID
         private static byte[] WriteTga(int width, int height, byte[] pixels)
         {
-            byte[] id = Encoding.ASCII.GetBytes(Marker);
+            byte[] id = Encoding.ASCII.GetBytes(IconLetterFiles.Marker);
             byte[] file = new byte[18 + id.Length + pixels.Length + 26];
             file[0] = (byte)id.Length;
             file[2] = 2;
@@ -296,7 +294,7 @@ namespace CommandCenter.Services
         }
 
         // The badges over a transparent texture-sized layer (premultiplied BGRA)
-        private static byte[] RenderOverlay(int width, int height, List<(Int32Rect Rect, bool Rotated, char Key)> badges)
+        private static byte[] RenderOverlay(int width, int height, List<(ImageRect Rect, bool Rotated, char Key)> badges)
         {
             var visual = new DrawingVisual();
             using (var dc = visual.RenderOpen())
@@ -369,44 +367,7 @@ namespace CommandCenter.Services
             dc.Pop();
         }
 
-        // ── Our files ──
-
-        public static bool IsGenerated(byte[] data)
-        {
-            if (data.Length >= Dds.HeaderSize && Encoding.ASCII.GetString(data, 0, 4) == "DDS ")
-                return Encoding.ASCII.GetString(data, 60, Marker.Length) == Marker;
-            return data.Length >= 18 + Marker.Length && data[0] == Marker.Length && Encoding.ASCII.GetString(data, 18, Marker.Length) == Marker;
-        }
-
-        private static bool IsGeneratedFile(string path)
-        {
-            try
-            {
-                using var stream = File.OpenRead(path);
-                byte[] head = new byte[Dds.HeaderSize];
-                int read = stream.ReadAtLeast(head, head.Length, throwOnEndOfStream: false);
-                return IsGenerated(head[..read]);
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        // The file one of ours replaced, when there was one before the launcher first wrote there
-        public static byte[]? ReplacedFile(string target)
-        {
-            var first = BackupService.Load().Where(e => e.Kind == "file" && string.Equals(e.Target, target, StringComparison.OrdinalIgnoreCase))
-                .OrderBy(e => e.When).FirstOrDefault();
-            try
-            {
-                return first?.BackupFile is { } backup && File.Exists(backup) ? File.ReadAllBytes(backup) : null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
+        // ── Our files (recognized by IconLetterFiles) ──
 
         private static List<string> OwnTargets() =>
             BackupService.Load().Where(e => e.Title == Title).Select(e => e.Target).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
@@ -418,7 +379,7 @@ namespace CommandCenter.Services
             var entries = BackupService.Load().Where(e => string.Equals(e.Target, target, StringComparison.OrdinalIgnoreCase)).OrderBy(e => e.When).ToList();
             if (File.Exists(target))
             {
-                if (!IsGeneratedFile(target))
+                if (!IconLetterFiles.IsGeneratedFile(target))
                     return !entries.Any(e => e.Title == Title);
                 if (entries.Count == 0 || entries[0].BackupFile == null)
                 {
@@ -446,7 +407,7 @@ namespace CommandCenter.Services
                     continue;
                 foreach (string file in Directory.EnumerateFiles(folder))
                 {
-                    if ((file.EndsWith(".tga", StringComparison.OrdinalIgnoreCase) || file.EndsWith(".dds", StringComparison.OrdinalIgnoreCase)) && IsGeneratedFile(file))
+                    if ((file.EndsWith(".tga", StringComparison.OrdinalIgnoreCase) || file.EndsWith(".dds", StringComparison.OrdinalIgnoreCase)) && IconLetterFiles.IsGeneratedFile(file))
                         yield return file;
                 }
             }

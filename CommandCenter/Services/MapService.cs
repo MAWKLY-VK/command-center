@@ -2,11 +2,10 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Windows.Media.Imaging;
 
 namespace CommandCenter.Services
 {
-    public sealed record MapEntry(string Name, string FolderPath, int Players, long SizeBytes, BitmapSource? Preview);
+    public sealed record MapEntry(string Name, string FolderPath, int Players, long SizeBytes, DecodedImage? Preview);
 
     public static class MapService
     {

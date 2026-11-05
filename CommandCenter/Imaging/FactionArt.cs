@@ -1,7 +1,8 @@
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using CommandCenter.Services;
 
-namespace CommandCenter.Services
+namespace CommandCenter.Imaging
 {
     // The game's own faction and general pictures, cut out of its interface atlases (see GameImages).
     // The images are frozen, so they can be created on any thread and shown anywhere.

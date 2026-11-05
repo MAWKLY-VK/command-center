@@ -2,22 +2,19 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Windows;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 
 namespace CommandCenter.Services
 {
     // A MappedImage: a picture inside a texture atlas. Coords are in the declared texture size; Rotated pictures
     // are stored turned 90 degrees clockwise and the game turns them back when drawing.
-    public sealed record MappedImage(string Name, string Texture, int TextureWidth, int TextureHeight, Int32Rect Coords, bool Rotated);
+    public sealed record MappedImage(string Name, string Texture, int TextureWidth, int TextureHeight, ImageRect Coords, bool Rotated);
 
     // The texture file the game would load for a texture name: its path (relative to the game folder, or full for
     // the user's own Textures folder), its format and its bytes.
     public sealed record TextureFile(string Path, bool IsDds, byte[] Data);
 
-    // Cuts button pictures out of the game's interface atlases, using the MappedImage definitions
-    // (texture name plus pixel rectangle) the game itself uses for the control bar.
+    // Finds button pictures in the game's interface atlases, using the MappedImage definitions (texture name plus
+    // pixel rectangle) the game itself uses for the control bar. The App cuts them out (Imaging/GameImageBitmaps.cs).
     //
     // MappedImages (ImageCollection::load): the user's own INI\MappedImages folder first, then
     // Data\INI\MappedImages\TextureSize_512 and Data\INI\MappedImages\HandCreated; in each folder its own files
@@ -32,7 +29,7 @@ namespace CommandCenter.Services
         {
             public string? Texture;
             public int Width, Height;
-            public Int32Rect Coords = Int32Rect.Empty;
+            public ImageRect Coords = ImageRect.Empty;
             public int CoordsWidth, CoordsHeight;
             public bool Rotated;
         }
@@ -40,8 +37,6 @@ namespace CommandCenter.Services
         private readonly GameFiles _files;
         private readonly string _language;
         private readonly Dictionary<string, MappedImage> _mapped = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, BitmapSource?> _textures = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, BitmapSource?> _images = new(StringComparer.OrdinalIgnoreCase);
 
         public GameImages(GameFiles files, string language)
         {
@@ -126,7 +121,7 @@ namespace CommandCenter.Services
                 {
                     // The game turns coordinates into fractions of the texture size known at this point
                     int l = Int(c.Groups[1].Value), t = Int(c.Groups[2].Value), r = Int(c.Groups[3].Value), b = Int(c.Groups[4].Value);
-                    current.Coords = new Int32Rect(l, t, Math.Max(1, r - l), Math.Max(1, b - t));
+                    current.Coords = new ImageRect(l, t, Math.Max(1, r - l), Math.Max(1, b - t));
                     current.CoordsWidth = current.Width;
                     current.CoordsHeight = current.Height;
                 }
@@ -135,36 +130,8 @@ namespace CommandCenter.Services
 
         private static int Int(string s) => int.Parse(s, CultureInfo.InvariantCulture);
 
-        // The picture as the control bar shows it (turned upright when the atlas holds it rotated)
-        public BitmapSource? Get(string? mappedImage)
-        {
-            if (string.IsNullOrEmpty(mappedImage))
-                return null;
-            if (_images.TryGetValue(mappedImage, out var cached))
-                return cached;
-
-            BitmapSource? result = null;
-            try
-            {
-                if (Find(mappedImage) is { } map && Texture(map.Texture) is { } atlas && PixelRect(map, atlas.PixelWidth, atlas.PixelHeight) is { } rect)
-                {
-                    BitmapSource crop = new CroppedBitmap(atlas, rect);
-                    if (map.Rotated)
-                        crop = new TransformedBitmap(crop, new RotateTransform(-90));
-                    crop.Freeze();
-                    result = crop;
-                }
-            }
-            catch
-            {
-                result = null;
-            }
-            _images[mappedImage] = result;
-            return result;
-        }
-
         // Where a picture sits in a texture of the given size: coordinates are fractions of the declared size
-        public static Int32Rect? PixelRect(MappedImage map, int textureWidth, int textureHeight)
+        public static ImageRect? PixelRect(MappedImage map, int textureWidth, int textureHeight)
         {
             double sx = map.TextureWidth > 0 ? textureWidth / (double)map.TextureWidth : 1;
             double sy = map.TextureHeight > 0 ? textureHeight / (double)map.TextureHeight : 1;
@@ -174,15 +141,14 @@ namespace CommandCenter.Services
             y = Math.Clamp(y, 0, textureHeight);
             right = Math.Clamp(right, x, textureWidth);
             bottom = Math.Clamp(bottom, y, textureHeight);
-            return right > x && bottom > y ? new Int32Rect(x, y, right - x, bottom - y) : null;
+            return right > x && bottom > y ? new ImageRect(x, y, right - x, bottom - y) : null;
         }
 
-        public BitmapSource? Texture(string name)
+        // The pixels of a texture as the game would load it, or null when it is missing or unreadable. Not cached here:
+        // the App keeps the bitmaps it makes from them (Imaging/GameImageBitmaps.cs).
+        public DecodedImage? TexturePixels(string name)
         {
-            if (_textures.TryGetValue(name, out var cached))
-                return cached;
-
-            BitmapSource? image = null;
+            DecodedImage? image = null;
             try
             {
                 if (ResolveTexture(name) is { } file)
@@ -192,7 +158,6 @@ namespace CommandCenter.Services
             {
                 image = null;
             }
-            _textures[name] = image;
             return image;
         }
 
@@ -229,10 +194,10 @@ namespace CommandCenter.Services
                 if (File.Exists(loose))
                 {
                     byte[] data = File.ReadAllBytes(loose);
-                    if (!IconLettersService.IsGenerated(data))
+                    if (!IconLetterFiles.IsGenerated(data))
                         return new TextureFile(path, isDds, data);
                     // Ours: the file it replaced, if there was one, otherwise whatever the archives hold here
-                    if (IconLettersService.ReplacedFile(loose) is { } original)
+                    if (IconLetterFiles.ReplacedFile(loose) is { } original)
                         return new TextureFile(path, isDds, original);
                 }
                 if (_files.ReadFromArchive(path) is { } packed)
@@ -253,17 +218,14 @@ namespace CommandCenter.Services
 
         public static int BlockSize(string fourcc) => fourcc == "DXT1" ? 8 : 16;
 
-        public static BitmapSource? Decode(byte[] d)
+        public static DecodedImage? Decode(byte[] d)
         {
             try
             {
                 if (FourCC(d) is not { } fourcc)
                     return null;
                 int h = BitConverter.ToInt32(d, 12), w = BitConverter.ToInt32(d, 16);
-                byte[] px = DecodePixels(d, fourcc, w, h, HeaderSize);
-                var bmp = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, px, w * 4);
-                bmp.Freeze();
-                return bmp;
+                return new DecodedImage(w, h, DecodePixels(d, fourcc, w, h, HeaderSize));
             }
             catch
             {

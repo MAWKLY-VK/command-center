@@ -1,19 +1,17 @@
 using System.IO;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 
 namespace CommandCenter.Services
 {
-    // Loads the small preview images that ship with maps (.tga, 24 or 32 bit, raw or RLE).
+    // Decodes the game's .tga pictures, map previews among them (24 or 32 bit, raw or RLE), into plain pixels.
     public static class TgaImage
     {
-        public static BitmapSource? Load(string path)
+        public static DecodedImage? Load(string path)
         {
             try { return Decode(File.ReadAllBytes(path)); }
             catch { return null; }
         }
 
-        public static BitmapSource? Decode(byte[] b, bool keepAlpha = false)
+        public static DecodedImage? Decode(byte[] b, bool keepAlpha = false)
         {
             try
             {
@@ -86,9 +84,7 @@ namespace CommandCenter.Services
                     }
                 }
 
-                var bitmap = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, pixels, width * 4);
-                bitmap.Freeze();
-                return bitmap;
+                return new DecodedImage(width, height, pixels);
             }
             catch
             {
