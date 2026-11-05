@@ -83,9 +83,20 @@ CommandCenter.exe --game <copy of Desktop\Test_Generals> --user-data <temp folde
     It also decides the user data folder (`--user-data`, or `Documents\Command and Conquer Generals Zero Hour Data`).
     `AppData` (`<user data>\CommandCenter`) holds backups, quarantine, settings and `errors.log`.
   - `BackupService` is the only way to change anything. `WriteFile`, `MoveToQuarantine`, `SetUserRegistryValue` and
-    `ClearReadOnly` back up first and record an Undo entry. `EnsureAllowed` permits only the game folder and the
-    game's Documents folder. `EnsureGameClosed` refuses writes to the game folder, `Options.ini` and GO's
-    `settings.json` while the game runs. Fixes quarantine files instead of deleting them.
+    `ClearReadOnly` back up first and record an Undo entry; `CreateFile` makes a new file (a map's) with no Undo entry.
+    `EnsureAllowed` permits only the game folder and the game's Documents folder, judged by `PathGuard` on the real
+    path (junctions and links followed). Undo refuses journal entries that point elsewhere, and the registry is limited
+    to `LayersKey`. `EnsureGameClosed` refuses writes to the game folder, `Options.ini` and GO's `settings.json` while
+    the game runs. Fixes quarantine files instead of deleting them.
+  - Safety (phase 3, `Core/Safety`): `ProcessRunner` is the only way to start a program (`StartKind` lists what may
+    start; the update's administrator step is its only elevation). `ArchiveExtractor` extracts zips into a private
+    staging folder with limits and name checks (`ExtractRules` per use). `BoundedFile` reads a whole file only up to a
+    limit. Readers of game, map and replay files refuse sizes past their limits before allocating.
+  - `DownloadService` (`Core/Net`) is the only way to download: one client that follows the Windows proxy, a size limit
+    per kind, a stall timeout and SHA-256 checks into private temporary files. The network diagnostics stay direct.
+  - `ManifestVerifier` (`Core/Integrity`) checks the signatures of `update.json`, `go-profile.json` and the map catalog
+    (ADR 0007, Format). `ErrorLog` writes `errors.log` (each skipped damaged file once per run), and `Redaction` is what
+    copied reports hide (both `Core/Diagnostics`).
   - `GameFiles` reads from loose files and `.big` archives. `CsfFile`, `TgaImage`, `Dxt` and `GameImages` decode the
     game's own text and art at run time into plain pixels; the App's `Imaging/` makes the bitmaps. No game art ships
     with the app.
@@ -95,9 +106,12 @@ CommandCenter.exe --game <copy of Desktop\Test_Generals> --user-data <temp folde
   - `GoProfile` holds GO's program names, channels and service address. It is refreshed at startup from
     `go-profile.json` in this repository, validated strictly, and the last good copy is kept. `GoApi` edits GO's
     `settings.json` and `launcher.json` in place and keeps fields it does not know.
-  - `UpdateService` reads `update.json` from the latest GitHub release and replaces the exe. Older copies must update
-    before they run again, so every release reaches every user. It takes the current version from the entry assembly
-    (`CommandCenter.exe`), never from Core's own assembly.
+  - `UpdateService` reads the signed part of `update.json` from the latest GitHub release and replaces the exe. Older
+    copies must update before they run again, so every release reaches every user. It takes the current version from
+    the entry assembly (`CommandCenter.exe`), never from Core's own assembly. The previous exe stays as `.old.exe`
+    until the new one has run for 30 seconds or closed normally, and comes back when the new one cannot start (ADR
+    0009). A folder that needs administrator rights is changed by a copy started with `--replace-program` or
+    `--put-back-program`, which `App.OnStartup` handles before anything else.
   - The program is in English only; texts are written in English where they are shown. `English` (Core `Text/`) words
     counts and lists. `ArabicGameTextRemoval` takes 0.4.0's Arabic game text out once, at the first start (ADR 0005),
     with a notice in Arabic and English (the only Arabic left) and Undo; Health warns while any is left.
@@ -122,7 +136,10 @@ CommandCenter.exe --game <copy of Desktop\Test_Generals> --user-data <temp folde
 - Check any unfamiliar API with the Microsoft Learn MCP tools before using it.
 - Releases reach every user through the forced update. Before any release: a pre-release, an update test from
   0.4.0 and from the previous release with `--update-url`, `security-audit` (quick), and two offline backups of the
-  signing key (ADR 0007). Keep the repository, the asset names (`CommandCenter.exe`, `update.json`) and the x86
+  signing key (ADR 0007). `update.json` is signed with `tools/Sign-File.cs` before it is attached, and the release
+  notes carry README's manual rollback steps.
+- A change to `go-profile.json` here, or to `catalog.json` in zh-map-library, needs a new signature (`.sig`) from the
+  user, or 0.5.0 and later ignore it. Signed files keep the exact bytes GitHub serves (`.gitattributes`). Keep the repository, the asset names (`CommandCenter.exe`, `update.json`) and the x86
   framework-dependent portable exe. 0.5.0 must read and migrate 0.4.0 data.
 - No commit, push, pull request, release or publish unless the user asks.
 - `dxwrapper.zip` is a release asset, not code. It lives in `C:\Users\vdyxm\Desktop\cc-assets\` and is never committed.
