@@ -13,3 +13,6 @@ captures/
 
 # Personal Claude Code settings (per machine, never committed)
 .claude/settings.local.json
+
+# Local specs and tickets (docs/agents/issue-tracker.md), never committed
+.scratch/

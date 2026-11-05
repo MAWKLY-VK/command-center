@@ -122,9 +122,20 @@ Each phase gets its own branch. A user-approved PR is the only way into `main`.
 
 - `grill-with-docs`, `to-spec`, `to-tickets`, `improve-codebase-architecture` and `setup-matt-pocock-skills` do not
   start on their own (`disable-model-invocation`). Read their `SKILL.md` under `.claude/skills/` and follow it.
-- `setup-matt-pocock-skills` must run once before `to-spec` and `to-tickets`. The repository is public, so ask the
-  user before anything is published to GitHub issues.
+- `setup-matt-pocock-skills` ran on 2026-11-05 (see Agent skills below). The repository is public, so ask the user
+  before anything is published to GitHub issues.
 - `wpf-ui-review` does not exist yet. It is written before phase 5, from the plan's 43-item checklist plus the blur
   and mirror tests.
 - Templates for test plans and UX specs are in `docs/templates/`. Third-party skills are pinned in
   `.claude/skills/SOURCES.md`.
+
+## Agent skills
+
+### Issue tracker
+
+Specs and tickets are local markdown files under `.scratch/<feature>/`, which git ignores, so nothing is published.
+See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: one `GLOSSARY.md` and `docs/adr/` at the repository root. See `docs/agents/domain.md`.
