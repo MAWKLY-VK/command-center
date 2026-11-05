@@ -33,7 +33,8 @@ dotnet build tools/MapLibraryBuilder/MapLibraryBuilder.csproj -c Release
   services or the imaging code.
 - Before/after screenshots: `tools\Capture-Pages.ps1 -Exe <exe> -Game <game copy> -Out <new folder>`, then
   `dotnet run --file tools/Compare-Captures.cs -- <before> <after>` (exit 0: no unexplained difference). Areas that
-  change between runs are listed in `tools/capture-ignore.txt`.
+  change between runs are listed in `tools/capture-ignore.txt`. For wpf-ui-review's blur test,
+  `dotnet run --file tools/Blur-Captures.cs -- <captures>` writes blurred copies to `<captures>\blur`.
 - Release build: `tools\publish.ps1 -Notes "..."` writes `publish\CommandCenter.exe` (single-file, win-x86) and
   `publish\update.json`. Run it only when the user asks for a release.
 - Signing key (ADR 0007): created on 2026-11-05; the public key and its SHA-256 are in ADR 0007. Never read the
@@ -165,8 +166,8 @@ Each phase gets its own branch. A user-approved PR is the only way into `main`.
   start on their own (`disable-model-invocation`). Read their `SKILL.md` under `.claude/skills/` and follow it.
 - `setup-matt-pocock-skills` ran on 2026-11-05 (see Agent skills below). The repository is public, so ask the user
   before anything is published to GitHub issues.
-- `wpf-ui-review` does not exist yet. It is written before phase 5, from the plan's 43-item checklist plus the blur
-  and mirror tests.
+- `wpf-ui-review` (`.claude/skills/wpf-ui-review/`) holds the plan's 43-item checklist plus the blur and mirror tests.
+  A fresh agent runs it on the captures of the pages a change touched, and it only reports.
 - Templates for test plans and UX specs are in `docs/templates/`. Third-party skills are pinned in
   `.claude/skills/SOURCES.md`.
 
