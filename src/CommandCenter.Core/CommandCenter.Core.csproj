@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Command Center's logic without WPF: the game's files, backups, health checks, maps, replays, hotkeys, add-ons,
+       settings and updates (docs/adr/0004). The App in src/CommandCenter.App shows it. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>CommandCenter.Core</RootNamespace>
+    <!-- 32-bit, like the program that loads it -->
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Localization\*.json" Exclude="Localization\pending-*.json" LogicalName="Localization.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Data\game-files.json" LogicalName="GameFiles.json" />
+    <EmbeddedResource Include="Data\game-text-ar.json" LogicalName="GameTextAr.json" />
+  </ItemGroup>
+
+  <!-- Before phase 1 the services and the pages were one assembly, so "internal" meant the whole program; the App
+       (CommandCenter.exe) keeps that view until its pages move to MVVM -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="CommandCenter" />
+    <InternalsVisibleTo Include="CommandCenter.Tests" />
+  </ItemGroup>
+
+  <!-- The services use each other across folders -->
+  <ItemGroup>
+    <Using Include="CommandCenter.Core.Content" />
+    <Using Include="CommandCenter.Core.Diagnostics" />
+    <Using Include="CommandCenter.Core.Game" />
+    <Using Include="CommandCenter.Core.Imaging" />
+    <Using Include="CommandCenter.Core.Integrity" />
+    <Using Include="CommandCenter.Core.Localization" />
+    <Using Include="CommandCenter.Core.Net" />
+    <Using Include="CommandCenter.Core.Safety" />
+    <Using Include="CommandCenter.Core.Settings" />
+    <Using Include="CommandCenter.Core.Updates" />
+  </ItemGroup>
+
+</Project>

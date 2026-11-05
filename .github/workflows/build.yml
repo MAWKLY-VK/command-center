@@ -36,10 +36,10 @@ jobs:
           "DOTNET_ROOT_X86=$dir" >> $env:GITHUB_ENV
 
       - name: Test
-        run: dotnet test CommandCenter.Tests/CommandCenter.Tests.csproj -c Release --logger "console;verbosity=normal"
+        run: dotnet test tests/CommandCenter.Tests/CommandCenter.Tests.csproj -c Release --logger "console;verbosity=normal"
 
       - name: Build the release program
-        run: dotnet publish CommandCenter/CommandCenter.csproj -c Release -r win-x86 --self-contained false -o out -p:PublishSingleFile=true
+        run: dotnet publish src/CommandCenter.App/CommandCenter.App.csproj -c Release -r win-x86 --self-contained false -o out -p:PublishSingleFile=true
 
       - name: Keep the program for trying out
         uses: actions/upload-artifact@v4

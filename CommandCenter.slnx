@@ -1,4 +1,5 @@
 <Solution>
-  <Project Path="CommandCenter/CommandCenter.csproj" />
-  <Project Path="CommandCenter.Tests/CommandCenter.Tests.csproj" />
+  <Project Path="src/CommandCenter.Core/CommandCenter.Core.csproj" />
+  <Project Path="src/CommandCenter.App/CommandCenter.App.csproj" />
+  <Project Path="tests/CommandCenter.Tests/CommandCenter.Tests.csproj" />
 </Solution>

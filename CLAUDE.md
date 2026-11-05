@@ -16,13 +16,19 @@ The user is new to Claude Code tooling. Explain in simple Arabic and ask one que
 
 ```
 dotnet build CommandCenter.slnx -c Release
-dotnet test CommandCenter.Tests/CommandCenter.Tests.csproj -c Release
-dotnet test CommandCenter.Tests/CommandCenter.Tests.csproj --filter "FullyQualifiedName~GameFilesTests"
+dotnet test tests/CommandCenter.Tests/CommandCenter.Tests.csproj -c Release
+dotnet test tests/CommandCenter.Tests/CommandCenter.Tests.csproj --filter "FullyQualifiedName~GameFilesTests"
+dotnet build tools/MapLibraryBuilder/MapLibraryBuilder.csproj -c Release
 ```
 
 - The tests run in a 32-bit test host (`PlatformTarget x86`), so they need the x86 .NET 10 runtime. CI installs it
   (`.github/workflows/build.yml`); on this PC it is already installed. Baseline at 0.4.0: 93 tests, all passing.
-- Test parallelization is off (`CommandCenter.Tests/TestSetup.cs`) because the language (`Loc`) is global state.
+- Test parallelization is off (`tests/CommandCenter.Tests/TestSetup.cs`) because the language (`Loc`) is global state.
+- `tools/MapLibraryBuilder` is not in the solution but references the App, so build it after any change to the
+  services or the imaging code.
+- Before/after screenshots: `tools\Capture-Pages.ps1 -Exe <exe> -Game <game copy> -Out <new folder>`, then
+  `dotnet run --file tools/Compare-Captures.cs -- <before> <after>` (exit 0: no unexplained difference). Areas that
+  change between runs are listed in `tools/capture-ignore.txt`.
 - Release build: `tools\publish.ps1 -Notes "..."` writes `publish\CommandCenter.exe` (single-file, win-x86) and
   `publish\update.json`. Run it only when the user asks for a release.
 - Signing key (ADR 0007): created on 2026-11-05; the public key and its SHA-256 are in ADR 0007. Never read the
@@ -45,17 +51,24 @@ CommandCenter.exe --game <copy of Desktop\Test_Generals> --user-data <temp folde
 - Also available: `--library-folder` and `--map-library` (map library source), `--drawn-backdrop`, and `--lang ar|en`.
   `--lang` is removed in phase 2.
 
-## Architecture (0.4.0, before phase 1)
+## Architecture (phase 1 layout)
 
-- `CommandCenter/` is the only app project. `CommandCenter.Tests/` (xUnit) sees its internals
-  (`InternalsVisibleTo`). `tools/MapLibraryBuilder` builds the online map catalog and is not in the solution.
+- `src/CommandCenter.Core` holds the services, with no WPF and no desktop framework, one folder and namespace per area:
+  `Content`, `Game`, `Imaging`, `Integrity`, `Net`, `Safety`, `Settings`, `Updates`, plus `Localization`, which phase
+  2 removes. The projects import these namespaces globally. Core's internals are visible to the App and the tests.
+- `src/CommandCenter.App` is the WPF program. Its assembly name stays `CommandCenter`, so the file stays
+  `CommandCenter.exe`; `<Version>` in its project file is the program's version. `AppServices` applies the run options
+  at startup. `Imaging/` turns decoded pixels into bitmaps and draws on them, `Localization/` holds the WPF parts of
+  Loc (`LocUi`, `{l:T}`), and `Input/` maps keys.
+- `tests/CommandCenter.Tests` (xUnit) references both. `tools/MapLibraryBuilder` builds the online map catalog and is
+  not in the solution.
 - There is no MVVM yet. Pages are large code-behind files. `MainWindow` hosts a Frame with Home (`LauncherPage`),
   Tools and Options. It also provides `Toast(message, undo)` and `CaptureAsync` for `--capture`. The Tools page hosts
   sections that implement `IToolSection` (Health, Maps, Replays, Hotkeys, Add-ons). `ReadyAsync` and `ShowPart` exist
   for screenshots.
 - `AppState` holds data that several pages share (server stats, health results, replays, hotkeys). It loads them in the
   background and raises change events that pages subscribe to.
-- `Services/` are static classes. Phase 1 moves them into a `CommandCenter.Core` project with no WPF.
+- The services are static classes until their pages move to MVVM (phases 5 and 6):
   - `GamePaths` decides the game folder in this order: `--game`, the chosen folder, the working or program folder, then
     the Steam libraries. A folder counts only if it has `WindowZH.big` and `INIZH.big`; otherwise `Game` stays empty.
     It also decides the user data folder (`--user-data`, or `Documents\Command and Conquer Generals Zero Hour Data`).
@@ -64,8 +77,9 @@ CommandCenter.exe --game <copy of Desktop\Test_Generals> --user-data <temp folde
     `ClearReadOnly` back up first and record an Undo entry. `EnsureAllowed` permits only the game folder and the
     game's Documents folder. `EnsureGameClosed` refuses writes to the game folder, `Options.ini` and GO's
     `settings.json` while the game runs. Fixes quarantine files instead of deleting them.
-  - `GameFiles` reads from loose files and `.big` archives. `CsfFile`, `TgaImage`, `Dxt`, `GameImages` and
-    `FactionArt` decode the game's own text and art at run time. No game art ships with the app.
+  - `GameFiles` reads from loose files and `.big` archives. `CsfFile`, `TgaImage`, `Dxt` and `GameImages` decode the
+    game's own text and art at run time into plain pixels; the App's `Imaging/` makes the bitmaps. No game art ships
+    with the app.
   - `HealthService` (about 80 KB) has `Run()` for local checks and `RunNetworkAsync()` for network checks. Each
     `HealthResult` can carry a `Fix` that goes through `BackupService`.
   - `GameLauncher` starts the GO client the way the official launcher does and detects a running game.
@@ -73,13 +87,12 @@ CommandCenter.exe --game <copy of Desktop\Test_Generals> --user-data <temp folde
     `go-profile.json` in this repository, validated strictly, and the last good copy is kept. `GoApi` edits GO's
     `settings.json` and `launcher.json` in place and keeps fields it does not know.
   - `UpdateService` reads `update.json` from the latest GitHub release and replaces the exe. Older copies must update
-    before they run again, so every release reaches every user.
+    before they run again, so every release reaches every user. It takes the current version from the entry assembly
+    (`CommandCenter.exe`), never from Core's own assembly.
   - `Loc`, `LocText`, `{l:T}`, `Localization/ar.json`, `ArabicShaping` and `ArabicGameText` provide the Arabic UI and
     the Arabic game text. Phase 2 removes them with a mandatory migration (see the ADRs).
 - Colours are hard-coded in `Pages/Views.cs`, `Theme/GoStyles.xaml` and the code-behind. The token design system
   replaces them in phase 5.
-- Target layout after phase 1: `src/CommandCenter.Core`, `src/CommandCenter.App`, `tests/CommandCenter.Tests`, and
-  `tools/` (plan section 2).
 
 ## Rules
 
@@ -122,9 +135,20 @@ Each phase gets its own branch. A user-approved PR is the only way into `main`.
 
 - `grill-with-docs`, `to-spec`, `to-tickets`, `improve-codebase-architecture` and `setup-matt-pocock-skills` do not
   start on their own (`disable-model-invocation`). Read their `SKILL.md` under `.claude/skills/` and follow it.
-- `setup-matt-pocock-skills` must run once before `to-spec` and `to-tickets`. The repository is public, so ask the
-  user before anything is published to GitHub issues.
+- `setup-matt-pocock-skills` ran on 2026-11-05 (see Agent skills below). The repository is public, so ask the user
+  before anything is published to GitHub issues.
 - `wpf-ui-review` does not exist yet. It is written before phase 5, from the plan's 43-item checklist plus the blur
   and mirror tests.
 - Templates for test plans and UX specs are in `docs/templates/`. Third-party skills are pinned in
   `.claude/skills/SOURCES.md`.
+
+## Agent skills
+
+### Issue tracker
+
+Specs and tickets are local markdown files under `.scratch/<feature>/`, which git ignores, so nothing is published.
+See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: one `GLOSSARY.md` and `docs/adr/` at the repository root. See `docs/agents/domain.md`.

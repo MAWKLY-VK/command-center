@@ -1,0 +1,7 @@
+# Areas that change between two capture runs of the same build, for tools/Compare-Captures.cs.
+# Found by comparing two runs of the 0.4.0 reference build on 2026-11-05. The values are device pixels of a 1600x1000
+# capture on the maintainer's PC, which saves it as 1942x1102 at its display scaling.
+#   <capture, or * for all> <x> <y> <width> <height>   # why it changes
+*                     1600  15  185  50   # live player count in the title bar
+pages/01-home.png     1520 735  372 212   # live servers card: players, lobbies and ping
+samples/01-home.png   1520 735  372 212   # live servers card: players, lobbies and ping

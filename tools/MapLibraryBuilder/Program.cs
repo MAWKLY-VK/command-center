@@ -5,7 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Windows.Media.Imaging;
-using CommandCenter.Services;
+using CommandCenter.Imaging;
 
 // Builds the map library from a folder of downloaded maps:
 //   maps/<id>.zip      one map each, inside a folder named like the map (the way the game wants it)
@@ -158,7 +158,7 @@ foreach (var c in byHash.Values.OrderBy(c => c.Stem, StringComparer.OrdinalIgnor
     {
         preview = $"previews/{id}.png";
         var encoder = new PngBitmapEncoder();
-        encoder.Frames.Add(BitmapFrame.Create(image));
+        encoder.Frames.Add(BitmapFrame.Create(image.ToBitmap()));
         using var png = File.Create(Path.Combine(output, "previews", id + ".png"));
         encoder.Save(png);
     }

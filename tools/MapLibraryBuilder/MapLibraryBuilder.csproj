@@ -8,8 +8,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <!-- The App brings Core with it, and turns map previews into bitmaps (Bitmaps.ToBitmap) -->
   <ItemGroup>
-    <ProjectReference Include="..\..\CommandCenter\CommandCenter.csproj" />
+    <ProjectReference Include="..\..\src\CommandCenter.App\CommandCenter.App.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="CommandCenter.Core.Content" />
+    <Using Include="CommandCenter.Core.Game" />
+    <Using Include="CommandCenter.Core.Imaging" />
+    <Using Include="CommandCenter.Core.Settings" />
   </ItemGroup>
 
 </Project>

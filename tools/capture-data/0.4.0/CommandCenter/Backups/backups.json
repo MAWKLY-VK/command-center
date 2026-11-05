@@ -1,0 +1,28 @@
+[
+  {
+    "Id": "20261101-100000-000-ab12",
+    "Title": "Set resolution",
+    "Detail": "Options.ini \u00B7 1280 720 \u2192 1920 1080",
+    "Kind": "file",
+    "Target": "__DATA__\\Options.ini",
+    "BackupFile": "__DATA__\\CommandCenter\\Backups\\20261101-100000-000-ab12-Options.ini",
+    "AfterHash": "5EE370B2E8980E31D114AC8A57ED86CACEEF75914FB71FB1738A1D639D4E1D04",
+    "When": "2026-11-01T10:00:00",
+    "OldValue": null,
+    "NewValue": null,
+    "Files": null
+  },
+  {
+    "Id": "20261101-100500-000-cd34",
+    "Title": "Quarantined d3d8.dll",
+    "Detail": "Old wrapper",
+    "Kind": "move",
+    "Target": "__GAME__\\d3d8.dll",
+    "BackupFile": "__DATA__\\CommandCenter\\Backups\\Quarantine\\20261101-100500-000-cd34\\d3d8.dll",
+    "AfterHash": "",
+    "When": "2026-11-01T10:05:00",
+    "OldValue": null,
+    "NewValue": null,
+    "Files": null
+  }
+]
