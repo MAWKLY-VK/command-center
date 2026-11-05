@@ -147,7 +147,7 @@ namespace CommandCenter.Pages.Tools
 
             if (_hk == null)
             {
-                LoadingText.Text = Loc.T("Could not read the game's hotkeys. Check that Command Center points at the game folder.");
+                LoadingText.Text = "Could not read the game's hotkeys. Check that Command Center points at the game folder.";
                 _ready.TrySetResult();
                 return;
             }
@@ -248,7 +248,7 @@ namespace CommandCenter.Pages.Tools
             {
                 ArmyBox.Items.Add(new ComboBoxItem
                 {
-                    Content = Loc.T(army.Name),
+                    Content = army.Name,
                     Tag = army,
                     FontWeight = army.General == null ? FontWeights.SemiBold : FontWeights.Normal,
                     Padding = new Thickness(army.General == null ? 8 : 20, 4, 8, 4),
@@ -273,7 +273,7 @@ namespace CommandCenter.Pages.Tools
             if (menu.Kind != MenuKind.Powers)
                 return menu.Name;
             var rank = Regex.Match(menu.SetName, @"(\d+)$");
-            return rank.Success ? Loc.T("Rank {0} powers", rank.Value) : menu.Name;
+            return rank.Success ? string.Format("Rank {0} powers", rank.Value) : menu.Name;
         }
 
         // Keeps the same menu and button when they exist in the new army
@@ -287,7 +287,7 @@ namespace CommandCenter.Pages.Tools
             {
                 Menu = m,
                 Name = MenuName(m),
-                Group = m.Kind switch { MenuKind.Structure => Loc.T("STRUCTURES"), MenuKind.Unit => Loc.T("UNITS"), _ => Loc.T("GENERAL'S POWERS") },
+                Group = m.Kind switch { MenuKind.Structure => "STRUCTURES", MenuKind.Unit => "UNITS", _ => "GENERAL'S POWERS" },
             }).ToList();
             RefreshMenuMarks();
 
@@ -314,8 +314,8 @@ namespace CommandCenter.Pages.Tools
                 row.Mark = worst switch { IssueLevel.Error => Red, IssueLevel.Warn => Amber, _ => null };
                 row.MarkTip = worst switch
                 {
-                    IssueLevel.Error => Loc.T("Two buttons share a key"),
-                    IssueLevel.Warn => Loc.T("A key is also a game key"),
+                    IssueLevel.Error => "Two buttons share a key",
+                    IssueLevel.Warn => "A key is also a game key",
                     _ => null,
                 };
             }
@@ -369,7 +369,7 @@ namespace CommandCenter.Pages.Tools
             {
                 // Buttons without text cannot have a key (science purchases and the like)
                 image.Opacity = 0.35;
-                tile.ToolTip = Loc.T("{0} · no hotkey", shown.Name);
+                tile.ToolTip = string.Format("{0} · no hotkey", shown.Name);
                 return tile;
             }
 
@@ -403,7 +403,7 @@ namespace CommandCenter.Pages.Tools
             var frame = new Border { BorderThickness = new Thickness(2), BorderBrush = rest, CornerRadius = new CornerRadius(8) };
             tile.Children.Add(frame);
 
-            tile.ToolTip = key == '\0' ? Loc.T("{0} · no key", button.Name) : Loc.T("{0} · key {1}", button.Name, key);
+            tile.ToolTip = key == '\0' ? string.Format("{0} · no key", button.Name) : string.Format("{0} · key {1}", button.Name, key);
             tile.Cursor = Cursors.Hand;
             tile.MouseEnter += (_, _) => frame.BorderBrush = selected ? Blue : clash ? Red : LightBlue;
             tile.MouseLeave += (_, _) => frame.BorderBrush = rest;
@@ -445,7 +445,7 @@ namespace CommandCenter.Pages.Tools
             var b = _button;
             BigIcon.Source = _hk.Images.Get(b.Image);
             ButtonName.Text = b.Name;
-            ButtonWhere.Text = Loc.T("Slot {0} · {1}", b.Slot, MenuName(_menu));
+            ButtonWhere.Text = string.Format("Slot {0} · {1}", b.Slot, MenuName(_menu));
             char key = _hk.KeyFor(b.Label), def = _hk.DefaultKeyFor(b.Label);
 
             if (_listening)
@@ -454,7 +454,7 @@ namespace CommandCenter.Pages.Tools
                 KeyCapText.Foreground = LightBlue;
                 KeyCap.Background = SelectedFill;
                 KeyCap.BorderBrush = Blue;
-                KeyHint.Text = _listenHint ?? Loc.T("Press a letter A–Z or a number. Esc cancels.");
+                KeyHint.Text = _listenHint ?? "Press a letter A–Z or a number. Esc cancels.";
                 KeyHint.Foreground = LightBlue;
             }
             else
@@ -465,12 +465,12 @@ namespace CommandCenter.Pages.Tools
                 KeyCap.BorderBrush = _hk.IsChanged(b.Label) ? LightBlue : Line;
                 KeyHint.Foreground = Soft;
                 KeyHint.Text = key == def
-                    ? def == '\0' ? Loc.T("The game gives this button no key. Pick one to add it.") : Loc.T("The game's default key.")
-                    : def == '\0' ? Loc.T("Added by you. The game gives this button no key.") : Loc.T("Changed from the default {0}.", def);
+                    ? def == '\0' ? "The game gives this button no key. Pick one to add it." : "The game's default key."
+                    : def == '\0' ? "Added by you. The game gives this button no key." : string.Format("Changed from the default {0}.", def);
             }
 
             DefaultButton.IsEnabled = key != def;
-            DefaultButton.ToolTip = Loc.T("Back to the default ({0})", def == '\0' ? Loc.T("no key") : def.ToString());
+            DefaultButton.ToolTip = string.Format("Back to the default ({0})", def == '\0' ? "no key" : def.ToString());
             ClearButton.IsEnabled = key != '\0';
 
             Issues.Children.Clear();
@@ -481,21 +481,21 @@ namespace CommandCenter.Pages.Tools
             FreeKeys.Children.Clear();
             foreach (char c in _hk.SuggestKeys(_menu, b, 6))
             {
-                var chip = new Button { Content = c.ToString(), Style = (Style)FindResource("KeyChip"), ToolTip = Loc.T("Use {0}", c) };
+                var chip = new Button { Content = c.ToString(), Style = (Style)FindResource("KeyChip"), ToolTip = string.Format("Use {0}", c) };
                 char pick = c;
                 chip.Click += (_, _) => SetButtonKey(pick);
                 FreeKeys.Children.Add(chip);
             }
             if (FreeKeys.Children.Count == 0)
-                FreeKeys.Children.Add(new TextBlock { Text = Loc.T("None left in this menu"), FontSize = 11, Foreground = Muted, VerticalAlignment = VerticalAlignment.Center });
+                FreeKeys.Children.Add(new TextBlock { Text = "None left in this menu", FontSize = 11, Foreground = Muted, VerticalAlignment = VerticalAlignment.Center });
 
             var menus = _hk.MenusUsing(b.Label).ToList();
             int others = menus.Count - 1;
             SameText.Visibility = others > 0 ? Visibility.Visible : Visibility.Collapsed;
-            SameText.Text = Loc.N(others, "Also in 1 other menu; the key changes there too.", "Also in {0} other menus; the key changes there too.");
+            SameText.Text = English.Plural(others, "Also in 1 other menu; the key changes there too.", "Also in {0} other menus; the key changes there too.");
             SameText.ToolTip = others > 0
-                ? string.Join("\n", menus.Take(14).Select(m => Loc.T("{0} · {1}", MenuName(m.Menu), Loc.T(m.Army.Name))))
-                  + (menus.Count > 14 ? "\n" + Loc.T("and {0} more", menus.Count - 14) : "")
+                ? string.Join("\n", menus.Take(14).Select(m => string.Format("{0} · {1}", MenuName(m.Menu), m.Army.Name)))
+                  + (menus.Count > 14 ? "\n" + string.Format("and {0} more", menus.Count - 14) : "")
                 : null;
         }
 
@@ -608,9 +608,9 @@ namespace CommandCenter.Pages.Tools
                        : key >= Key.NumPad0 && key <= Key.NumPad9 ? (char)('0' + (key - Key.NumPad0))
                        : '\0';
                 if (modifier || (c != '\0' && Keyboard.Modifiers != ModifierKeys.None))
-                    _listenHint = Loc.T("Button keys cannot use Ctrl, Alt or Shift; the game ignores them. Press the letter alone.");
+                    _listenHint = "Button keys cannot use Ctrl, Alt or Shift; the game ignores them. Press the letter alone.";
                 else if (c == '\0')
-                    _listenHint = Loc.T("Only a letter A–Z or a number, pressed alone, works for buttons.");
+                    _listenHint = "Only a letter A–Z or a number, pressed alone, works for buttons.";
                 else
                 {
                     StopListening();
@@ -626,7 +626,7 @@ namespace CommandCenter.Pages.Tools
             string? name = GameKeyNames.Of(key);
             if (name == null)
             {
-                _listenHint = Loc.T("The game cannot use that key. Try a letter, number, F-key or numpad key.");
+                _listenHint = "The game cannot use that key. Try a letter, number, F-key or numpad key.";
                 ShowGameKey();
                 return;
             }
@@ -653,12 +653,12 @@ namespace CommandCenter.Pages.Tools
 
         private static string GroupName(GameKey k) => k.Category switch
         {
-            "SELECTION" => Loc.T("SELECTION"),
-            "CONTROL" => Loc.T("UNIT ORDERS"),
-            "INTERFACE" => Loc.T("INTERFACE"),
-            "CAMERA" => Loc.T("CAMERA"),
-            "CHAT" => Loc.T("CHAT AND BEACONS"),
-            "BUILT-IN" => Loc.T("BUILT INTO THE GAME"),
+            "SELECTION" => "SELECTION",
+            "CONTROL" => "UNIT ORDERS",
+            "INTERFACE" => "INTERFACE",
+            "CAMERA" => "CAMERA",
+            "CHAT" => "CHAT AND BEACONS",
+            "BUILT-IN" => "BUILT INTO THE GAME",
             _ => k.Category,
         };
 
@@ -677,13 +677,13 @@ namespace CommandCenter.Pages.Tools
                 rows.Add(new GameKeyRow
                 {
                     TeamGroup = group,
-                    Group = Loc.T("TEAM KEYS"),
-                    Name = Loc.T(name),
+                    Group = "TEAM KEYS",
+                    Name = name,
                     Shortcut = TeamShortcut(keys[0]),
                     NameBrush = Muted,
                     CapBrush = Line,
                     Mark = changed > 0 ? Amber : null,
-                    MarkTip = changed > 0 ? Loc.N(changed, "Changed earlier; Save puts it back", "{0} changed earlier; Save puts them back") : null,
+                    MarkTip = changed > 0 ? English.Plural(changed, "Changed earlier; Save puts it back", "{0} changed earlier; Save puts them back") : null,
                 });
             }
 
@@ -696,11 +696,11 @@ namespace CommandCenter.Pages.Tools
                     Key = k,
                     Group = GroupName(k),
                     Name = k.Name,
-                    Shortcut = Loc.Ltr(k.Shortcut),
+                    Shortcut = k.Shortcut,
                     NameBrush = k.CanChange ? White : Muted,
                     CapBrush = k.Pending ? Blue : Line,
                     Mark = worst == IssueLevel.Error ? Red : worst == IssueLevel.Warn ? Amber : k.Changed ? LightBlue : null,
-                    MarkTip = issues.FirstOrDefault(i => i.Level >= IssueLevel.Warn)?.Text ?? (k.Changed ? Loc.T("Changed from default") : null),
+                    MarkTip = issues.FirstOrDefault(i => i.Level >= IssueLevel.Warn)?.Text ?? (k.Changed ? "Changed from default" : null),
                 });
             }
 
@@ -714,12 +714,10 @@ namespace CommandCenter.Pages.Tools
 
             int teams = _hk.ChangedTeamKeys;
             TeamNotice.Visibility = teams > 0 ? Visibility.Visible : Visibility.Collapsed;
-            TeamNoticeText.Text = Loc.N(teams,
-                "1 team key was changed in CommandMap.ini earlier. Team keys always use the game's defaults; Save puts it back.",
-                "{0} team keys were changed in CommandMap.ini earlier. Team keys always use the game's defaults; Save puts them back.");
+            TeamNoticeText.Text = English.Plural(teams, "1 team key was changed in CommandMap.ini earlier. Team keys always use the game's defaults; Save puts it back.", "{0} team keys were changed in CommandMap.ini earlier. Team keys always use the game's defaults; Save puts them back.");
         }
 
-        private static string TeamShortcut(GameKey first) => Loc.Ltr(HotkeyService.Describe("", first.OriginalModifiers) + "0–9");
+        private static string TeamShortcut(GameKey first) => HotkeyService.Describe("", first.OriginalModifiers) + "0–9";
 
         private bool Matches(GameKeyRow row)
         {
@@ -753,21 +751,19 @@ namespace CommandCenter.Pages.Tools
             if (_teamGroup != null)
             {
                 var first = _hk.GameKeys.FirstOrDefault(k => k.IsTeam && HotkeyService.TeamGroupOf(k) == _teamGroup);
-                KCategory.Text = Loc.T("TEAM KEYS");
-                KName.Text = Loc.T(TeamGroups.FirstOrDefault(g => g.Group == _teamGroup).Name ?? "");
+                KCategory.Text = "TEAM KEYS";
+                KName.Text = TeamGroups.FirstOrDefault(g => g.Group == _teamGroup).Name ?? "";
                 KCapText.Text = first != null ? TeamShortcut(first) : "";
                 KCapText.Foreground = Muted;
                 KCap.Background = Page;
                 KCap.BorderBrush = Line;
                 KCap.Cursor = null;
                 KHint.Foreground = Soft;
-                KHint.Text = Loc.T("Team keys always stay on the game's defaults, so they cannot be changed here. Every other key is checked against them, so nothing you set takes their place.");
+                KHint.Text = "Team keys always stay on the game's defaults, so they cannot be changed here. Every other key is checked against them, so nothing you set takes their place.";
                 KButtons.Visibility = Visibility.Collapsed;
                 int teams = _hk.ChangedTeamKeys;
                 if (teams > 0)
-                    KIssues.Children.Add(IssueRow(new KeyIssue(IssueLevel.Warn, Loc.N(teams,
-                        "1 team key was changed earlier. Save puts it back to the game's default.",
-                        "{0} team keys were changed earlier. Save puts them back to the game's defaults."))));
+                    KIssues.Children.Add(IssueRow(new KeyIssue(IssueLevel.Warn, English.Plural(teams, "1 team key was changed earlier. Save puts it back to the game's default.", "{0} team keys were changed earlier. Save puts them back to the game's defaults."))));
                 return;
             }
 
@@ -779,35 +775,35 @@ namespace CommandCenter.Pages.Tools
             KName.Text = k.Name;
             KChange.IsEnabled = k.CanChange;
             KReset.IsEnabled = k.CanChange && k.Changed;
-            KReset.ToolTip = Loc.T("Back to the default ({0})", Loc.Ltr(k.DefaultShortcut));
+            KReset.ToolTip = string.Format("Back to the default ({0})", k.DefaultShortcut);
             KCap.Cursor = k.CanChange ? Cursors.Hand : null;
-            KCap.ToolTip = k.CanChange ? Loc.T("Click, then press the new combination") : null;
+            KCap.ToolTip = k.CanChange ? "Click, then press the new combination" : null;
 
             if (_keyListening)
             {
-                KCapText.Text = Loc.T("Press the new keys…");
+                KCapText.Text = "Press the new keys…";
                 KCapText.Foreground = LightBlue;
                 KCap.Background = SelectedFill;
                 KCap.BorderBrush = Blue;
                 KHint.Foreground = LightBlue;
-                KHint.Text = _listenHint ?? Loc.T("Hold Ctrl, Alt or Shift if you want them, then press the key. Esc cancels.");
+                KHint.Text = _listenHint ?? "Hold Ctrl, Alt or Shift if you want them, then press the key. Esc cancels.";
             }
             else
             {
-                KCapText.Text = Loc.Ltr(k.Shortcut);
+                KCapText.Text = k.Shortcut;
                 KCapText.Foreground = k.CanChange ? White : Muted;
                 KCap.Background = Page;
                 KCap.BorderBrush = k.Pending ? Blue : Line;
                 KHint.Foreground = Soft;
-                KHint.Text = k.IsFixed ? Loc.T("The game adds this key by itself and cannot change it. It is listed so you do not pick it for something else.")
-                    : k.Changed ? Loc.T("Changed from {0}.", Loc.Ltr(k.DefaultShortcut)) + (k.IsBuiltIn ? " " + Loc.T("Only Generals Online reads this change.") : "")
-                    : k.IsBuiltIn ? Loc.T("The game adds this key by itself.")
-                    : Loc.T("The game's default.");
+                KHint.Text = k.IsFixed ? "The game adds this key by itself and cannot change it. It is listed so you do not pick it for something else."
+                    : k.Changed ? string.Format("Changed from {0}.", k.DefaultShortcut) + (k.IsBuiltIn ? " Only Generals Online reads this change." : "")
+                    : k.IsBuiltIn ? "The game adds this key by itself."
+                    : "The game's default.";
             }
 
             var issues = _hk.GameKeyIssues(k);
             if (issues.Count == 0 && k.CanChange)
-                issues.Add(new KeyIssue(IssueLevel.Ok, Loc.T("No other command uses this combination.")));
+                issues.Add(new KeyIssue(IssueLevel.Ok, "No other command uses this combination."));
             foreach (var issue in issues)
                 KIssues.Children.Add(IssueRow(issue));
         }
@@ -832,7 +828,7 @@ namespace CommandCenter.Pages.Tools
                 return;
             _hk.ApplyGridLayout();
             RefreshAll();
-            Views.Main.Toast(Loc.T("Grid layout loaded. Check the marked menus, then press Save."));
+            Views.Main.Toast("Grid layout loaded. Check the marked menus, then press Save.");
         }
 
         private void Defaults_Click(object sender, RoutedEventArgs e)
@@ -842,7 +838,7 @@ namespace CommandCenter.Pages.Tools
             _hk.ApplyClassicLayout();
             _hk.ResetGameKeys();
             RefreshAll();
-            Views.Main.Toast(Loc.T("Game defaults loaded. Press Save to keep them."));
+            Views.Main.Toast("Game defaults loaded. Press Save to keep them.");
         }
 
         // ── Pending changes ──
@@ -880,21 +876,21 @@ namespace CommandCenter.Pages.Tools
             StatusDot.Visibility = pending > 0 ? Visibility.Visible : Visibility.Collapsed;
             if (pending == 0)
             {
-                StatusText.Text = Loc.T("Hotkeys never cause a mismatch online");
+                StatusText.Text = "Hotkeys never cause a mismatch online";
                 StatusText.Foreground = Muted;
-                StatusText.ToolTip = Loc.T("Hotkeys live in generals.csf and CommandMap.ini, which are not part of the multiplayer check.");
+                StatusText.ToolTip = "Hotkeys live in generals.csf and CommandMap.ini, which are not part of the multiplayer check.";
                 SaveButton.ToolTip = null;
                 return;
             }
 
             StatusText.Text = discardable > 0
-                ? Loc.N(discardable, "{0} change not saved", "{0} changes not saved")
-                : Loc.N(teams, "1 team key to put back", "{0} team keys to put back");
+                ? English.Plural(discardable, "{0} change not saved", "{0} changes not saved")
+                : English.Plural(teams, "1 team key to put back", "{0} team keys to put back");
             StatusText.Foreground = White;
-            string files = Loc.List(_hk.PendingFiles().Select(f => Loc.Ltr(System.IO.Path.GetFileName(f))));
-            string where = Loc.T("Will be saved to {0}. A backup is kept.", files);
+            string files = English.List(_hk.PendingFiles().Select(f => System.IO.Path.GetFileName(f)));
+            string where = string.Format("Will be saved to {0}. A backup is kept.", files);
             StatusText.ToolTip = teams > 0 && discardable > 0
-                ? where + " " + Loc.N(teams, "1 team key goes back to the game's default.", "{0} team keys go back to the game's defaults.")
+                ? where + " " + English.Plural(teams, "1 team key goes back to the game's default.", "{0} team keys go back to the game's defaults.")
                 : where;
             SaveButton.ToolTip = where;
         }
@@ -915,17 +911,17 @@ namespace CommandCenter.Pages.Tools
                 return;
             if (GameLauncher.IsGameRunning())
             {
-                Views.Main.Toast(Loc.T("Close the game first; it reads hotkeys only when it starts."), isError: true);
+                Views.Main.Toast("Close the game first; it reads hotkeys only when it starts.", isError: true);
                 return;
             }
 
             var hk = _hk;
-            string files = Loc.List(hk.PendingFiles().Select(f => Loc.Ltr(System.IO.Path.GetFileName(f))));
+            string files = English.List(hk.PendingFiles().Select(f => System.IO.Path.GetFileName(f)));
             int before = BackupService.Load().Count;
             try
             {
                 hk.Save();
-                string message = Loc.T("Saved to {0}. The new keys work the next time the game starts.", files);
+                string message = string.Format("Saved to {0}. The new keys work the next time the game starts.", files);
                 // The letters drawn on the button pictures follow the saved keys. Drawing them takes a moment, so it runs
                 // in the background (as in the letters panel) while the editor waits, so no key changes underneath it.
                 if (AppSettings.Current.IconLetters)
@@ -937,7 +933,7 @@ namespace CommandCenter.Pages.Tools
                     }
                     catch (Exception ex)
                     {
-                        message += " " + Loc.T("The letters on the icons could not be updated: {0}", ex.Message);
+                        message += " " + string.Format("The letters on the icons could not be updated: {0}", ex.Message);
                     }
                     finally
                     {
@@ -951,12 +947,12 @@ namespace CommandCenter.Pages.Tools
                         BackupService.Undo(entry);
                     hk.Reload();
                     Reloaded();
-                    Views.Main.Toast(Loc.T("Hotkeys put back"));
+                    Views.Main.Toast("Hotkeys put back");
                 });
             }
             catch (Exception ex)
             {
-                Views.Main.Toast(Loc.T("Could not save: {0}", ex.Message), isError: true);
+                Views.Main.Toast(string.Format("Could not save: {0}", ex.Message), isError: true);
             }
             Reloaded();
         }

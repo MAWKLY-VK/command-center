@@ -42,10 +42,10 @@
     <Using Include="CommandCenter.Core.Game" />
     <Using Include="CommandCenter.Core.Imaging" />
     <Using Include="CommandCenter.Core.Integrity" />
-    <Using Include="CommandCenter.Core.Localization" />
     <Using Include="CommandCenter.Core.Net" />
     <Using Include="CommandCenter.Core.Safety" />
     <Using Include="CommandCenter.Core.Settings" />
+    <Using Include="CommandCenter.Core.Text" />
     <Using Include="CommandCenter.Core.Updates" />
   </ItemGroup>
 

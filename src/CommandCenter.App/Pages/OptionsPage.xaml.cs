@@ -1,5 +1,4 @@
 using CommandCenter.Imaging;
-using CommandCenter.Localization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -72,7 +71,7 @@ namespace CommandCenter.Pages
                 var (w, h) = resolutions[i];
                 cmbWindowedResolution.Items.Add(new ComboBoxItem
                 {
-                    Content = Loc.Ltr($"{w} x {h}"),
+                    Content = $"{w} x {h}",
                     Tag = (w, h)
                 });
                 if (w == selectedWidth && h == selectedHeight)
@@ -102,7 +101,7 @@ namespace CommandCenter.Pages
             configDetailsPanel.Children.Clear();
             configDetailsPanel.Children.Add(new TextBlock 
             { 
-                Text = Loc.T("(No plugin selected)"),
+                Text = "(No plugin selected)",
                 Foreground = new SolidColorBrush(Color.FromRgb(0xA0, 0xA0, 0xC0)),
                 FontSize = 11
             });
@@ -186,7 +185,7 @@ namespace CommandCenter.Pages
         // Opens a section by its sidebar name, e.g. "network" or "launcher" (used when taking screenshots)
         public void ShowPart(string part)
         {
-            var tab = new[] { rbLanguage, rbGame, rbCamera, rbChat, rbInput, rbGraphics, rbSocial, rbNetwork, rbDataPacks, rbPlugins, rbLauncher }
+            var tab = new[] { rbGame, rbCamera, rbChat, rbInput, rbGraphics, rbSocial, rbNetwork, rbDataPacks, rbPlugins, rbLauncher }
                 .FirstOrDefault(r => r.Name.Equals("rb" + part.Replace(" ", ""), StringComparison.OrdinalIgnoreCase));
             if (tab != null)
                 tab.IsChecked = true;
@@ -196,14 +195,12 @@ namespace CommandCenter.Pages
         {
             LoadGameSettings();
             LoadLauncherOptions();
-            _ = ShowArabicGameTextAsync();
         }
 
         private void Tab_Checked(object sender, RoutedEventArgs e)
         {
             if (PanelCamera == null) return; // not yet loaded
 
-            PanelLanguage.Visibility = Visibility.Collapsed;
             PanelGame.Visibility = Visibility.Collapsed;
             PanelCamera.Visibility = Visibility.Collapsed;
             PanelChat.Visibility = Visibility.Collapsed;
@@ -215,8 +212,7 @@ namespace CommandCenter.Pages
             PanelPlugins.Visibility = Visibility.Collapsed;
             PanelLauncher.Visibility = Visibility.Collapsed;
 
-            if (ReferenceEquals(sender, rbLanguage)) PanelLanguage.Visibility = Visibility.Visible;
-            else if (ReferenceEquals(sender, rbGame)) PanelGame.Visibility = Visibility.Visible;
+            if (ReferenceEquals(sender, rbGame)) PanelGame.Visibility = Visibility.Visible;
             else if (ReferenceEquals(sender, rbCamera)) PanelCamera.Visibility = Visibility.Visible;
             else if (ReferenceEquals(sender, rbChat)) PanelChat.Visibility = Visibility.Visible;
             else if (ReferenceEquals(sender, rbInput)) PanelInput.Visibility = Visibility.Visible;
@@ -264,7 +260,7 @@ namespace CommandCenter.Pages
             {
                 configDetailsPanel.Children.Add(new TextBlock 
                 { 
-                    Text = Loc.T("(No plugin selected)"),
+                    Text = "(No plugin selected)",
                     Foreground = new SolidColorBrush(Color.FromRgb(0xA0, 0xA0, 0xC0)),
                     FontSize = 11
                 });
@@ -277,7 +273,7 @@ namespace CommandCenter.Pages
             {
                 configDetailsPanel.Children.Add(new TextBlock 
                 { 
-                    Text = Loc.T("(Invalid plugin folder)"),
+                    Text = "(Invalid plugin folder)",
                     Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0x88, 0x88)),
                     FontSize = 11
                 });
@@ -292,7 +288,7 @@ namespace CommandCenter.Pages
                 {
                     configDetailsPanel.Children.Add(new TextBlock 
                     { 
-                        Text = Loc.T("(Plugin folder not found: {0})", folderName),
+                        Text = string.Format("(Plugin folder not found: {0})", folderName),
                         Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0x88, 0x88)),
                         FontSize = 11
                     });
@@ -307,7 +303,7 @@ namespace CommandCenter.Pages
                 {
                     configDetailsPanel.Children.Add(new TextBlock 
                     { 
-                        Text = Loc.T("(No JSON files found in plugin)"),
+                        Text = "(No JSON files found in plugin)",
                         Foreground = new SolidColorBrush(Color.FromRgb(0xA0, 0xA0, 0xC0)),
                         FontSize = 11
                     });
@@ -333,7 +329,7 @@ namespace CommandCenter.Pages
                     {
                         configDetailsPanel.Children.Add(new TextBlock 
                         { 
-                            Text = Loc.T("Could not read {0}: {1}", fileName, ex.Message),
+                            Text = string.Format("Could not read {0}: {1}", fileName, ex.Message),
                             Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0x88, 0x88)),
                             FontSize = 10,
                             Margin = new Thickness(0, 8, 0, 8)
@@ -345,7 +341,7 @@ namespace CommandCenter.Pages
             {
                 configDetailsPanel.Children.Add(new TextBlock 
                 { 
-                    Text = Loc.T("(Could not load the plugin details: {0})", ex.Message),
+                    Text = string.Format("(Could not load the plugin details: {0})", ex.Message),
                     Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0x88, 0x88)),
                     FontSize = 11
                 });
@@ -558,7 +554,7 @@ namespace CommandCenter.Pages
             {
                 // Saving stays off, so nothing is written from values that were not read
                 _loaded = false;
-                Views.Main.Toast(Loc.T("Some settings could not be read, so this page will not save anything: {0}", ex.Message), isError: true);
+                Views.Main.Toast(string.Format("Some settings could not be read, so this page will not save anything: {0}", ex.Message), isError: true);
             }
         }
 
@@ -644,7 +640,7 @@ namespace CommandCenter.Pages
             // on the page and are saved the next time it is left with the game closed.
             if ((goChanged || iniChanged) && GameLauncher.IsGameRunning())
             {
-                Views.Main.Toast(Loc.T("Close the game first; it reads these settings only when it starts."), isError: true);
+                Views.Main.Toast("Close the game first; it reads these settings only when it starts.", isError: true);
                 return;
             }
 
@@ -659,7 +655,7 @@ namespace CommandCenter.Pages
             }
             catch (Exception ex)
             {
-                Views.Main.Toast(Loc.T("Could not save: {0}", ex.Message), isError: true);
+                Views.Main.Toast(string.Format("Could not save: {0}", ex.Message), isError: true);
                 return;
             }
             _shown = now;
@@ -682,23 +678,9 @@ namespace CommandCenter.Pages
 
         // ── LAUNCHER: Command Center's own preferences ──
 
-        private bool _loadingLauncher;
-
         private void LoadLauncherOptions()
         {
-            _loadingLauncher = true;
-            // The tab keeps its English name next to the translation, so it can be found in a language one cannot read
-            rbLanguage.Content = Loc.Language == "en" ? "LANGUAGE" : Loc.T("LANGUAGE") + " · LANGUAGE";
-            cmbLanguage.Items.Clear();
-            foreach (var (code, name) in Loc.Languages)
-            {
-                var item = new ComboBoxItem { Content = name, Tag = code };
-                cmbLanguage.Items.Add(item);
-                if (code == Loc.Language)
-                    cmbLanguage.SelectedItem = item;
-            }
             txtVersion.Text = "Command Center " + AppState.Version;
-            _loadingLauncher = false;
             ShowGameFolder();
         }
 
@@ -708,13 +690,13 @@ namespace CommandCenter.Pages
         {
             bool found = GamePaths.ZeroHourFound;
             string folder = GamePaths.Game;
-            txtGameFolder.Text = found ? Loc.Ltr(folder) : Loc.T("Game not found");
+            txtGameFolder.Text = found ? folder : "Game not found";
             txtGameFolder.ToolTip = found ? folder : null;
 
-            (string badge, Color color) = !found ? (Loc.T("Not found"), Views.Problem.Color)
-                : GamePaths.ChosenByPlayer ? (Loc.T("Chosen by you"), Views.Blue.Color)
-                : GamePaths.IsSteamCopy(folder) ? (Loc.T("Steam copy"), Views.Passed.Color)
-                : (Loc.T("Other copy"), Views.Gold.Color);
+            (string badge, Color color) = !found ? ("Not found", Views.Problem.Color)
+                : GamePaths.ChosenByPlayer ? ("Chosen by you", Views.Blue.Color)
+                : GamePaths.IsSteamCopy(folder) ? ("Steam copy", Views.Passed.Color)
+                : ("Other copy", Views.Gold.Color);
             SourceBadgeText.Text = badge;
             SourceBadgeText.Foreground = new SolidColorBrush(color);
             SourceBadge.Background = new SolidColorBrush(Color.FromArgb(0x26, color.R, color.G, color.B));
@@ -725,13 +707,13 @@ namespace CommandCenter.Pages
                 GameChips.Children.Add(Chip("Zero Hour", true));
                 GameChips.Children.Add(GamePaths.GameFound
                     ? Chip("Generals Online " + AppState.ClientVersion(), true)
-                    : Chip(Loc.T("Generals Online is not installed"), false));
+                    : Chip("Generals Online is not installed", false));
             }
-            txtGameNote.Text = !found ? Loc.T("Choose the folder of any copy of Zero Hour: Steam, EA or another install.")
-                : GamePaths.GameFound ? Loc.T("Any copy works: Steam, EA or another install. Changing the folder changes nothing in the game files.")
-                : Loc.T("Install Generals Online into this folder, then press Play.");
+            txtGameNote.Text = !found ? "Choose the folder of any copy of Zero Hour: Steam, EA or another install."
+                : GamePaths.GameFound ? "Any copy works: Steam, EA or another install. Changing the folder changes nothing in the game files."
+                : "Install Generals Online into this folder, then press Play.";
 
-            txtDataFolder.Text = Loc.Ltr(GamePaths.UserData);
+            txtDataFolder.Text = GamePaths.UserData;
             txtDataFolder.ToolTip = GamePaths.UserData;
         }
 
@@ -750,7 +732,7 @@ namespace CommandCenter.Pages
             });
             row.Children.Add(new TextBlock
             {
-                Text = Loc.Embed(text),
+                Text = text,
                 FontSize = 12,
                 Foreground = Views.Brush(ok ? "#C6EED2" : "#FFC2C2"),
                 VerticalAlignment = VerticalAlignment.Center,
@@ -774,7 +756,7 @@ namespace CommandCenter.Pages
                 return;
             LoadGameSettings();
             ShowGameFolder();
-            Views.Main.Toast(Loc.T("Game folder changed. The checks run again."));
+            Views.Main.Toast("Game folder changed. The checks run again.");
         }
 
         private void OpenData_Click(object sender, RoutedEventArgs e)
@@ -782,127 +764,12 @@ namespace CommandCenter.Pages
             Views.ShowInFolder(GamePaths.UserData);
         }
 
-        private void CmbLanguage_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_loadingLauncher || cmbLanguage.SelectedItem is not ComboBoxItem { Tag: string code } || code == Loc.Language)
-                return;
-            var answer = MessageBox.Show(Loc.T("Restart Command Center now to switch the language?"), "Command Center",
-                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes, LocUi.MessageBoxOptions);
-            if (answer != MessageBoxResult.Yes)
-            {
-                LoadLauncherOptions();
-                return;
-            }
-            AppSettings.Current.Language = code;
-            AppSettings.Current.Save();
-            SaveGameSettings();
-
-            // Same arguments as this run, without a language given on the command line; the new copy waits for this
-            // one to close before it takes the single-copy lock
-            var args = Environment.GetCommandLineArgs().Skip(1).ToList();
-            int lang = args.FindIndex(a => a.Equals("--lang", StringComparison.OrdinalIgnoreCase));
-            if (lang >= 0)
-                args.RemoveRange(lang, Math.Min(2, args.Count - lang));
-            var start = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false };
-            foreach (string arg in SingleInstance.ArgumentsForRestart(args))
-                start.ArgumentList.Add(arg);
-            System.Diagnostics.Process.Start(start)?.Dispose();
-            Application.Current.Shutdown();
-        }
-
-        // ─── Game text in Arabic ─────────────────────────────────────────────────
-
-        private bool _arabicBusy;
-
-        private static (GameFiles Files, string Language)? ArabicTarget() =>
-            GamePaths.ZeroHourFound ? (new GameFiles(GamePaths.Game), HotkeyService.DetectLanguage()) : null;
-
-        private async Task ShowArabicGameTextAsync()
-        {
-            var state = await Task.Run(() =>
-            {
-                try { return ArabicTarget() is { } t ? ArabicGameText.Check(t.Files, t.Language) : ArabicGameText.State.NoGame; }
-                catch { return ArabicGameText.State.NoGame; }
-            });
-            int count = ArabicGameText.Translation.Count;
-            txtArabicState.Text = state switch
-            {
-                ArabicGameText.State.On => Loc.T("On. Start the game to see it."),
-                ArabicGameText.State.Outdated => Loc.T("The game's text changed since it was turned on. Turn it on again to update it."),
-                ArabicGameText.State.GameHasArabic => Loc.T("The game already shows Arabic text."),
-                ArabicGameText.State.NoGame => Loc.T("Zero Hour was not found."),
-                _ => Loc.T("Off: the game's text is in English."),
-            };
-            btnArabicOn.Content = Loc.T(state == ArabicGameText.State.Outdated ? "UPDATE" : "TURN ON");
-            btnArabicOn.Visibility = state is ArabicGameText.State.Off or ArabicGameText.State.Outdated ? Visibility.Visible : Visibility.Collapsed;
-            btnArabicOff.Visibility = state is ArabicGameText.State.On or ArabicGameText.State.Outdated ? Visibility.Visible : Visibility.Collapsed;
-            btnArabicOn.IsEnabled = btnArabicOff.IsEnabled = !_arabicBusy;
-
-            panelArabicNotes.Children.Clear();
-            foreach (string note in new[]
-                     {
-                         Loc.N(count, "{0} text so far: the buttons, unit names, battle messages and menus seen most. More come with updates.",
-                             "{0} texts so far: the buttons, unit names, battle messages and menus seen most. More come with updates."),
-                         Loc.T("Hotkeys keep working: each button shows its key in brackets after the Arabic name."),
-                         Loc.T("Not part of the multiplayer check, so it never causes a mismatch."),
-                         Loc.T("Generals Online's own screens (login, lobby, chat) stay in English, and Arabic player names still show reversed: those are drawn by its program."),
-                     })
-            {
-                panelArabicNotes.Children.Add(new TextBlock { Text = "• " + note, FontSize = 12, Foreground = new SolidColorBrush(Color.FromRgb(0xA8, 0xA8, 0xC8)), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 3) });
-            }
-        }
-
-        private void ArabicOn_Click(object sender, RoutedEventArgs e) => _ = SwitchArabicAsync(on: true);
-
-        private void ArabicOff_Click(object sender, RoutedEventArgs e) => _ = SwitchArabicAsync(on: false);
-
-        private async Task SwitchArabicAsync(bool on)
-        {
-            if (_arabicBusy || ArabicTarget() is not { } target)
-                return;
-            if (GameLauncher.IsGameRunning())
-            {
-                Views.Main.Toast(Loc.T(BackupService.GameRunningMessage), isError: true);
-                return;
-            }
-            _arabicBusy = true;
-            btnArabicOn.IsEnabled = btnArabicOff.IsEnabled = false;
-            try
-            {
-                int count = await Task.Run(() =>
-                {
-                    if (!on)
-                    {
-                        ArabicGameText.Remove(target.Files, target.Language);
-                        return 0;
-                    }
-                    return ArabicGameText.Apply(target.Files, target.Language);
-                });
-                // The hotkey editor reads the table again, Arabic names and all
-                AppState.ForgetHotkeys();
-                if (on)
-                    Views.Main.Toast(Loc.N(count, "The game shows {0} text in Arabic from its next start.", "The game shows {0} texts in Arabic from its next start."),
-                        () => _ = SwitchArabicAsync(on: false));
-                else
-                    Views.Main.Toast(Loc.T("The game's text is in English again from its next start."), () => _ = SwitchArabicAsync(on: true));
-            }
-            catch (Exception ex)
-            {
-                Views.Main.Toast(Loc.T("Something went wrong: {0}", ex.Message), isError: true);
-            }
-            finally
-            {
-                _arabicBusy = false;
-                await ShowArabicGameTextAsync();
-            }
-        }
-
         private async void BtnCheckUpdates_Click(object sender, RoutedEventArgs e)
         {
             btnCheckUpdates.IsEnabled = false;
-            txtUpdateStatus.Text = Loc.T("Checking…");
+            txtUpdateStatus.Text = "Checking…";
             bool found = await Views.Main.CheckForUpdateNowAsync();
-            txtUpdateStatus.Text = found ? "" : Loc.T("You have the latest version.");
+            txtUpdateStatus.Text = found ? "" : "You have the latest version.";
             btnCheckUpdates.IsEnabled = true;
         }
 
@@ -965,7 +832,7 @@ namespace CommandCenter.Pages
             _diagCts = new CancellationTokenSource();
 
             btnRunDiagnostics.IsEnabled = false;
-            btnRunDiagnostics.Content   = Loc.T("⟳  RUNNING...");
+            btnRunDiagnostics.Content   = "⟳  RUNNING...";
             btnCopyDiag.IsEnabled       = false;
             panelDiagResults.Visibility = Visibility.Visible;
             ResetDiagnosticsUI();
@@ -983,7 +850,7 @@ namespace CommandCenter.Pages
             finally
             {
                 btnRunDiagnostics.IsEnabled = true;
-                btnRunDiagnostics.Content   = Loc.T("▶  RUN DIAGNOSTICS");
+                btnRunDiagnostics.Content   = "▶  RUN DIAGNOSTICS";
             }
         }
 
@@ -994,7 +861,7 @@ namespace CommandCenter.Pages
             sb.AppendLine("═══ Generals Online Network Diagnostics ═══");
             sb.AppendLine($"Time:         {r.Timestamp:yyyy-MM-dd HH:mm:ss}");
             if (r.GeoSuccess)
-                sb.AppendLine($"Country:      {CountryName(r.GeoCountryCode, english: true)}");
+                sb.AppendLine($"Country:      {CountryName(r.GeoCountryCode)}");
             sb.AppendLine();
             sb.AppendLine("─ Internet ─");
             sb.AppendLine($"Cloudflare:   {(r.CloudflareSuccess ? $"{r.CloudflareAvgMs}ms avg, {r.CloudflareLossPercent}% loss" : "Unreachable")}");
@@ -1030,30 +897,30 @@ namespace CommandCenter.Pages
         {
             // Country
             if (r.GeoSuccess)
-                SetRow(dotGeo, valGeo, true, CountryName(r.GeoCountryCode, english: !Loc.IsRightToLeft), DiagGreen);
+                SetRow(dotGeo, valGeo, true, CountryName(r.GeoCountryCode), DiagGreen);
             else
-                SetRow(dotGeo, valGeo, false, Loc.T("Could not determine the country"), DiagGray);
+                SetRow(dotGeo, valGeo, false, "Could not determine the country", DiagGray);
 
             // Cloudflare internet baseline
             SetRow(dotCF, valCF,
                 r.CloudflareSuccess,
                 r.CloudflareSuccess
-                    ? Loc.T("{0} ms avg  {1}% loss", r.CloudflareAvgMs, r.CloudflareLossPercent)
-                    : Loc.T("Unreachable"),
+                    ? string.Format("{0} ms avg  {1}% loss", r.CloudflareAvgMs, r.CloudflareLossPercent)
+                    : "Unreachable",
                 r.CloudflareSuccess ? LossColor(r.CloudflareLossPercent) : DiagRed);
 
             // DNS
             SetRow(dotDns, valDns,
                 r.DnsSuccess,
-                r.DnsSuccess ? r.DnsAddresses : Loc.T("Resolution failed"),
+                r.DnsSuccess ? r.DnsAddresses : "Resolution failed",
                 r.DnsSuccess ? DiagGreen : DiagRed);
 
             // Ping
             SetRow(dotPing, valPing,
                 r.PingSuccess,
                 r.PingSuccess
-                    ? Loc.T("{0} ms avg  (min {1} / max {2})  {3}% loss", r.PingAvgMs, r.PingMinMs, r.PingMaxMs, r.PingLossPercent)
-                    : Loc.T("Unreachable (ICMP may be blocked)"),
+                    ? string.Format("{0} ms avg  (min {1} / max {2})  {3}% loss", r.PingAvgMs, r.PingMinMs, r.PingMaxMs, r.PingLossPercent)
+                    : "Unreachable (ICMP may be blocked)",
                 r.PingSuccess ? LatencyColor(r.PingAvgMs) : DiagRed);
 
             // Protocol
@@ -1063,47 +930,46 @@ namespace CommandCenter.Pages
             // HTTP latency
             SetRow(dotHttp, valHttp,
                 r.HttpSuccess,
-                r.HttpSuccess ? $"{r.HttpLatencyMs}ms" : Loc.T("Request failed"),
+                r.HttpSuccess ? $"{r.HttpLatencyMs}ms" : "Request failed",
                 r.HttpSuccess ? LatencyColor(r.HttpLatencyMs) : DiagRed);
 
             // Server status
             if (r.ServerOnline)
                 SetRow(dotServer, valServer, true,
-                    Loc.T("Online — {0} players  •  {1} lobbies", r.PlayersOnline, r.Lobbies), DiagGreen);
+                    string.Format("Online — {0} players  •  {1} lobbies", r.PlayersOnline, r.Lobbies), DiagGreen);
             else
                 SetRow(dotServer, valServer, false,
-                    r.HttpSuccess ? Loc.T("Degraded (HTTP error)") : Loc.T("Offline / Unreachable"), DiagRed);
+                    r.HttpSuccess ? "Degraded (HTTP error)" : "Offline / Unreachable", DiagRed);
 
             // CDN
             SetRow(dotCdn, valCdn,
                 r.CdnSuccess,
-                r.CdnSuccess ? $"{r.CdnLatencyMs}ms" : Loc.T("Unreachable"),
+                r.CdnSuccess ? $"{r.CdnLatencyMs}ms" : "Unreachable",
                 r.CdnSuccess ? LatencyColor(r.CdnLatencyMs) : DiagRed);
 
             // STUN
             SetRow(dotStun, valStun,
                 r.StunSuccess,
-                r.StunSuccess ? $"{r.StunLatencyMs}ms  ({RedactEndpoint(r.StunExternalEndpoint)})" : Loc.T("Unreachable"),
+                r.StunSuccess ? $"{r.StunLatencyMs}ms  ({RedactEndpoint(r.StunExternalEndpoint)})" : "Unreachable",
                 r.StunSuccess ? LatencyColor(r.StunLatencyMs) : DiagRed);
 
             // TURN
             SetRow(dotTurn, valTurn,
                 r.TurnSuccess,
-                r.TurnSuccess ? $"{r.TurnLatencyMs}ms  ({r.TurnEndpoint})" : Loc.T("Unreachable"),
+                r.TurnSuccess ? $"{r.TurnLatencyMs}ms  ({r.TurnEndpoint})" : "Unreachable",
                 r.TurnSuccess ? LatencyColor(r.TurnLatencyMs) : DiagRed);
 
             // NAT type
-            // The detail stays English in the copied report for support, and is translated here
-            string natDetail = Loc.T(r.NatTypeDetail);
+            string natDetail = r.NatTypeDetail;
             var (natColor, natText) = r.NatType switch
             {
                 NatType.Open or NatType.FullCone or NatType.RestrictedCone
                     => (DiagGreen,  $"{NatTypeLabel(r.NatType)} — {natDetail}"),
                 NatType.PortRestrictedCone
-                    => (DiagYellow, Loc.T("Port Restricted Cone") + $" — {natDetail}"),
+                    => (DiagYellow, $"Port Restricted Cone — {natDetail}"),
                 NatType.Symmetric
-                    => (DiagRed,    Loc.T("Symmetric") + $" — {natDetail}"),
-                _   => (DiagGray,   Loc.T("Unknown") + $" — {natDetail}")
+                    => (DiagRed,    $"Symmetric — {natDetail}"),
+                _   => (DiagGray,   $"Unknown — {natDetail}")
             };
             SetRow(dotNat, valNat, r.NatType != NatType.Unknown, natText, natColor);
         }
@@ -1138,8 +1004,7 @@ namespace CommandCenter.Pages
         private static void SetRow(Ellipse dot, TextBlock val, bool ok, string text, SolidColorBrush color)
         {
             dot.Fill       = color;
-            // A value with no Arabic in it, such as "93ms  (1.2.3.XXX:4)", keeps its brackets in order
-            val.Text       = text.Any(c => c is >= '؀' and <= 'ۿ') ? text : Loc.Ltr(text);
+            val.Text       = text;
             val.Foreground = color;
         }
 
@@ -1149,25 +1014,24 @@ namespace CommandCenter.Pages
         private static SolidColorBrush LossColor(int pct) =>
             pct == 0 ? DiagGreen : pct < 25 ? DiagYellow : DiagRed;
 
-        // The country's English name; in Arabic, its own name when that is written in Arabic letters
-        private static string CountryName(string code, bool english)
+        // The country's English name
+        private static string CountryName(string code)
         {
             try
             {
-                var region = new System.Globalization.RegionInfo(code);
-                return !english && region.NativeName.Any(c => c is >= '؀' and <= 'ۿ') ? region.NativeName : region.EnglishName;
+                return new System.Globalization.RegionInfo(code).EnglishName;
             }
             catch (ArgumentException) { return code; }
         }
 
         private static string NatTypeLabel(NatType t) => t switch
         {
-            NatType.Open              => Loc.T("Open"),
-            NatType.FullCone          => Loc.T("Full Cone"),
-            NatType.RestrictedCone    => Loc.T("Restricted"),
-            NatType.PortRestrictedCone => Loc.T("Port Restr."),
-            NatType.Symmetric         => Loc.T("Symmetric"),
-            _                         => Loc.T("Unknown")
+            NatType.Open              => "Open",
+            NatType.FullCone          => "Full Cone",
+            NatType.RestrictedCone    => "Restricted",
+            NatType.PortRestrictedCone => "Port Restr.",
+            NatType.Symmetric         => "Symmetric",
+            _                         => "Unknown"
         };
 
         private static string RedactIp(string ip)

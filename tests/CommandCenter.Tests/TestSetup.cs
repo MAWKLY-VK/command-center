@@ -1,19 +1,12 @@
 using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
-// The language is a setting for the whole program (Loc), so tests that switch it must not run at the same time as others
+// The game paths and the run options (the GO profile, the map library) are set for the whole program, so tests that
+// change them must not run at the same time as others
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace CommandCenter.Tests
 {
-    internal static class TestStartup
-    {
-        // The services get their WPF pieces from the App at startup (AppServices); the tests need them as well
-        [ModuleInitializer]
-        internal static void ConnectWpf() => AppServices.ConnectWpf();
-    }
-
     // A file in the temporary folder that is deleted when the test ends
     internal sealed class TempFile : IDisposable
     {
@@ -53,11 +46,13 @@ namespace CommandCenter.Tests
         }
 
         // A file under the root (game, user or anywhere else in it) with this text; returns its full path
-        public string Write(string relative, string text)
+        public string Write(string relative, string text) => Write(relative, System.Text.Encoding.UTF8.GetBytes(text));
+
+        public string Write(string relative, byte[] content)
         {
             string path = System.IO.Path.Combine(Root, relative);
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
-            File.WriteAllText(path, text);
+            File.WriteAllBytes(path, content);
             return path;
         }
 
@@ -109,11 +104,66 @@ namespace CommandCenter.Tests
         }
     }
 
-    // Runs a test in Arabic and puts English back afterwards
-    internal sealed class Arabic : IDisposable
+    // A game text table (generals.csf) written byte by byte without CsfFile, so a table that CsfFile produces can be
+    // compared with one made independently: the header, then each label with one string, its UTF-16 text inverted
+    internal static class CsfTables
     {
-        public Arabic() => Loc.Init("ar");
+        public static byte[] Of(params (string Label, string Text)[] labels)
+        {
+            using var stream = new MemoryStream();
+            using var w = new BinaryWriter(stream);
+            w.Write(System.Text.Encoding.ASCII.GetBytes(" FSC"));
+            w.Write(3);
+            w.Write(labels.Length);
+            w.Write(labels.Length);
+            w.Write(0);
+            w.Write(0);
+            foreach (var (label, text) in labels)
+            {
+                w.Write(System.Text.Encoding.ASCII.GetBytes(" LBL"));
+                w.Write(1);
+                w.Write(label.Length);
+                w.Write(System.Text.Encoding.ASCII.GetBytes(label));
+                w.Write(System.Text.Encoding.ASCII.GetBytes(" RTS"));
+                w.Write(text.Length);
+                w.Write(System.Text.Encoding.Unicode.GetBytes(text).Select(b => (byte)~b).ToArray());
+            }
+            w.Flush();
+            return stream.ToArray();
+        }
+    }
 
-        public void Dispose() => Loc.Init("en");
+    // A game archive (.big) holding these files, in the format GameFiles reads: "BIGF", the archive size
+    // (little-endian), the file count and the offset of the first file (big-endian), then each file's offset and size
+    // (big-endian) and zero-terminated name, then the files themselves
+    internal static class BigArchives
+    {
+        public static void Write(string path, params (string Name, byte[] Data)[] files)
+        {
+            int indexSize = 16 + files.Sum(f => 8 + f.Name.Length + 1);
+            using var stream = new MemoryStream();
+            using var w = new BinaryWriter(stream);
+            w.Write(System.Text.Encoding.ASCII.GetBytes("BIGF"));
+            w.Write(indexSize + files.Sum(f => f.Data.Length));
+            BigEndian(w, files.Length);
+            BigEndian(w, indexSize);
+            int offset = indexSize;
+            foreach (var (name, data) in files)
+            {
+                BigEndian(w, offset);
+                BigEndian(w, data.Length);
+                w.Write(System.Text.Encoding.ASCII.GetBytes(name));
+                w.Write((byte)0);
+                offset += data.Length;
+            }
+            foreach (var (_, data) in files)
+                w.Write(data);
+            w.Flush();
+            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
+            File.WriteAllBytes(path, stream.ToArray());
+        }
+
+        private static void BigEndian(BinaryWriter w, int value) =>
+            w.Write(new[] { (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value });
     }
 }

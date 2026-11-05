@@ -1,7 +1,5 @@
-using System.Windows;
 using System.Windows.Input;
 using CommandCenter.Input;
-using CommandCenter.Localization;
 
 namespace CommandCenter.Tests
 {
@@ -26,20 +24,6 @@ namespace CommandCenter.Tests
             MapLibraryClient.SourceOverride = null;
             MapLibraryClient.LibraryFolder = null;
         }
-    }
-
-    public class ArialWidthTests
-    {
-        // Arial has 2048 units per em, "A" is 1366 of them wide and a space 569. Latin text counts at 9/10 of that.
-        [Fact]
-        public void Latin_letters_count_at_nine_tenths_of_their_arial_width()
-        {
-            Assert.Equal(1366 / 2048.0 * 0.9, ArabicShaping.Width("A"), 9);
-            Assert.Equal((1366 + 569) / 2048.0 * 0.9, ArabicShaping.Width("A "), 9);
-        }
-
-        [Fact]
-        public void A_character_arial_lacks_counts_as_half_an_em() => Assert.Equal(0.5, ArabicShaping.Width("\uE000"), 9);
     }
 
     public class GameKeyNameTests
@@ -120,26 +104,6 @@ namespace CommandCenter.Tests
             AppServices.Configure(["CommandCenter.exe"]);
             GoProfile.Reset();
             _game.Dispose();
-        }
-    }
-
-    public class LanguageLayoutTests
-    {
-        [Fact]
-        public void English_reads_left_to_right()
-        {
-            Assert.Equal(FlowDirection.LeftToRight, LocUi.FlowDirection);
-            Assert.Equal(TextAlignment.Left, LocUi.StartAlignment);
-            Assert.Equal(MessageBoxOptions.None, LocUi.MessageBoxOptions);
-        }
-
-        [Fact]
-        public void Arabic_reads_right_to_left()
-        {
-            using var arabic = new Arabic();
-            Assert.Equal(FlowDirection.RightToLeft, LocUi.FlowDirection);
-            Assert.Equal(TextAlignment.Right, LocUi.StartAlignment);
-            Assert.Equal(MessageBoxOptions.RtlReading | MessageBoxOptions.RightAlign, LocUi.MessageBoxOptions);
         }
     }
 }

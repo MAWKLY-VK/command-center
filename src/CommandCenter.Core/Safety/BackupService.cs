@@ -88,7 +88,7 @@ namespace CommandCenter.Core.Safety
             bool readByGame = string.Equals(full, Path.GetFullPath(GamePaths.Options), StringComparison.OrdinalIgnoreCase)
                 || string.Equals(full, Path.GetFullPath(GamePaths.GoSettings), StringComparison.OrdinalIgnoreCase);
             if ((inGame || readByGame) && GameLauncher.IsGameRunning())
-                throw new InvalidOperationException(Loc.T(GameRunningMessage));
+                throw new InvalidOperationException(GameRunningMessage);
         }
 
         public static BackupEntry WriteFile(string title, string target, byte[] content, string detail = "") =>

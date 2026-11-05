@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Automation;
@@ -38,7 +39,7 @@ namespace CommandCenter.Pages.Tools
 
         public ReplayEntry Entry { get; }
 
-        public string Map => _map.Length > 0 ? Loc.Ltr(_map) : Loc.T("Unknown map");
+        public string Map => _map.Length > 0 ? _map : "Unknown map";
 
         // Replays keep the map path in lower case: an installed map takes its folder's name, a map that comes
         // with the game gets capitals ("tournament desert" becomes "Tournament Desert")
@@ -59,17 +60,17 @@ namespace CommandCenter.Pages.Tools
             {
                 string mode = ModeText(Entry.Mode);
                 if (Entry.IsLastMatch)
-                    return mode + " · " + Loc.T("last match, not kept yet");
-                return Entry.IsArchived ? mode + " · " + Loc.T("archived") : mode;
+                    return mode + " · last match, not kept yet";
+                return Entry.IsArchived ? mode + " · archived" : mode;
             }
         }
 
         public Brush SubBrush => Entry.IsLastMatch ? Views.Warning : Views.Hint;
         public string Day => Views.Day(Entry.Start);
         public string Time => Entry.Start.ToString("HH:mm");
-        public string Length => Loc.Ltr(Views.Length(Entry.Length));
+        public string Length => Views.Length(Entry.Length);
 
-        public string PlayersTip => string.Join("\n", Entry.Players.Select(p => $"{PlayerName(p)} · {Army(p)}"));
+        public string PlayersTip => string.Join("\n", Entry.Players.Select(p => $"{p.Name} · {Army(p)}"));
 
         public IReadOnlyList<PlayerChip> Chips
         {
@@ -131,12 +132,12 @@ namespace CommandCenter.Pages.Tools
                     return "";
                 switch (ResultOf(_results.Recorder)?.Result)
                 {
-                    case MatchResult.Won: return Loc.T("Won");
-                    case MatchResult.Lost: return Loc.T("Lost");
+                    case MatchResult.Won: return "Won";
+                    case MatchResult.Lost: return "Lost";
                 }
                 var winners = Entry.Players.Where((p, i) => ResultOf(i)?.Result == MatchResult.Won).ToList();
                 if (winners.Count > 0)
-                    return Loc.T("{0} won", PlayerName(winners[0]) + (winners.Count > 1 ? $" +{winners.Count - 1}" : ""));
+                    return string.Format("{0} won", winners[0].Name + (winners.Count > 1 ? $" +{winners.Count - 1}" : ""));
                 return "—";
             }
         }
@@ -154,7 +155,7 @@ namespace CommandCenter.Pages.Tools
 
         // The side panel: starting money and the time the match began
         public string Money => Entry.StartingCash > 0 ? $"${Entry.StartingCash:N0}" : "—";
-        public string Started => Entry.Start.ToString("HH:mm", Loc.Culture);
+        public string Started => Entry.Start.ToString("HH:mm", CultureInfo.CurrentCulture);
 
         public string? ResultTip
         {
@@ -164,10 +165,10 @@ namespace CommandCenter.Pages.Tools
                     return null;
                 var lines = Entry.Players.Select((p, i) => (p, r: ResultOf(i)))
                     .Where(x => x.r?.HasLeft == true)
-                    .Select(x => $"{PlayerName(x.p)} · {LeaveText(x.r!)}")
+                    .Select(x => $"{x.p.Name} · {LeaveText(x.r!)}")
                     .ToList();
                 if (!_results.HasWinner)
-                    lines.Add(Loc.T("A replay only shows who won when the other side surrendered or left; a defeat in the game is not recorded."));
+                    lines.Add("A replay only shows who won when the other side surrendered or left; a defeat in the game is not recorded.");
                 return string.Join("\n", lines);
             }
         }
@@ -182,7 +183,7 @@ namespace CommandCenter.Pages.Tools
             foreach (var side in Sides(Entry))
             {
                 foreach (var (p, _) in side)
-                    chips.Add(new PlayerChip(PlayerName(p), Views.PlayerBrush(p.Color), art ? Emblem(p) : null, number));
+                    chips.Add(new PlayerChip(p.Name, Views.PlayerBrush(p.Color), art ? Emblem(p) : null, number));
                 number++;
             }
             return chips;
@@ -198,37 +199,35 @@ namespace CommandCenter.Pages.Tools
         public static BitmapSource? Emblem(ReplayPlayer player) =>
             FactionArt.Emblem(player.Faction, player.General, Views.PlayerBrush(player.Color) is SolidColorBrush b ? b.Color : Colors.White);
 
-        public static string PlayerName(ReplayPlayer player) => player.IsHuman ? Loc.Ltr(player.Name) : Loc.T(player.Name);
-
         public static string Army(ReplayPlayer player) => player.Faction switch
         {
-            Faction.Random => Loc.T("Random"),
-            Faction.Observer => Loc.T("Observer"),
-            _ when player.FactionName.Length == 0 => Loc.T(player.General),
-            _ => player.General.Length > 0 ? Loc.T(player.FactionName) + " · " + Loc.T(player.General) : Loc.T(player.FactionName),
+            Faction.Random => "Random",
+            Faction.Observer => "Observer",
+            _ when player.FactionName.Length == 0 => player.General,
+            _ => player.General.Length > 0 ? player.FactionName + " · " + player.General : player.FactionName,
         };
 
         public static string LeaveText(ReplayPlayerResult result)
         {
             if (!result.HasLeft)
                 return "";
-            string at = result.LeftAt is { } time ? Loc.Ltr(ReplayPlayerResult.Clock(time)) : "";
+            string at = result.LeftAt is { } time ? ReplayPlayerResult.Clock(time) : "";
             return result.Leave switch
             {
-                LeaveKind.Surrendered => at.Length > 0 ? Loc.T("Surrendered at {0}", at) : Loc.T("Surrendered"),
-                LeaveKind.Left => at.Length > 0 ? Loc.T("Left at {0}", at) : Loc.T("Left the game"),
-                LeaveKind.Disconnected => at.Length > 0 ? Loc.T("Disconnected at {0}", at) : Loc.T("Disconnected"),
-                _ => at.Length > 0 ? Loc.T("Left or surrendered at {0}", at) : Loc.T("Left or surrendered"),
+                LeaveKind.Surrendered => at.Length > 0 ? string.Format("Surrendered at {0}", at) : "Surrendered",
+                LeaveKind.Left => at.Length > 0 ? string.Format("Left at {0}", at) : "Left the game",
+                LeaveKind.Disconnected => at.Length > 0 ? string.Format("Disconnected at {0}", at) : "Disconnected",
+                _ => at.Length > 0 ? string.Format("Left or surrendered at {0}", at) : "Left or surrendered",
             };
         }
 
         public static string ModeText(string mode)
         {
             if (mode == "Skirmish" || mode == "Solo")
-                return Loc.T(mode);
+                return mode;
             if (mode.StartsWith("FFA ", StringComparison.Ordinal))
-                return Loc.T("FFA {0}", mode[4..]);
-            return Loc.Ltr(mode);
+                return string.Format("FFA {0}", mode[4..]);
+            return mode;
         }
 
         private void Raise(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
@@ -364,13 +363,13 @@ namespace CommandCenter.Pages.Tools
             Empty.Visibility = _view.IsEmpty ? Visibility.Visible : Visibility.Collapsed;
             if (_rows.Count == 0)
             {
-                EmptyTitle.Text = _listed ? Loc.T("No replays yet") : Loc.T("Loading…");
-                EmptyText.Text = _listed ? Loc.T("Play a match and it appears here.") : "";
+                EmptyTitle.Text = _listed ? "No replays yet" : "Loading…";
+                EmptyText.Text = _listed ? "Play a match and it appears here." : "";
             }
             else
             {
-                EmptyTitle.Text = Loc.T("Nothing matches");
-                EmptyText.Text = Loc.T("Try another map or player name.");
+                EmptyTitle.Text = "Nothing matches";
+                EmptyText.Text = "Try another map or player name.";
             }
         }
 
@@ -380,9 +379,9 @@ namespace CommandCenter.Pages.Tools
             WatchButton.IsEnabled = row != null;
             KeepButton.Visibility = row?.Entry.IsLastMatch == true ? Visibility.Visible : Visibility.Collapsed;
             string count = _view.Count == _rows.Count
-                ? Loc.N(_rows.Count, "{0} replay", "{0} replays")
-                : Loc.T("{0} of {1} replays", _view.Count, _rows.Count);
-            Status.Text = _rows.Count == 0 ? "" : count + " · " + Loc.T("Enter watches, F2 renames, Del deletes");
+                ? English.Plural(_rows.Count, "{0} replay", "{0} replays")
+                : string.Format("{0} of {1} replays", _view.Count, _rows.Count);
+            Status.Text = _rows.Count == 0 ? "" : count + " · Enter watches, F2 renames, Del deletes";
         }
 
         // ── Details of the selected replay ──
@@ -439,9 +438,9 @@ namespace CommandCenter.Pages.Tools
                 if (teams)
                 {
                     var result = row.ResultOf(side.First().Index)?.Result;
-                    string label = side.Key >= 0 ? Loc.T("TEAM {0}", side.Key + 1) : Loc.T("ON THEIR OWN");
+                    string label = side.Key >= 0 ? string.Format("TEAM {0}", side.Key + 1) : "ON THEIR OWN";
                     if (result != null)
-                        label += " · " + (result == MatchResult.Won ? Loc.T("WON") : Loc.T("LOST"));
+                        label += " · " + (result == MatchResult.Won ? "WON" : "LOST");
                     box.Children.Add(new TextBlock
                     {
                         Text = label,
@@ -457,32 +456,32 @@ namespace CommandCenter.Pages.Tools
             }
             root.Children.Add(grid);
 
-            var observers = r.Players.Where(p => p.Faction == Faction.Observer).Select(ReplayRow.PlayerName).ToList();
+            var observers = r.Players.Where(p => p.Faction == Faction.Observer).Select(p => p.Name).ToList();
             if (observers.Count > 0)
-                root.Children.Add(Line(Loc.T("Watched by {0}", Loc.List(observers)), Views.Hint));
+                root.Children.Add(Line(string.Format("Watched by {0}", English.List(observers)), Views.Hint));
             if (r.Desync)
-                root.Children.Add(Line(Loc.T("Players fell out of sync in this match; the replay may stop early."), Views.Warning));
+                root.Children.Add(Line("Players fell out of sync in this match; the replay may stop early.", Views.Warning));
             if (r.QuitEarly)
-                root.Children.Add(Line(Loc.T("Recorded by a player who left before the end."), Views.Hint));
+                root.Children.Add(Line("Recorded by a player who left before the end.", Views.Hint));
 
             // File and match settings
             string folder = r.IsArchived ? GamePaths.ArchivedReplays : GamePaths.Replays;
-            var info = new List<string> { Loc.Ltr((r.IsArchived ? @"ArchivedReplays\" : @"Replays\") + Path.GetRelativePath(folder, r.FilePath)) };
-            info.Add(Loc.Ltr(Views.Size(r.SizeBytes)));
+            var info = new List<string> { (r.IsArchived ? @"ArchivedReplays\" : @"Replays\") + Path.GetRelativePath(folder, r.FilePath) };
+            info.Add(Views.Size(r.SizeBytes));
             if (r.Version.Length > 0)
-                info.Add(Loc.T("Version {0}", Loc.Ltr(r.Version)));
+                info.Add(string.Format("Version {0}", r.Version));
             if (r.SuperweaponsOff)
-                info.Add(Loc.T("Superweapons off"));
+                info.Add("Superweapons off");
             if (row.Recorder >= 0 && row.Recorder < r.Players.Count)
-                info.Add(Loc.T("Recorded by {0}", ReplayRow.PlayerName(r.Players[row.Recorder])));
+                info.Add(string.Format("Recorded by {0}", r.Players[row.Recorder].Name));
             var file = Line(string.Join("  ·  ", info), Views.Hint);
             file.ToolTip = r.FilePath;
             root.Children.Add(file);
 
             // Rename in place, or the file actions
             var renameBox = new TextBox { Style = (Style)FindResource("TextBoxStyle"), Width = double.NaN, Height = 32, FontSize = 12, Padding = new Thickness(6, 0, 6, 0) };
-            var save = SmallButton(Loc.T("SAVE"), null);
-            var cancel = SmallButton(Loc.T("CANCEL"), null);
+            var save = SmallButton("SAVE", null);
+            var cancel = SmallButton("CANCEL", null);
             var rename = new DockPanel { Margin = new Thickness(0, 8, 0, 2), Visibility = Visibility.Collapsed };
             DockPanel.SetDock(cancel, Dock.Right);
             DockPanel.SetDock(save, Dock.Right);
@@ -493,10 +492,10 @@ namespace CommandCenter.Pages.Tools
             rename.Children.Add(renameBox);
 
             var actions = new UniformGrid { Columns = 4, Margin = new Thickness(0, 6, 0, 2) };
-            var renameButton = IconAction("pencil", Loc.T("Rename") + " (F2)", danger: false);
-            var copyButton = IconAction("copy", Loc.T("Copies the replay so you can paste it into Discord or a folder"), danger: false);
-            var showButton = IconAction("folder", Loc.T("Show in folder"), danger: false);
-            var deleteButton = IconAction("trash", Loc.T("Moves the replay to the Recycle Bin; Undo brings it back (Del)"), danger: true);
+            var renameButton = IconAction("pencil", "Rename (F2)", danger: false);
+            var copyButton = IconAction("copy", "Copies the replay so you can paste it into Discord or a folder", danger: false);
+            var showButton = IconAction("folder", "Show in folder", danger: false);
+            var deleteButton = IconAction("trash", "Moves the replay to the Recycle Bin; Undo brings it back (Del)", danger: true);
             foreach (var button in new[] { renameButton, copyButton, showButton, deleteButton })
             {
                 button.Margin = new Thickness(0, 0, button == deleteButton ? 0 : 8, 0);
@@ -554,7 +553,7 @@ namespace CommandCenter.Pages.Tools
         {
             var line = new DockPanel();
             FrameworkElement badge = _artReady && ReplayRow.Emblem(player) is { } emblem
-                ? new Image { Source = emblem, Width = 20, Height = 20, FlowDirection = FlowDirection.LeftToRight }
+                ? new Image { Source = emblem, Width = 20, Height = 20 }
                 : new Border { Width = 10, Height = 10, Margin = new Thickness(5, 0, 5, 0), Background = Views.PlayerBrush(player.Color) };
             RenderOptions.SetBitmapScalingMode(badge, BitmapScalingMode.Fant);
             badge.VerticalAlignment = VerticalAlignment.Top;
@@ -567,12 +566,11 @@ namespace CommandCenter.Pages.Tools
             var top = new DockPanel { LastChildFill = false };
             var name = new TextBlock
             {
-                Text = ReplayRow.PlayerName(player),
+                Text = player.Name,
                 FontSize = 12,
                 FontWeight = FontWeights.SemiBold,
                 MaxWidth = 210,
                 TextTrimming = TextTrimming.CharacterEllipsis,
-                FlowDirection = FlowDirection.LeftToRight,
                 ToolTip = player.Name,
             };
             DockPanel.SetDock(name, Dock.Left);
@@ -581,7 +579,7 @@ namespace CommandCenter.Pages.Tools
             {
                 var tag = new TextBlock
                 {
-                    Text = outcome == MatchResult.Won ? Loc.T("WON") : Loc.T("LOST"),
+                    Text = outcome == MatchResult.Won ? "WON" : "LOST",
                     FontSize = 10,
                     FontWeight = FontWeights.Bold,
                     Foreground = outcome == MatchResult.Won ? Views.Passed : LostBrush,
@@ -659,17 +657,17 @@ namespace CommandCenter.Pages.Tools
                 return;
             if (GameLauncher.IsGameRunning())
             {
-                Views.Main.Toast(Loc.T("Close the game first, then watch the replay."), isError: true);
+                Views.Main.Toast("Close the game first, then watch the replay.", isError: true);
                 return;
             }
             try
             {
                 ReplayService.Watch(row.Entry);
-                Views.Main.Toast(Loc.T("Starting the replay of {0}…", row.Map));
+                Views.Main.Toast(string.Format("Starting the replay of {0}…", row.Map));
             }
             catch (Exception ex)
             {
-                Views.Main.Toast(Loc.T("Could not start the replay: {0}", ex.Message), isError: true);
+                Views.Main.Toast(string.Format("Could not start the replay: {0}", ex.Message), isError: true);
             }
         }
 
@@ -720,12 +718,12 @@ namespace CommandCenter.Pages.Tools
             {
                 string kept = ReplayService.Keep(row.Entry);
                 _selectPath = kept;
-                Views.Main.Toast(Loc.T("Kept as {0}", Loc.Ltr(Path.GetFileName(kept))));
+                Views.Main.Toast(string.Format("Kept as {0}", Path.GetFileName(kept)));
                 _ = AppState.RefreshReplaysAsync();
             }
             catch (Exception ex)
             {
-                Views.Main.Toast(Loc.T("Could not keep it: {0}", ex.Message), isError: true);
+                Views.Main.Toast(string.Format("Could not keep it: {0}", ex.Message), isError: true);
             }
         }
 
@@ -738,7 +736,7 @@ namespace CommandCenter.Pages.Tools
             {
                 string renamed = ReplayService.Rename(row.Entry, name);
                 _selectPath = renamed;
-                Views.Main.Toast(Loc.T("Renamed to {0}", Loc.Ltr(Path.GetFileName(renamed))), () =>
+                Views.Main.Toast(string.Format("Renamed to {0}", Path.GetFileName(renamed)), () =>
                 {
                     try
                     {
@@ -756,7 +754,7 @@ namespace CommandCenter.Pages.Tools
             }
             catch (Exception ex)
             {
-                Views.Main.Toast(Loc.T("Could not rename it: {0}", ex.Message), isError: true);
+                Views.Main.Toast(string.Format("Could not rename it: {0}", ex.Message), isError: true);
                 return false;
             }
         }
@@ -766,11 +764,11 @@ namespace CommandCenter.Pages.Tools
             try
             {
                 Clipboard.SetFileDropList(new StringCollection { row.Entry.FilePath });
-                Views.Main.Toast(Loc.T("Replay copied. Paste it into Discord or a folder."));
+                Views.Main.Toast("Replay copied. Paste it into Discord or a folder.");
             }
             catch (Exception ex)
             {
-                Views.Main.Toast(Loc.T("Could not copy: {0}", ex.Message), isError: true);
+                Views.Main.Toast(string.Format("Could not copy: {0}", ex.Message), isError: true);
             }
         }
 
@@ -780,20 +778,20 @@ namespace CommandCenter.Pages.Tools
             var undo = RecycleUndo.Recycle(new[] { row.Entry.FilePath }, out var removed, out var failed);
             if (removed.Count == 0)
             {
-                Views.Main.Toast(Loc.T("Could not delete: {0}", string.Join("; ", failed)), isError: true);
+                Views.Main.Toast(string.Format("Could not delete: {0}", string.Join("; ", failed)), isError: true);
                 return;
             }
-            Views.Main.Toast(Loc.T("Moved {0} to the Recycle Bin.", Loc.Ltr(row.Entry.FileName)), () =>
+            Views.Main.Toast(string.Format("Moved {0} to the Recycle Bin.", row.Entry.FileName), () =>
             {
                 try
                 {
                     undo();
                     _selectPath = row.Entry.FilePath;
-                    Views.Main.Toast(Loc.T("Change undone"));
+                    Views.Main.Toast("Change undone");
                 }
                 catch (Exception ex)
                 {
-                    Views.Main.Toast(Loc.T("Could not put it back: {0}", ex.Message), isError: true);
+                    Views.Main.Toast(string.Format("Could not put it back: {0}", ex.Message), isError: true);
                 }
                 _ = AppState.RefreshReplaysAsync();
             });
@@ -813,7 +811,7 @@ namespace CommandCenter.Pages.Tools
             try
             {
                 ReplayService.SetArchive(on);
-                Views.Main.Toast(on ? Loc.T("Every match is now archived by the game.") : Loc.T("Match archive turned off."), () =>
+                Views.Main.Toast(on ? "Every match is now archived by the game." : "Match archive turned off.", () =>
                 {
                     try
                     {
@@ -822,14 +820,14 @@ namespace CommandCenter.Pages.Tools
                     }
                     catch (Exception ex)
                     {
-                        Views.Main.Toast(Loc.T("Could not change Options.ini: {0}", ex.Message), isError: true);
+                        Views.Main.Toast(string.Format("Could not change Options.ini: {0}", ex.Message), isError: true);
                     }
                 });
             }
             catch (Exception ex)
             {
                 Archive.IsChecked = !on;
-                Views.Main.Toast(Loc.T("Could not change Options.ini: {0}", ex.Message), isError: true);
+                Views.Main.Toast(string.Format("Could not change Options.ini: {0}", ex.Message), isError: true);
             }
         }
     }

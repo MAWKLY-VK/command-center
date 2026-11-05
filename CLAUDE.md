@@ -23,7 +23,8 @@ dotnet build tools/MapLibraryBuilder/MapLibraryBuilder.csproj -c Release
 
 - The tests run in a 32-bit test host (`PlatformTarget x86`), so they need the x86 .NET 10 runtime. CI installs it
   (`.github/workflows/build.yml`); on this PC it is already installed. Baseline at 0.4.0: 93 tests, all passing.
-- Test parallelization is off (`tests/CommandCenter.Tests/TestSetup.cs`) because the language (`Loc`) is global state.
+- Test parallelization is off (`tests/CommandCenter.Tests/TestSetup.cs`) because the game paths and the run options are
+  global state.
 - `tools/MapLibraryBuilder` is not in the solution but references the App, so build it after any change to the
   services or the imaging code.
 - Before/after screenshots: `tools\Capture-Pages.ps1 -Exe <exe> -Game <game copy> -Out <new folder>`, then
@@ -48,18 +49,17 @@ CommandCenter.exe --game <copy of Desktop\Test_Generals> --user-data <temp folde
   the window. `tools:health:questions` opens a tab, and `options:network:run` runs the network diagnostics first.
 - `--samples` adds fake health problems so their layouts can be reviewed. Their fixes do nothing.
 - `--update-url <url|file>` and `--go-profile <file>` read the update manifest and GO profile from a local file.
-- Also available: `--library-folder` and `--map-library` (map library source), `--drawn-backdrop`, and `--lang ar|en`.
-  `--lang` is removed in phase 2.
+- Also available: `--library-folder` and `--map-library` (map library source) and `--drawn-backdrop`. An old `--lang` is
+  ignored.
 
 ## Architecture (phase 1 layout)
 
 - `src/CommandCenter.Core` holds the services, with no WPF and no desktop framework, one folder and namespace per area:
-  `Content`, `Game`, `Imaging`, `Integrity`, `Net`, `Safety`, `Settings`, `Updates`, plus `Localization`, which phase
-  2 removes. The projects import these namespaces globally. Core's internals are visible to the App and the tests.
+  `Content`, `Diagnostics`, `Game`, `Imaging`, `Integrity`, `Net`, `Safety`, `Settings`, `Text` and `Updates`. The
+  projects import these namespaces globally. Core's internals are visible to the App and the tests.
 - `src/CommandCenter.App` is the WPF program. Its assembly name stays `CommandCenter`, so the file stays
   `CommandCenter.exe`; `<Version>` in its project file is the program's version. `AppServices` applies the run options
-  at startup. `Imaging/` turns decoded pixels into bitmaps and draws on them, `Localization/` holds the WPF parts of
-  Loc (`LocUi`, `{l:T}`), and `Input/` maps keys.
+  at startup. `Imaging/` turns decoded pixels into bitmaps and draws on them, and `Input/` maps keys.
 - `tests/CommandCenter.Tests` (xUnit) references both. `tools/MapLibraryBuilder` builds the online map catalog and is
   not in the solution.
 - There is no MVVM yet. Pages are large code-behind files. `MainWindow` hosts a Frame with Home (`LauncherPage`),
@@ -89,8 +89,9 @@ CommandCenter.exe --game <copy of Desktop\Test_Generals> --user-data <temp folde
   - `UpdateService` reads `update.json` from the latest GitHub release and replaces the exe. Older copies must update
     before they run again, so every release reaches every user. It takes the current version from the entry assembly
     (`CommandCenter.exe`), never from Core's own assembly.
-  - `Loc`, `LocText`, `{l:T}`, `Localization/ar.json`, `ArabicShaping` and `ArabicGameText` provide the Arabic UI and
-    the Arabic game text. Phase 2 removes them with a mandatory migration (see the ADRs).
+  - The program is in English only; texts are written in English where they are shown. `English` (Core `Text/`) words
+    counts and lists. `ArabicGameTextRemoval` takes 0.4.0's Arabic game text out once, at the first start (ADR 0005),
+    with a notice in Arabic and English (the only Arabic left) and Undo; Health warns while any is left.
 - Colours are hard-coded in `Pages/Views.cs`, `Theme/GoStyles.xaml` and the code-behind. The token design system
   replaces them in phase 5.
 

@@ -59,7 +59,7 @@ namespace CommandCenter.Pages.Tools
             for (int i = 0; i < players.Count; i++)
             {
                 if (i > 0 && versus && players[i].Side != players[i - 1].Side)
-                    Add(new TextBlock { Text = Loc.T("vs"), FontSize = 11, Foreground = Views.Hint, VerticalAlignment = VerticalAlignment.Center });
+                    Add(new TextBlock { Text = "vs", FontSize = 11, Foreground = Views.Hint, VerticalAlignment = VerticalAlignment.Center });
                 var chip = Chip(players[i]);
                 Add(chip);
                 _chips.Add(chip);
@@ -80,7 +80,7 @@ namespace CommandCenter.Pages.Tools
             FrameworkElement badge;
             if (player.Emblem != null)
             {
-                badge = new Image { Source = player.Emblem, Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0), FlowDirection = FlowDirection.LeftToRight };
+                badge = new Image { Source = player.Emblem, Width = 16, Height = 16, Margin = new Thickness(0, 0, 5, 0) };
                 RenderOptions.SetBitmapScalingMode(badge, BitmapScalingMode.Fant);
             }
             else
@@ -96,7 +96,6 @@ namespace CommandCenter.Pages.Tools
                 Foreground = Views.Brush("#D0D0E8"),
                 MaxWidth = NameWidth,
                 TextTrimming = TextTrimming.CharacterEllipsis,
-                FlowDirection = FlowDirection.LeftToRight,
                 VerticalAlignment = VerticalAlignment.Center,
             });
             return panel;

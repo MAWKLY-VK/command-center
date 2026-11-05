@@ -7,7 +7,7 @@ namespace CommandCenter.Pages.Tools
 
     // What new players ask most in the Generals Online help channels, with the answer and the place that fixes it.
     // Each answer rests on Generals Online's own settings and messages or on what its helpers advise; the checks cover
-    // the rest. Written in English and translated where shown.
+    // the rest.
     public static class CommonQuestions
     {
         public static IReadOnlyList<Question> All(Action runChecks)

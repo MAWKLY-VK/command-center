@@ -1,7 +1,6 @@
 <UserControl x:Class="CommandCenter.Pages.Tools.AddonsSection"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:l="clr-namespace:CommandCenter.Localization">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <UserControl.Resources>
         <!-- One control bar to choose: flat box, blue when chosen like the sidebar tabs -->
         <Style x:Key="BarChoiceStyle" TargetType="RadioButton">
@@ -70,16 +69,16 @@
         </Grid.RowDefinitions>
 
         <DockPanel Grid.Row="0" LastChildFill="False">
-            <TextBlock Text="{l:T ADD-ONS}" Style="{StaticResource SectionHeaderStyle}" DockPanel.Dock="Left"/>
+            <TextBlock Text="ADD-ONS" Style="{StaticResource SectionHeaderStyle}" DockPanel.Dock="Left"/>
         </DockPanel>
 
-        <TextBlock Grid.Row="1" Text="{l:T CONTROL BAR}" Style="{StaticResource GroupLabelStyle}" Margin="0,12,0,8"/>
+        <TextBlock Grid.Row="1" Text="CONTROL BAR" Style="{StaticResource GroupLabelStyle}" Margin="0,12,0,8"/>
 
         <!-- Control bar -->
         <ScrollViewer x:Name="BarsView" Grid.Row="2" VerticalScrollBarVisibility="Auto" Focusable="False">
             <StackPanel x:Name="BarsPanel" Margin="0,0,8,0" SizeChanged="BarsPanel_SizeChanged">
                 <Border BorderBrush="#26FFFFFF" BorderThickness="1" CornerRadius="13" HorizontalAlignment="Center">
-                    <Grid x:Name="CompareBox" ClipToBounds="True" Cursor="SizeWE" Background="Black" FlowDirection="LeftToRight"
+                    <Grid x:Name="CompareBox" ClipToBounds="True" Cursor="SizeWE" Background="Black"
                           Height="120" MouseLeftButtonDown="Compare_Down" MouseMove="Compare_Move" MouseLeftButtonUp="Compare_Up"
                           LostMouseCapture="Compare_LostCapture" SizeChanged="Compare_SizeChanged">
                         <Image x:Name="Before" Stretch="Fill"/>
@@ -103,7 +102,7 @@
                     <DockPanel>
                         <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Fill="#FFB020" VerticalAlignment="Top" Margin="0,5,10,0"/>
                         <StackPanel>
-                            <TextBlock x:Name="OtherTitle" Text="{l:T Another control bar is installed}" FontSize="12" FontWeight="SemiBold"/>
+                            <TextBlock x:Name="OtherTitle" Text="Another control bar is installed" FontSize="12" FontWeight="SemiBold"/>
                             <TextBlock x:Name="OtherDetail" FontSize="11.5" Foreground="#BCC2D8" TextWrapping="Wrap" Margin="0,2,0,0"/>
                         </StackPanel>
                     </DockPanel>
@@ -118,28 +117,26 @@
                     <RadioButton x:Name="ChoiceOriginal" Grid.Column="0" Style="{StaticResource BarChoiceStyle}" Checked="Choice_Checked">
                         <StackPanel>
                             <DockPanel>
-                                <TextBlock x:Name="OriginalInstalled" DockPanel.Dock="Right" Text="{l:T INSTALLED}" Style="{StaticResource InstalledMark}"/>
-                                <TextBlock Text="{l:T Original}" Style="{StaticResource ChoiceTitle}" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock x:Name="OriginalInstalled" DockPanel.Dock="Right" Text="INSTALLED" Style="{StaticResource InstalledMark}"/>
+                                <TextBlock Text="Original" Style="{StaticResource ChoiceTitle}" TextTrimming="CharacterEllipsis"/>
                             </DockPanel>
-                            <TextBlock Style="{StaticResource ChoiceText}">
-                                <TextBlock.Text><l:T Text="The game's own control bar"/></TextBlock.Text>
-                            </TextBlock>
+                            <TextBlock Style="{StaticResource ChoiceText}" Text="The game's own control bar"/>
                         </StackPanel>
                     </RadioButton>
                     <RadioButton x:Name="ChoicePro" Grid.Column="2" Style="{StaticResource BarChoiceStyle}" Checked="Choice_Checked">
                         <StackPanel>
                             <DockPanel>
-                                <TextBlock x:Name="ProInstalled" DockPanel.Dock="Right" Text="{l:T INSTALLED}" Style="{StaticResource InstalledMark}"/>
+                                <TextBlock x:Name="ProInstalled" DockPanel.Dock="Right" Text="INSTALLED" Style="{StaticResource InstalledMark}"/>
                                 <TextBlock Text="Control Bar Pro" Style="{StaticResource ChoiceTitle}" TextTrimming="CharacterEllipsis"/>
                             </DockPanel>
-                            <TextBlock Text="{l:T Larger, cleaner bar by TheSuperHackers · v1.2}" Style="{StaticResource ChoiceText}"/>
+                            <TextBlock Text="Larger, cleaner bar by TheSuperHackers · v1.2" Style="{StaticResource ChoiceText}"/>
                             <ComboBox x:Name="Resolution" Height="32" FontSize="12.5" Margin="0,10,0,0" HorizontalAlignment="Left" MinWidth="130"
-                                      SelectionChanged="Resolution_Changed" ToolTip="{l:T Pick the size that matches your game resolution}"/>
+                                      SelectionChanged="Resolution_Changed" ToolTip="Pick the size that matches your game resolution"/>
                         </StackPanel>
                     </RadioButton>
                 </Grid>
 
-                <TextBlock Text="{l:T SAFETY}" Style="{StaticResource GroupLabelStyle}" Margin="0,18,0,6"/>
+                <TextBlock Text="SAFETY" Style="{StaticResource GroupLabelStyle}" Margin="0,18,0,6"/>
                 <StackPanel x:Name="SafetyList" Margin="0,0,0,4"/>
             </StackPanel>
         </ScrollViewer>
@@ -148,9 +145,9 @@
         <Border Grid.Row="3" Margin="0,10,0,0" CornerRadius="16" Background="#DB0E142C" BorderBrush="#1FFFFFFF" BorderThickness="1"
                 Padding="18,10,10,10">
         <DockPanel x:Name="BarsFooter">
-            <Button x:Name="ApplyButton" DockPanel.Dock="Right" Content="{l:T APPLY}" Style="{StaticResource GoldButtonStyle}" Height="40" Margin="10,0,0,0"
+            <Button x:Name="ApplyButton" DockPanel.Dock="Right" Content="APPLY" Style="{StaticResource GoldButtonStyle}" Height="40" Margin="10,0,0,0"
                     MinWidth="100" Click="Apply_Click"/>
-            <Button x:Name="DiscardButton" DockPanel.Dock="Right" Content="{l:T DISCARD}" Style="{StaticResource SmallButtonStyle}" Height="40" Margin="10,0,0,0"
+            <Button x:Name="DiscardButton" DockPanel.Dock="Right" Content="DISCARD" Style="{StaticResource SmallButtonStyle}" Height="40" Margin="10,0,0,0"
                     Visibility="Collapsed" Click="Discard_Click"/>
             <StackPanel VerticalAlignment="Center">
                 <TextBlock x:Name="ChangeText" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>

@@ -12,9 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Localization\*.json" Exclude="Localization\pending-*.json" LogicalName="Localization.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Data\game-files.json" LogicalName="GameFiles.json" />
-    <EmbeddedResource Include="Data\game-text-ar.json" LogicalName="GameTextAr.json" />
   </ItemGroup>
 
   <!-- Before phase 1 the services and the pages were one assembly, so "internal" meant the whole program; the App
@@ -31,10 +29,10 @@
     <Using Include="CommandCenter.Core.Game" />
     <Using Include="CommandCenter.Core.Imaging" />
     <Using Include="CommandCenter.Core.Integrity" />
-    <Using Include="CommandCenter.Core.Localization" />
     <Using Include="CommandCenter.Core.Net" />
     <Using Include="CommandCenter.Core.Safety" />
     <Using Include="CommandCenter.Core.Settings" />
+    <Using Include="CommandCenter.Core.Text" />
     <Using Include="CommandCenter.Core.Updates" />
   </ItemGroup>
 

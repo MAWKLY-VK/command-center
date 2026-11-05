@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -7,7 +8,6 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
-using CommandCenter.Localization;
 
 namespace CommandCenter.Pages
 {
@@ -83,18 +83,18 @@ namespace CommandCenter.Pages
         {
             VersionText.Text = GamePaths.GameFound
                 ? "Generals Online " + AppState.ClientVersion()
-                : Loc.T("Generals Online is not installed");
+                : "Generals Online is not installed";
 
             string? antiCheat = AntiCheatName();
             AntiCheatChip.Visibility = antiCheat == null ? Visibility.Collapsed : Visibility.Visible;
             AntiCheatText.Text = antiCheat ?? "";
 
             if (!GamePaths.ZeroHourFound)
-                SourceText.Text = Loc.T("Game not found");
+                SourceText.Text = "Game not found";
             else
                 SourceText.Text = GamePaths.Game.Contains(@"\steamapps\", StringComparison.OrdinalIgnoreCase)
-                    ? Loc.T("Steam copy")
-                    : Loc.T("Other copy");
+                    ? "Steam copy"
+                    : "Other copy";
             SourceChip.ToolTip = GamePaths.ZeroHourFound ? GamePaths.Game : null;
         }
 
@@ -109,15 +109,15 @@ namespace CommandCenter.Pages
                 // Before the first answer it is being checked; after it, no answer means the service is out of reach
                 // (asked again every minute)
                 bool unreachable = AppState.StatsChecked;
-                ServerState.Text = unreachable ? Loc.T("Unreachable") : Loc.T("Checking…");
+                ServerState.Text = unreachable ? "Unreachable" : "Checking…";
                 ServerState.Foreground = unreachable ? Views.Brush("#FF8A8A") : Views.Hint;
                 ServerDot.Fill = unreachable ? Views.Brush("#FF5A5F") : Views.Hint;
                 return;
             }
             Count(PlayersText, stats.Players);
-            LobbiesText.Text = stats.Lobbies.ToString("N0", Loc.Culture);
+            LobbiesText.Text = stats.Lobbies.ToString("N0", CultureInfo.CurrentCulture);
             PingText.Text = stats.LatencyMs > 0 ? stats.LatencyMs + " ms" : "—";
-            ServerState.Text = Loc.T("Online");
+            ServerState.Text = "Online";
             ServerState.Foreground = Views.Brush("#7BE39A");
             ServerDot.Fill = Views.Brush("#52D273");
         }
@@ -125,10 +125,10 @@ namespace CommandCenter.Pages
         // Counts up to the number the first time it shows
         private void Count(TextBlock box, int to)
         {
-            int.TryParse(box.Text, System.Globalization.NumberStyles.AllowThousands, Loc.Culture, out int from);
+            int.TryParse(box.Text, NumberStyles.AllowThousands, CultureInfo.CurrentCulture, out int from);
             if (_still || from == to)
             {
-                box.Text = to.ToString("N0", Loc.Culture);
+                box.Text = to.ToString("N0", CultureInfo.CurrentCulture);
                 return;
             }
             var start = DateTime.Now;
@@ -137,7 +137,7 @@ namespace CommandCenter.Pages
             {
                 double t = Math.Min(1, (DateTime.Now - start).TotalMilliseconds / 900);
                 double eased = 1 - Math.Pow(1 - t, 3);
-                box.Text = ((int)Math.Round(from + (to - from) * eased)).ToString("N0", Loc.Culture);
+                box.Text = ((int)Math.Round(from + (to - from) * eased)).ToString("N0", CultureInfo.CurrentCulture);
                 if (t >= 1)
                     timer.Stop();
             };
@@ -159,17 +159,17 @@ namespace CommandCenter.Pages
             {
                 color = "#52D273";
                 HealthIcon.Kind = "check-circle";
-                HealthText.Text = Loc.T("Your game passed every check");
+                HealthText.Text = "Your game passed every check";
                 HealthReview.Visibility = Visibility.Collapsed;
             }
             else
             {
                 color = problems > 0 ? "#FF5A5F" : "#FFAA00";
                 var parts = new List<string>();
-                if (problems > 0) parts.Add(Loc.N(problems, "{0} problem", "{0} problems"));
-                if (warnings > 0) parts.Add(Loc.N(warnings, "{0} warning", "{0} warnings"));
+                if (problems > 0) parts.Add(English.Plural(problems, "{0} problem", "{0} problems"));
+                if (warnings > 0) parts.Add(English.Plural(warnings, "{0} warning", "{0} warnings"));
                 HealthIcon.Kind = "alert";
-                HealthText.Text = Loc.T("{0} found with your game", Loc.List(parts));
+                HealthText.Text = string.Format("{0} found with your game", English.List(parts));
                 HealthReview.Visibility = Visibility.Visible;
             }
             var brush = Views.Brush(color);
@@ -188,15 +188,15 @@ namespace CommandCenter.Pages
             if (_lastMatch == null)
             {
                 LastMatchCard.Visibility = Visibility.Collapsed;
-                ReplaysTileText.Text = Loc.T("No replays yet");
+                ReplaysTileText.Text = "No replays yet";
                 return;
             }
-            ReplaysTileText.Text = Loc.N(AppState.Replays.Count, "{0} replay", "{0} replays");
+            ReplaysTileText.Text = English.Plural(AppState.Replays.Count, "{0} replay", "{0} replays");
 
             var match = _lastMatch;
             string map = Tools.ReplayRow.MapName(match, MapCatalog.InstalledFolders());
-            LastMatchName.Text = map.Length > 0 ? map : Loc.T("Unknown map");
-            LastMatchInfo.Text = Loc.Join(new[] { Views.Day(match.Start), Loc.Ltr(Views.Length(match.Length)), Tools.ReplayRow.ModeText(match.Mode) });
+            LastMatchName.Text = map.Length > 0 ? map : "Unknown map";
+            LastMatchInfo.Text = string.Join(", ", new[] { Views.Day(match.Start), Views.Length(match.Length), Tools.ReplayRow.ModeText(match.Mode) });
             LastMatchMap.ImageSource = Views.MapPreview(match.MapPath, match.Map);
             LastResultChip.Visibility = Visibility.Collapsed;
             LastMatchCard.Visibility = Visibility.Visible;
@@ -210,7 +210,7 @@ namespace CommandCenter.Pages
                     return;
                 bool won = result == MatchResult.Won;
                 var brush = Views.Brush(won ? "#52D273" : "#FF5A5F");
-                LastResult.Text = won ? Loc.T("WON") : Loc.T("LOST");
+                LastResult.Text = won ? "WON" : "LOST";
                 LastResult.Foreground = brush;
                 LastResultChip.Background = new SolidColorBrush(Color.FromArgb(0x26, brush.Color.R, brush.Color.G, brush.Color.B));
                 LastResultChip.Visibility = Visibility.Visible;
@@ -223,20 +223,9 @@ namespace CommandCenter.Pages
             BarTileText.Text = kind switch
             {
                 BarKind.Pro => "Control Bar Pro" + (resolution != null ? " " + resolution : ""),
-                BarKind.Other => Loc.T("Another control bar"),
-                _ => Loc.T("Original control bar"),
+                BarKind.Other => "Another control bar",
+                _ => "Original control bar",
             };
-            // The Pro bar's English name keeps its reading order and is shortened at its own end
-            if (kind == BarKind.Pro)
-            {
-                BarTileText.FlowDirection = FlowDirection.LeftToRight;
-                BarTileText.TextAlignment = LocUi.StartAlignment;
-            }
-            else
-            {
-                BarTileText.ClearValue(FlowDirectionProperty);
-                BarTileText.ClearValue(TextBlock.TextAlignmentProperty);
-            }
 
             int maps = await Task.Run(() =>
             {
@@ -251,7 +240,7 @@ namespace CommandCenter.Pages
                     return 0;
                 }
             });
-            MapsTileText.Text = maps == 0 ? Loc.T("Browse and install maps") : Loc.N(maps, "{0} map installed", "{0} maps installed");
+            MapsTileText.Text = maps == 0 ? "Browse and install maps" : English.Plural(maps, "{0} map installed", "{0} maps installed");
         }
 
         // The display name of the anti-cheat plugin selected in settings.json, read from the plugin's own JSON file
@@ -291,7 +280,7 @@ namespace CommandCenter.Pages
             }
             catch (Exception ex)
             {
-                Views.Main.Toast(Loc.T("Could not save: {0}", ex.Message), isError: true);
+                Views.Main.Toast(string.Format("Could not save: {0}", ex.Message), isError: true);
             }
         }
 
@@ -323,8 +312,8 @@ namespace CommandCenter.Pages
                 return;
             if (!GamePaths.GameFound)
             {
-                var answer = MessageBox.Show(Loc.T("Generals Online is not installed in the game folder:\n{0}\n\nInstall it, then press Play again. Open the Generals Online download page?", GamePaths.Game),
-                    "Command Center", MessageBoxButton.YesNo, MessageBoxImage.Information, MessageBoxResult.Yes, LocUi.MessageBoxOptions);
+                var answer = MessageBox.Show(string.Format("Generals Online is not installed in the game folder:\n{0}\n\nInstall it, then press Play again. Open the Generals Online download page?", GamePaths.Game),
+                    "Command Center", MessageBoxButton.YesNo, MessageBoxImage.Information, MessageBoxResult.Yes);
                 if (answer == MessageBoxResult.Yes)
                     Views.Open(HealthService.DownloadPage);
                 return;
@@ -332,16 +321,15 @@ namespace CommandCenter.Pages
             if (GameLauncher.IsGameRunning())
             {
                 ShowGameState(true);
-                MessageBox.Show(Loc.T("The game is already running."), "Command Center",
-                    MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, LocUi.MessageBoxOptions);
+                MessageBox.Show("The game is already running.", "Command Center",
+                    MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK);
                 return;
             }
 
             var channel = ClientSelectorPanel.Visibility == Visibility.Visible && rbTestEnv.IsChecked == true ? Channel.Test : Channel.Live;
             if (!GameLauncher.CanStart(channel))
             {
-                OfferOfficialLauncher(Loc.T("{0} is not in the game folder, so Command Center cannot start this version of Generals Online.",
-                    Loc.Ltr(GameLauncher.ExecutableFor(channel))));
+                OfferOfficialLauncher(string.Format("{0} is not in the game folder, so Command Center cannot start this version of Generals Online.", GameLauncher.ExecutableFor(channel)));
                 return;
             }
 
@@ -373,8 +361,8 @@ namespace CommandCenter.Pages
             {
                 if (minimized)
                     window.WindowState = WindowState.Normal;
-                MessageBox.Show(Loc.T("Failed to launch the game: {0}", ex.Message), "Command Center",
-                    MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK, LocUi.MessageBoxOptions);
+                MessageBox.Show(string.Format("Failed to launch the game: {0}", ex.Message), "Command Center",
+                    MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
             }
             finally
             {
@@ -383,7 +371,7 @@ namespace CommandCenter.Pages
             }
 
             if (!started)
-                OfferOfficialLauncher(Loc.T("The game did not start. What happened is written in {0} in Command Center's folder.", Loc.Ltr("play.log")));
+                OfferOfficialLauncher("The game did not start. What happened is written in play.log in Command Center's folder.");
         }
 
         // When Play cannot start the game, the official launcher, which knows its own programs, is offered instead
@@ -391,13 +379,13 @@ namespace CommandCenter.Pages
         {
             if (!GameLauncher.HasOfficialLauncher)
             {
-                if (MessageBox.Show(reason + "\n\n" + Loc.T("Open the Generals Online download page?"), "Command Center",
-                        MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.Yes, LocUi.MessageBoxOptions) == MessageBoxResult.Yes)
+                if (MessageBox.Show(reason + "\n\nOpen the Generals Online download page?", "Command Center",
+                        MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.Yes) == MessageBoxResult.Yes)
                     Views.Open(HealthService.DownloadPage);
                 return;
             }
-            if (MessageBox.Show(reason + "\n\n" + Loc.T("Start the official Generals Online launcher instead?"), "Command Center",
-                    MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.Yes, LocUi.MessageBoxOptions) != MessageBoxResult.Yes)
+            if (MessageBox.Show(reason + "\n\nStart the official Generals Online launcher instead?", "Command Center",
+                    MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.Yes) != MessageBoxResult.Yes)
                 return;
             try
             {
@@ -405,16 +393,16 @@ namespace CommandCenter.Pages
             }
             catch (Exception ex)
             {
-                MessageBox.Show(Loc.T("Failed to launch the game: {0}", ex.Message), "Command Center",
-                    MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK, LocUi.MessageBoxOptions);
+                MessageBox.Show(string.Format("Failed to launch the game: {0}", ex.Message), "Command Center",
+                    MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
             }
         }
 
         // Zero Hour was not found by itself: the player picks its folder, which is remembered
         private bool LocateGame()
         {
-            var answer = MessageBox.Show(Loc.T("Command & Conquer Generals - Zero Hour was not found. Choose its folder now?\n\nChoose No to see where to get the game."), "Command Center",
-                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes, LocUi.MessageBoxOptions);
+            var answer = MessageBox.Show("Command & Conquer Generals - Zero Hour was not found. Choose its folder now?\n\nChoose No to see where to get the game.", "Command Center",
+                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes);
             if (answer == MessageBoxResult.No)
             {
                 Views.Main.ShowQuestions();
@@ -433,7 +421,7 @@ namespace CommandCenter.Pages
             PlayButton.Opacity = running ? 0.85 : 1;
             PlayIdle.Visibility = running ? Visibility.Collapsed : Visibility.Visible;
             PlayBusy.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
-            PlayBusyText.Text = starting ? Loc.T("Starting…") : Loc.T("RUNNING");
+            PlayBusyText.Text = starting ? "Starting…" : "RUNNING";
 
             var spin = (RotateTransform)Spinner.RenderTransform;
             if (running && !_still)

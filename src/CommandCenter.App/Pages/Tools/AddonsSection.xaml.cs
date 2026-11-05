@@ -28,20 +28,20 @@ namespace CommandCenter.Pages.Tools
         {
             InitializeComponent();
             Before.Source = OriginalArt;
-            BeforeLabel.Text = Loc.T("ORIGINAL");
+            BeforeLabel.Text = "ORIGINAL";
 
             _loading = true;
             foreach (var package in AddonService.Packages.Where(p => p.Kind == BarKind.Pro))
-                Resolution.Items.Add(new ComboBoxItem { Content = Loc.Ltr(package.Resolution.Replace("x", " × ")), Tag = package.Resolution });
+                Resolution.Items.Add(new ComboBoxItem { Content = package.Resolution.Replace("x", " × "), Tag = package.Resolution });
             _loading = false;
 
             foreach (string text in new[]
             {
-                Loc.T("Checked with SHA-256 before anything is installed"),
-                Loc.T("Only the .big archives are copied; scripts in the package are skipped"),
-                Loc.T("Changes the interface only, so it never causes a mismatch"),
-                Loc.T("Your previous bar is kept; Undo puts it back"),
-                Loc.T("Source: TheSuperHackers/GeneralsControlBar on GitHub (MIT licence)"),
+                "Checked with SHA-256 before anything is installed",
+                "Only the .big archives are copied; scripts in the package are skipped",
+                "Changes the interface only, so it never causes a mismatch",
+                "Your previous bar is kept; Undo puts it back",
+                "Source: TheSuperHackers/GeneralsControlBar on GitHub (MIT licence)",
             })
                 SafetyList.Children.Add(Note(text, Views.Passed));
 
@@ -74,9 +74,9 @@ namespace CommandCenter.Pages.Tools
 
         private static string BarName(BarKind kind, string? resolution) => kind switch
         {
-            BarKind.Pro => Loc.Ltr(resolution != null ? "Control Bar Pro " + resolution.Replace("x", " × ") : "Control Bar Pro"),
-            BarKind.Other => Loc.T("Another control bar"),
-            _ => Loc.T("Original bar"),
+            BarKind.Pro => resolution != null ? "Control Bar Pro " + resolution.Replace("x", " × ") : "Control Bar Pro",
+            BarKind.Other => "Another control bar",
+            _ => "Original bar",
         };
 
         // Reads which bar is in the game folder; a choice the user made and has not applied yet stays
@@ -102,9 +102,9 @@ namespace CommandCenter.Pages.Tools
             }
             ChoiceOriginal.IsEnabled = ChoicePro.IsEnabled = Resolution.IsEnabled = !_goManaged && !_busy;
             OtherNotice.Visibility = _installed.Kind == BarKind.Other || _goManaged ? Visibility.Visible : Visibility.Collapsed;
-            OtherTitle.Text = _goManaged ? Loc.T("Installed by the Generals Online launcher") : Loc.T("Another control bar is installed");
+            OtherTitle.Text = _goManaged ? "Installed by the Generals Online launcher" : "Another control bar is installed";
             if (_goManaged)
-                OtherDetail.Text = Loc.T("Change or remove it in the Generals Online launcher. Command Center does not touch files that launcher manages, so the two never undo each other's changes.");
+                OtherDetail.Text = "Change or remove it in the Generals Online launcher. Command Center does not touch files that launcher manages, so the two never undo each other's changes.";
             else if (_installed.Kind == BarKind.Other)
             {
                 List<string> files;
@@ -116,8 +116,7 @@ namespace CommandCenter.Pages.Tools
                 {
                     files = new();
                 }
-                OtherDetail.Text = Loc.T("{0} in the game folder. Choose the original bar or Control Bar Pro to replace it; Undo puts it back.",
-                    Loc.Ltr(string.Join(", ", files)));
+                OtherDetail.Text = string.Format("{0} in the game folder. Choose the original bar or Control Bar Pro to replace it; Undo puts it back.", string.Join(", ", files));
             }
             if (!_touched || !Pending)
                 SelectInstalled();
@@ -177,8 +176,8 @@ namespace CommandCenter.Pages.Tools
             After.Visibility = Divider.Visibility = Handle.Visibility = AfterTag.Visibility = pro ? Visibility.Visible : Visibility.Collapsed;
             CompareBox.Cursor = pro ? Cursors.SizeWE : Cursors.Arrow;
             CompareNote.Text = pro
-                ? Loc.T("Drag across the picture to compare. Pick the size that matches your game resolution; a wrong size looks stretched.")
-                : Loc.T("Choose Control Bar Pro to compare it with the original.");
+                ? "Drag across the picture to compare. Pick the size that matches your game resolution; a wrong size looks stretched."
+                : "Choose Control Bar Pro to compare it with the original.";
             ApplySplit();
             ShowChange();
         }
@@ -187,8 +186,8 @@ namespace CommandCenter.Pages.Tools
         {
             if (!GamePaths.ZeroHourFound)
             {
-                ChangeText.Text = Loc.T("Folder not found");
-                ChangeDetail.Text = Loc.T("Zero Hour was not found. Press Play on the home page to choose the game folder.");
+                ChangeText.Text = "Folder not found";
+                ChangeDetail.Text = "Zero Hour was not found. Press Play on the home page to choose the game folder.";
                 ApplyButton.IsEnabled = false;
                 DiscardButton.Visibility = Visibility.Collapsed;
                 return;
@@ -201,19 +200,18 @@ namespace CommandCenter.Pages.Tools
             DiscardButton.Visibility = pending ? Visibility.Visible : Visibility.Collapsed;
             if (pending)
             {
-                string arrow = Loc.IsRightToLeft ? "  ←  " : "  →  ";
-                ChangeText.Text = BarName(_installed.Kind, _installed.Resolution) + arrow + BarName(Chosen, ChosenResolution);
+                ChangeText.Text = BarName(_installed.Kind, _installed.Resolution) + "  →  " + BarName(Chosen, ChosenResolution);
                 var package = AddonService.Package(Chosen, ChosenResolution);
                 ChangeDetail.Text = package == null
-                    ? Loc.T("Moves the add-on archives out of the game folder; Undo puts them back.")
-                    : Loc.T("Downloads {0} from GitHub, checks it, then adds the .big files to the game folder.", Loc.Ltr(Views.Size(package.Size)));
+                    ? "Moves the add-on archives out of the game folder; Undo puts them back."
+                    : string.Format("Downloads {0} from GitHub, checks it, then adds the .big files to the game folder.", Views.Size(package.Size));
             }
             else
             {
-                ChangeText.Text = Loc.T("Installed now: {0}", BarName(_installed.Kind, _installed.Resolution));
+                ChangeText.Text = string.Format("Installed now: {0}", BarName(_installed.Kind, _installed.Resolution));
                 ChangeDetail.Text = _goManaged
-                    ? Loc.T("Managed by the Generals Online launcher.")
-                    : Loc.T("Choose another bar to change it. The new bar shows the next time the game starts.");
+                    ? "Managed by the Generals Online launcher."
+                    : "Choose another bar to change it. The new bar shows the next time the game starts.";
             }
         }
 
@@ -234,21 +232,21 @@ namespace CommandCenter.Pages.Tools
             DiscardButton.IsEnabled = false;
             ChoiceOriginal.IsEnabled = ChoicePro.IsEnabled = false;
             ChangeText.Text = BarName(kind, resolution);
-            var progress = new Progress<string>(s => ChangeDetail.Text = Plain(s));
+            var progress = new Progress<string>(s => ChangeDetail.Text = s);
             try
             {
                 var made = await AddonService.ApplyAsync(kind, resolution, progress);
                 _touched = false;
-                Views.Main.Toast(Loc.T("Control bar changed. It shows the next time the game starts."), made.Count == 0 ? null : () =>
+                Views.Main.Toast("Control bar changed. It shows the next time the game starts.", made.Count == 0 ? null : () =>
                 {
                     try
                     {
                         AddonService.Undo(made);
-                        Views.Main.Toast(Loc.T("Previous control bar put back"));
+                        Views.Main.Toast("Previous control bar put back");
                     }
                     catch (Exception ex)
                     {
-                        Views.Main.Toast(Loc.T("Something went wrong: {0}", Plain(ex.Message)), isError: true);
+                        Views.Main.Toast(string.Format("Something went wrong: {0}", ex.Message), isError: true);
                     }
                     _touched = false;
                     ReadInstalled();
@@ -257,7 +255,7 @@ namespace CommandCenter.Pages.Tools
             }
             catch (Exception ex)
             {
-                Views.Main.Toast(Plain(ex.Message), isError: true);
+                Views.Main.Toast(ex.Message, isError: true);
             }
             finally
             {
@@ -332,13 +330,6 @@ namespace CommandCenter.Pages.Tools
             row.Children.Add(mark);
             row.Children.Add(new TextBlock { Text = text, FontSize = 12, Foreground = NoteBrush, TextWrapping = TextWrapping.Wrap });
             return row;
-        }
-
-        // Messages from the services are written in English; in right-to-left mode they keep their own reading order
-        private static string Plain(string text)
-        {
-            text = Loc.T(text);
-            return Loc.IsRightToLeft && !text.Any(c => c is >= '؀' and <= 'ۿ') ? Loc.Ltr(text) : text;
         }
     }
 }

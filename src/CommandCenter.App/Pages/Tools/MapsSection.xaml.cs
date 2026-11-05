@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -6,7 +7,6 @@ using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CommandCenter.Imaging;
-using CommandCenter.Localization;
 
 namespace CommandCenter.Pages.Tools
 {
@@ -30,19 +30,19 @@ namespace CommandCenter.Pages.Tools
         // Identifies the preview picture, so a tile made again for the same map finds it in memory
         public string PreviewKey => Client != null && Info.Entry != null ? Client.Source + "|" + Info.Entry.Id : Info.PreviewPath ?? Info.Folder;
 
-        public string Name => Loc.Ltr(Info.Name);
+        public string Name => Info.Name;
 
         public string Detail
         {
             get
             {
-                string size = Loc.Ltr(Views.Size(Info.SizeBytes));
-                return Info.Players > 0 ? Loc.N(Info.Players, "{0} player", "{0} players") + " · " + size : size;
+                string size = Views.Size(Info.SizeBytes);
+                return Info.Players > 0 ? English.Plural(Info.Players, "{0} player", "{0} players") + " · " + size : size;
             }
         }
 
         // On the picture: the player count and the download size
-        public string PlayersText => Info.Players > 0 ? Info.Players.ToString(Loc.Culture) : "";
+        public string PlayersText => Info.Players > 0 ? Info.Players.ToString(CultureInfo.CurrentCulture) : "";
         public Visibility PlayersVisibility => Info.Players > 0 ? Visibility.Visible : Visibility.Collapsed;
         public string SizeText => Views.Size(Info.SizeBytes);
 
@@ -52,9 +52,9 @@ namespace CommandCenter.Pages.Tools
             {
                 var lines = new List<string> { Info.Name };
                 if (Info.CustomRules)
-                    lines.Add(Loc.T("Its map.ini changes unit rules on this map."));
+                    lines.Add("Its map.ini changes unit rules on this map.");
                 if (Info.Scripts)
-                    lines.Add(Loc.T("Uses map scripts."));
+                    lines.Add("Uses map scripts.");
                 return string.Join("\n", lines);
             }
         }
@@ -466,8 +466,8 @@ namespace CommandCenter.Pages.Tools
         private void UpdateTabs()
         {
             bool libraryRead = _loaded && (_catalog?.Catalog != null || _folder != null);
-            TabLibrary.Content = libraryRead ? $"{Loc.T("LIBRARY")} ({_library.Count:N0})" : Loc.T("LIBRARY");
-            TabInstalled.Content = _loaded ? $"{Loc.T("INSTALLED")} ({_installed.Count:N0})" : Loc.T("INSTALLED");
+            TabLibrary.Content = libraryRead ? $"LIBRARY ({_library.Count:N0})" : "LIBRARY";
+            TabInstalled.Content = _loaded ? $"INSTALLED ({_installed.Count:N0})" : "INSTALLED";
         }
 
         private void UpdateSummary()
@@ -477,7 +477,7 @@ namespace CommandCenter.Pages.Tools
             if (!LibraryTab)
             {
                 Summary.Text = _loaded
-                    ? Loc.N(_installed.Count, "{0} map", "{0} maps") + " · " + Loc.Ltr(Views.Size(_installed.Sum(t => t.Info.SizeBytes)))
+                    ? English.Plural(_installed.Count, "{0} map", "{0} maps") + " · " + Views.Size(_installed.Sum(t => t.Info.SizeBytes))
                     : "";
                 Summary.ToolTip = GamePaths.Maps;
                 return;
@@ -490,18 +490,18 @@ namespace CommandCenter.Pages.Tools
             }
             if (_client != null)
             {
-                string name = OnlineSource ? Loc.T("Online library") : Loc.Ltr(_client.Describe);
+                string name = OnlineSource ? "Online library" : _client.Describe;
                 Summary.ToolTip = _client.Source;
                 if (_catalog is { Catalog: not null, Problem: { } problem })
                 {
                     // The copy saved earlier is shown because the library could not be checked
-                    Summary.Text = name + " · " + Loc.T(problem);
+                    Summary.Text = name + " · " + problem;
                     Summary.Foreground = Views.Warning;
-                    Summary.ToolTip = _catalog.Detail != null ? Loc.T(_catalog.Detail) : null;
+                    Summary.ToolTip = _catalog.Detail;
                 }
                 else if (_catalog?.Checked is { } when && _client.IsWeb)
                 {
-                    Summary.Text = name + " · " + Loc.T("checked {0}", Views.Ago(when));
+                    Summary.Text = name + " · " + string.Format("checked {0}", Views.Ago(when));
                 }
                 else
                 {
@@ -510,7 +510,7 @@ namespace CommandCenter.Pages.Tools
             }
             else if (_folder != null)
             {
-                Summary.Text = Loc.Ltr(_folder);
+                Summary.Text = _folder;
                 Summary.ToolTip = _folder;
             }
         }
@@ -528,31 +528,31 @@ namespace CommandCenter.Pages.Tools
 
             if (!_loaded)
             {
-                EmptyTitle.Text = library ? Loc.T("Reading the map library…") : Loc.T("Loading…");
+                EmptyTitle.Text = library ? "Reading the map library…" : "Loading…";
                 EmptyText.Text = "";
             }
             else if (library && _catalog is { Catalog: null } failed)
             {
                 // Offline, not found, or a damaged catalog
-                EmptyTitle.Text = Loc.T(failed.Problem ?? "The map library can't be read");
-                EmptyText.Text = (failed.Detail != null ? Loc.T(failed.Detail) + " " : "") + Loc.T("You can still drop a .zip or a map folder on this page to install it.");
+                EmptyTitle.Text = failed.Problem ?? "The map library can't be read";
+                EmptyText.Text = (failed.Detail != null ? failed.Detail + " " : "") + "You can still drop a .zip or a map folder on this page to install it.";
                 EmptyActions.Visibility = Visibility.Visible;
                 RetryButton.Visibility = Visibility.Visible;
             }
             else if (library && source.Count == 0)
             {
-                EmptyTitle.Text = Loc.T("No maps in this folder");
-                EmptyText.Text = Loc.T("Pick a folder that holds map folders (each with a .map file).");
+                EmptyTitle.Text = "No maps in this folder";
+                EmptyText.Text = "Pick a folder that holds map folders (each with a .map file).";
             }
             else if (source.Count == 0)
             {
-                EmptyTitle.Text = Loc.T("No maps installed");
-                EmptyText.Text = Loc.T("Install maps from the Library tab, or drop a .zip or a map folder anywhere on this page.");
+                EmptyTitle.Text = "No maps installed";
+                EmptyText.Text = "Install maps from the Library tab, or drop a .zip or a map folder anywhere on this page.";
             }
             else
             {
-                EmptyTitle.Text = Loc.T("Nothing matches");
-                EmptyText.Text = Loc.T("Try another search or player count.");
+                EmptyTitle.Text = "Nothing matches";
+                EmptyText.Text = "Try another search or player count.";
             }
         }
 
@@ -569,28 +569,28 @@ namespace CommandCenter.Pages.Tools
 
             var picked = (library ? _library : _installed).Where(t => t.Checked && t.Selectable).ToList();
             Status.Foreground = picked.Count > 0 ? System.Windows.Media.Brushes.White : Views.Hint;
-            string selection = Loc.N(picked.Count, "{0} map selected", "{0} maps selected") + " · " + Loc.Ltr(Views.Size(picked.Sum(t => t.Info.SizeBytes)));
+            string selection = English.Plural(picked.Count, "{0} map selected", "{0} maps selected") + " · " + Views.Size(picked.Sum(t => t.Info.SizeBytes));
             if (library)
             {
                 bool available = _loaded && _library.Count > 0;
                 int missing = _filtered.Count(t => !t.Info.Installed);
                 DownloadAll.Visibility = DownloadSelected.Visibility = available ? Visibility.Visible : Visibility.Collapsed;
-                DownloadAll.Content = missing > 0 ? $"{Loc.T("DOWNLOAD ALL")} ({missing:N0})" : Loc.T("DOWNLOAD ALL");
+                DownloadAll.Content = missing > 0 ? $"DOWNLOAD ALL ({missing:N0})" : "DOWNLOAD ALL";
                 DownloadAll.IsEnabled = missing > 0;
                 DownloadSelected.IsEnabled = picked.Count > 0;
-                DownloadSelected.Content = picked.Count > 0 ? $"{Loc.T("DOWNLOAD SELECTED")} ({picked.Count:N0})" : Loc.T("DOWNLOAD SELECTED");
+                DownloadSelected.Content = picked.Count > 0 ? $"DOWNLOAD SELECTED ({picked.Count:N0})" : "DOWNLOAD SELECTED";
                 Status.Text = !available ? ""
                     : picked.Count > 0 ? selection
-                    : missing == 0 && _filtered.Count > 0 ? Loc.T("Every map shown here is installed.")
-                    : Loc.T("Tick the maps you want, or download all of them.");
+                    : missing == 0 && _filtered.Count > 0 ? "Every map shown here is installed."
+                    : "Tick the maps you want, or download all of them.";
             }
             else
             {
                 DeleteButton.Visibility = picked.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-                DeleteButton.Content = picked.Count > 1 ? $"{Loc.T("DELETE")} ({picked.Count:N0})" : Loc.T("DELETE");
-                DeleteButton.ToolTip = Loc.T("Moves the map to the Recycle Bin; Undo brings it back");
-                FolderButton.Content = picked.Count == 1 ? Loc.T("SHOW IN FOLDER") : Loc.T("OPEN FOLDER");
-                Status.Text = picked.Count > 0 ? selection : Loc.T("Drop a .zip or a map folder here to install it.");
+                DeleteButton.Content = picked.Count > 1 ? $"DELETE ({picked.Count:N0})" : "DELETE";
+                DeleteButton.ToolTip = "Moves the map to the Recycle Bin; Undo brings it back";
+                FolderButton.Content = picked.Count == 1 ? "SHOW IN FOLDER" : "OPEN FOLDER";
+                Status.Text = picked.Count > 0 ? selection : "Drop a .zip or a map folder here to install it.";
             }
         }
 
@@ -663,10 +663,9 @@ namespace CommandCenter.Pages.Tools
             var maps = _filtered.Where(t => !t.Info.Installed).ToList();
             if (maps.Count > 10)
             {
-                string question = Loc.N(maps.Count, "Download and install {0} map ({1})?", "Download and install {0} maps ({1})?",
-                    Loc.Ltr(Views.Size(maps.Sum(t => t.Info.SizeBytes))));
-                if (MessageBox.Show(Window.GetWindow(this), question, Loc.T("Map library"), MessageBoxButton.YesNo, MessageBoxImage.Question,
-                        MessageBoxResult.No, LocUi.MessageBoxOptions) != MessageBoxResult.Yes)
+                string question = English.Plural(maps.Count, "Download and install {0} map ({1})?", "Download and install {0} maps ({1})?", Views.Size(maps.Sum(t => t.Info.SizeBytes)));
+                if (MessageBox.Show(Window.GetWindow(this), question, "Map library", MessageBoxButton.YesNo, MessageBoxImage.Question,
+                        MessageBoxResult.No) != MessageBoxResult.Yes)
                     return;
             }
             _ = InstallAsync(maps);
@@ -742,15 +741,15 @@ namespace CommandCenter.Pages.Tools
                 tile.Checked = false;
             var parts = new List<string>();
             if (installed.Count == 1 && tiles.Count == 1)
-                parts.Add(Loc.T("Installed {0}. It shows up in Skirmish and online games.", Loc.Ltr(installed[0])));
+                parts.Add(string.Format("Installed {0}. It shows up in Skirmish and online games.", installed[0]));
             else if (installed.Count > 0 || (failed.Count == 0 && skipped == 0))
-                parts.Add(Loc.N(installed.Count, "Installed {0} map.", "Installed {0} maps."));
+                parts.Add(English.Plural(installed.Count, "Installed {0} map.", "Installed {0} maps."));
             if (skipped > 0)
-                parts.Add(Loc.N(skipped, "{0} was already installed.", "{0} were already installed."));
+                parts.Add(English.Plural(skipped, "{0} was already installed.", "{0} were already installed."));
             if (cancelled)
-                parts.Add(Loc.T("The rest was not downloaded."));
+                parts.Add("The rest was not downloaded.");
             if (failed.Count > 0)
-                parts.Add(Loc.T("Failed: {0}", string.Join("; ", failed.Take(3))));
+                parts.Add(string.Format("Failed: {0}", string.Join("; ", failed.Take(3))));
             Views.Main.Toast(string.Join(" ", parts), isError: failed.Count > 0);
             await RefreshInstalledAsync();
         }
@@ -759,15 +758,15 @@ namespace CommandCenter.Pages.Tools
         {
             if (!_installing)
                 return;
-            string name = Loc.Ltr(p.Name);
+            string name = p.Name;
             Status.Foreground = System.Windows.Media.Brushes.White;
             Status.Text = p.Count > 1
                 ? p.Copying
-                    ? Loc.T("Map {0} of {1} · {2} · checked, copying files…", p.Number, p.Count, name)
-                    : Loc.T("Map {0} of {1} · {2}% · {3}", p.Number, p.Count, p.Percent, name)
+                    ? string.Format("Map {0} of {1} · {2} · checked, copying files…", p.Number, p.Count, name)
+                    : string.Format("Map {0} of {1} · {2}% · {3}", p.Number, p.Count, p.Percent, name)
                 : p.Copying
-                    ? Loc.T("Installing {0}…", name)
-                    : Loc.T("Downloading {0} · {1}%", name, p.Percent);
+                    ? string.Format("Installing {0}…", name)
+                    : string.Format("Downloading {0} · {1}%", name, p.Percent);
             Progress.Value = p.Percent;
         }
 
@@ -789,8 +788,8 @@ namespace CommandCenter.Pages.Tools
         {
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
-                Title = Loc.T("Choose map .zip files"),
-                Filter = Loc.T("Map archives") + " (*.zip)|*.zip",
+                Title = "Choose map .zip files",
+                Filter = "Map archives (*.zip)|*.zip",
                 Multiselect = true,
             };
             if (dialog.ShowDialog(Window.GetWindow(this)) == true)
@@ -805,20 +804,20 @@ namespace CommandCenter.Pages.Tools
                 return;
             var undo = RecycleUndo.Recycle(picked.Select(t => t.Info.Folder).ToList(), out var removed, out var failed);
             string message = removed.Count == 1
-                ? Loc.T("Moved {0} to the Recycle Bin.", Loc.Ltr(Path.GetFileName(removed[0])))
-                : Loc.N(removed.Count, "Moved {0} map to the Recycle Bin.", "Moved {0} maps to the Recycle Bin.");
+                ? string.Format("Moved {0} to the Recycle Bin.", Path.GetFileName(removed[0]))
+                : English.Plural(removed.Count, "Moved {0} map to the Recycle Bin.", "Moved {0} maps to the Recycle Bin.");
             if (failed.Count > 0)
-                message += " " + Loc.T("Failed: {0}", string.Join("; ", failed.Take(3)));
+                message += " " + string.Format("Failed: {0}", string.Join("; ", failed.Take(3)));
             Views.Main.Toast(message, removed.Count == 0 ? null : () =>
             {
                 try
                 {
                     undo();
-                    Views.Main.Toast(Loc.T("Change undone"));
+                    Views.Main.Toast("Change undone");
                 }
                 catch (Exception ex)
                 {
-                    Views.Main.Toast(Loc.T("Could not put it back: {0}", ex.Message), isError: true);
+                    Views.Main.Toast(string.Format("Could not put it back: {0}", ex.Message), isError: true);
                 }
                 _ = RefreshInstalledAsync();
             }, isError: failed.Count > 0);
@@ -852,7 +851,7 @@ namespace CommandCenter.Pages.Tools
         {
             TabInstalled.IsChecked = true;
             Status.Foreground = System.Windows.Media.Brushes.White;
-            Status.Text = Loc.T("Installing…");
+            Status.Text = "Installing…";
             var installed = new List<string>();
             var failed = new List<string>();
             await Task.Run(() =>
@@ -864,13 +863,13 @@ namespace CommandCenter.Pages.Tools
                 }
             });
             if (installed.Count == 0 && failed.Count == 0)
-                Views.Main.Toast(Loc.T("No maps found. Drop a .zip or a folder that holds a .map file."), isError: true);
+                Views.Main.Toast("No maps found. Drop a .zip or a folder that holds a .map file.", isError: true);
             else if (failed.Count > 0)
-                Views.Main.Toast(Loc.N(installed.Count, "Installed {0} map.", "Installed {0} maps.") + " " + Loc.T("Failed: {0}", string.Join("; ", failed.Take(3))), isError: true);
+                Views.Main.Toast(English.Plural(installed.Count, "Installed {0} map.", "Installed {0} maps.") + " " + string.Format("Failed: {0}", string.Join("; ", failed.Take(3))), isError: true);
             else if (installed.Count == 1)
-                Views.Main.Toast(Loc.T("Installed {0}. It shows up in Skirmish and online games.", Loc.Ltr(installed[0])));
+                Views.Main.Toast(string.Format("Installed {0}. It shows up in Skirmish and online games.", installed[0]));
             else
-                Views.Main.Toast(Loc.N(installed.Count, "Installed {0} map.", "Installed {0} maps."));
+                Views.Main.Toast(English.Plural(installed.Count, "Installed {0} map.", "Installed {0} maps."));
             await RefreshInstalledAsync();
         }
     }

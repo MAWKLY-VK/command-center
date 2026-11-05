@@ -9,7 +9,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Threading;
 using CommandCenter.Pages;
-using CommandCenter.Localization;
 
 namespace CommandCenter
 {
@@ -19,8 +18,10 @@ namespace CommandCenter
         private ToolsPage? _tools;
         private OptionsPage? _options;
         private readonly DispatcherTimer _toastTimer = new() { Interval = TimeSpan.FromSeconds(6) };
+        private (string Message, Action? Undo, bool IsError)? _afterNotice;
         private Action? _toastAction;
         private Task? _updateCheck;
+        private Task? _englishOnlyStep;
         private bool _selectingTab;
         private readonly bool _still = App.HasArg("--capture");
         private readonly List<Storyboard> _ambient = new();
@@ -46,6 +47,10 @@ namespace CommandCenter
             // Screenshots skip the update check unless a manifest is given
             if (App.Arg("--update-url") != null || !App.HasArg("--capture"))
                 _updateCheck = CheckUpdateAsync();
+            bool stepDue = !AppSettings.Current.EnglishOnlyStepDone;
+            _englishOnlyStep = RunEnglishOnlyStepAsync();
+            if (stepDue)
+                AppState.ReadHotkeysAfter(_englishOnlyStep);
         }
 
         // ── Navigation ──
@@ -124,12 +129,10 @@ namespace CommandCenter
 
         private void Options_Click(object sender, RoutedEventArgs e) => ShowOptions();
 
-        // A Frame does not pass FlowDirection on to its pages, so each page gets it here
         private void ContentFrame_Navigated(object sender, NavigationEventArgs e)
         {
             if (e.Content is FrameworkElement page)
             {
-                page.FlowDirection = LocUi.FlowDirection;
                 ShowBackdropFor(page);
                 Enter(page);
             }
@@ -272,8 +275,8 @@ namespace CommandCenter
                 options.Commit();
             if (UpdateOverlay.Restarting || _tools == null || !_tools.HasPendingChanges)
                 return;
-            var answer = MessageBox.Show(this, Loc.T("You have unsaved changes. Close without saving?"), "Command Center",
-                MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No, LocUi.MessageBoxOptions);
+            var answer = MessageBox.Show(this, "You have unsaved changes. Close without saving?", "Command Center",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
             if (answer != MessageBoxResult.Yes)
                 e.Cancel = true;
         }
@@ -293,11 +296,17 @@ namespace CommandCenter
 
         public void Toast(string message, Action? undo = null, bool isError = false)
         {
+            // The one-time notice stays until it is closed; the newest toast that comes meanwhile is shown after it
+            if (ToastArabic.Visibility == Visibility.Visible && ToastBox.Visibility == Visibility.Visible)
+            {
+                _afterNotice = (message, undo, isError);
+                return;
+            }
             ToastText.Text = message;
             ToastText.Foreground = isError ? new SolidColorBrush(Color.FromRgb(0xFF, 0x6B, 0x6B)) : Brushes.White;
             ToastBox.BorderBrush = isError ? new SolidColorBrush(Color.FromRgb(0xFF, 0x44, 0x44)) : new SolidColorBrush(Color.FromRgb(0x29, 0x80, 0xFF));
             _toastAction = undo;
-            ToastAction.Content = Loc.T("UNDO");
+            ToastAction.Content = "UNDO";
             ToastAction.Visibility = undo != null ? Visibility.Visible : Visibility.Collapsed;
             ToastBox.Visibility = Visibility.Visible;
             _toastTimer.Stop();
@@ -309,6 +318,12 @@ namespace CommandCenter
         {
             _toastTimer.Stop();
             ToastBox.Visibility = Visibility.Collapsed;
+            ToastArabic.Visibility = Visibility.Collapsed;
+            if (_afterNotice is { } next)
+            {
+                _afterNotice = null;
+                Toast(next.Message, next.Undo, next.IsError);
+            }
         }
 
         private void ToastAction_Click(object sender, RoutedEventArgs e)
@@ -319,6 +334,67 @@ namespace CommandCenter
         }
 
         private void ToastClose_Click(object sender, RoutedEventArgs e) => HideToast();
+
+        // A toast that stays until it is closed, with an Arabic paragraph above the English one
+        private void Notice(string arabic, string english, Action? undo)
+        {
+            Toast(english, undo);
+            _toastTimer.Stop();
+            ToastArabic.Text = arabic;
+            ToastArabic.Visibility = Visibility.Visible;
+        }
+
+        // ── The English-only version's one-time step ──
+        // It waits for the update check: when a newer version was found, the step is left to that version, so the
+        // notice is never hidden behind the update screen.
+
+        private async Task RunEnglishOnlyStepAsync()
+        {
+            try
+            {
+                if (_updateCheck != null)
+                    await _updateCheck;
+                if (UpdateOverlay.IsOpen)
+                    return;
+                bool windowsArabic = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ar";
+                var result = await Task.Run(() => ArabicGameTextRemoval.RunOnce(AppSettings.Current, windowsArabic));
+                if (result == null)
+                    return;
+                if (result.Changes.Count > 0)
+                    _ = AppState.RefreshHealthAsync();
+                if (result.NoticeDue)
+                    ShowEnglishOnlyNotice(result.Changes);
+            }
+            catch (Exception ex)
+            {
+                // The step runs again at the next start
+                App.LogError(ex);
+            }
+        }
+
+        // The only Arabic text in Command Center: the one-time notice for players who used 0.4.0 in Arabic or had its
+        // Arabic game text
+        private void ShowEnglishOnlyNotice(List<BackupEntry> changes)
+        {
+            bool changed = changes.Count > 0;
+            string arabic = "يعمل Command Center بالإنجليزية فقط، وقد أُزيلت واجهته العربية."
+                + (changed ? " وأُعيد نص اللعبة إلى الإنجليزية مع الإبقاء على اختصاراتك المحفوظة. زر UNDO يعيد نص اللعبة العربي." : "");
+            string english = "Command Center is in English only. Its Arabic interface was removed."
+                + (changed ? " The game's text is in English again, with your saved hotkeys kept. UNDO puts the Arabic game text back." : "");
+            Notice(arabic, english, changed ? () => UndoArabicGameTextRemoval(changes) : null);
+        }
+
+        private void UndoArabicGameTextRemoval(List<BackupEntry> changes)
+        {
+            if (!ArabicGameTextRemoval.TryUndo(changes, out string reason))
+            {
+                Toast(reason, isError: true);
+                return;
+            }
+            AppState.ForgetHotkeys();
+            _ = AppState.RefreshHealthAsync();
+            Toast("The Arabic game text is back. Health can remove it later.");
+        }
 
         // ── Mandatory update ──
 
@@ -364,6 +440,8 @@ namespace CommandCenter
             await Task.Delay(1500);
             if (_updateCheck != null)
                 await _updateCheck;
+            if (_englishOnlyStep != null)
+                await _englishOnlyStep;
             if (UpdateOverlay.Restarting)
                 return;
             int n = 1;
@@ -407,23 +485,7 @@ namespace CommandCenter
             var dpi = VisualTreeHelper.GetDpi(this);
             int w = (int)Math.Round(Root.ActualWidth * dpi.DpiScaleX), h = (int)Math.Round(Root.ActualHeight * dpi.DpiScaleY);
             var bitmap = new RenderTargetBitmap(w, h, dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
-            if (FlowDirection == FlowDirection.RightToLeft)
-            {
-                // The right-to-left mirror sits on the window, not on Root; add it so the picture matches the screen
-                var area = Root.RenderSize;
-                var mirrored = new DrawingVisual();
-                using (var dc = mirrored.RenderOpen())
-                {
-                    dc.PushTransform(new MatrixTransform(-1, 0, 0, 1, area.Width, 0));
-                    dc.DrawRectangle(new VisualBrush(Root) { Stretch = Stretch.None, ViewboxUnits = BrushMappingMode.Absolute, Viewbox = new Rect(area),
-                        AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top }, null, new Rect(area));
-                }
-                bitmap.Render(mirrored);
-            }
-            else
-            {
-                bitmap.Render(Root);
-            }
+            bitmap.Render(Root);
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(bitmap));
             using var stream = File.Create(path);

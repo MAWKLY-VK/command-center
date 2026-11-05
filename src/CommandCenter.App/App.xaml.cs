@@ -1,8 +1,6 @@
-using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
-using CommandCenter.Localization;
 
 namespace CommandCenter
 {
@@ -60,15 +58,7 @@ namespace CommandCenter
             // Generals Online's current program names and service address, in the background
             _ = GoProfile.RefreshAsync();
 
-            // --lang en|ar picks the language for this run only, without changing the saved setting
-            Loc.Init(Loc.Normalize(Arg("--lang")) ?? AppSettings.Current.Language);
-            if (Loc.Language != "en")
-            {
-                CultureInfo.DefaultThreadCurrentCulture = Loc.Culture;
-                CultureInfo.CurrentCulture = Loc.Culture;
-            }
-
-            var window = new MainWindow { FlowDirection = LocUi.FlowDirection };
+            var window = new MainWindow();
             MainWindow = window;
 
             if (Arg("--capture") is { } folder)
@@ -88,20 +78,10 @@ namespace CommandCenter
             window.Activate();
         }
 
-        // Next to --capture screenshots, list the wrapped strings that still have no translation
         protected override void OnExit(ExitEventArgs e)
         {
             // On the UI thread, which took the lock in OnStartup
             _instance?.Dispose();
-
-            if (Arg("--capture") is { } folder && Loc.Language != "en")
-            {
-                try
-                {
-                    File.WriteAllLines(Path.Combine(folder, $"missing-{Loc.Language}.txt"), Loc.Missing);
-                }
-                catch { }
-            }
             base.OnExit(e);
         }
 
@@ -124,7 +104,7 @@ namespace CommandCenter
             e.Handled = true;
             LogError(e.Exception);
             if (MainWindow is MainWindow main && main.IsVisible)
-                main.Toast(Loc.T("Something went wrong: {0}", e.Exception.Message), isError: true);
+                main.Toast(string.Format("Something went wrong: {0}", e.Exception.Message), isError: true);
             else
                 MessageBox.Show(e.Exception.ToString(), "Command Center", MessageBoxButton.OK, MessageBoxImage.Error);
         }

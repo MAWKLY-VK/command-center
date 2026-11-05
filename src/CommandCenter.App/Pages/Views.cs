@@ -4,7 +4,6 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using CommandCenter.Imaging;
-using CommandCenter.Localization;
 
 namespace CommandCenter.Pages
 {
@@ -37,9 +36,9 @@ namespace CommandCenter.Pages
 
         public static string StatusWord(HealthStatus status) => status switch
         {
-            HealthStatus.Problem => Loc.T("Problem"),
-            HealthStatus.Warning => Loc.T("Warning"),
-            _ => Loc.T("Passed"),
+            HealthStatus.Problem => "Problem",
+            HealthStatus.Warning => "Warning",
+            _ => "Passed",
         };
 
         public static Brush PlayerBrush(int color) =>
@@ -64,18 +63,18 @@ namespace CommandCenter.Pages
         public static string Ago(DateTime when)
         {
             var span = DateTime.Now - when;
-            if (span.TotalMinutes < 1) return Loc.T("just now");
-            if (span.TotalMinutes < 60) return Loc.T("{0} min ago", (int)span.TotalMinutes);
-            if (span.TotalHours < 24) return Loc.T("{0} h ago", (int)span.TotalHours);
-            if (span.TotalDays < 2) return Loc.T("yesterday");
-            if (span.TotalDays < 7) return Loc.T("{0} days ago", (int)span.TotalDays);
+            if (span.TotalMinutes < 1) return "just now";
+            if (span.TotalMinutes < 60) return string.Format("{0} min ago", (int)span.TotalMinutes);
+            if (span.TotalHours < 24) return string.Format("{0} h ago", (int)span.TotalHours);
+            if (span.TotalDays < 2) return "yesterday";
+            if (span.TotalDays < 7) return string.Format("{0} days ago", (int)span.TotalDays);
             return when.ToString("d MMM");
         }
 
         public static string Day(DateTime when)
         {
-            if (when.Date == DateTime.Today) return Loc.T("Today");
-            if (when.Date == DateTime.Today.AddDays(-1)) return Loc.T("Yesterday");
+            if (when.Date == DateTime.Today) return "Today";
+            if (when.Date == DateTime.Today.AddDays(-1)) return "Yesterday";
             return when.ToString("ddd d MMM");
         }
 
@@ -103,15 +102,15 @@ namespace CommandCenter.Pages
         // The player picks the Zero Hour folder; it is remembered and the checks run again. Nothing in it is changed.
         public static bool ChooseGameFolder(Window? owner)
         {
-            var dialog = new Microsoft.Win32.OpenFolderDialog { Title = Loc.T("Choose the Zero Hour folder") };
+            var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Choose the Zero Hour folder" };
             if (GamePaths.ZeroHourFound)
                 dialog.InitialDirectory = GamePaths.Game;
             if (dialog.ShowDialog(owner) != true)
                 return false;
             if (!GamePaths.UseGameFolder(dialog.FolderName))
             {
-                MessageBox.Show(Loc.T("That folder does not hold Zero Hour. Choose the folder with WindowZH.big and INIZH.big in it."), "Command Center",
-                    MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, LocUi.MessageBoxOptions);
+                MessageBox.Show("That folder does not hold Zero Hour. Choose the folder with WindowZH.big and INIZH.big in it.", "Command Center",
+                    MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK);
                 return false;
             }
             AppState.ForgetHotkeys();
@@ -132,7 +131,7 @@ namespace CommandCenter.Pages
             }
             catch (Exception ex)
             {
-                Main.Toast(Loc.T("Could not open it: {0}", ex.Message), isError: true);
+                Main.Toast(string.Format("Could not open it: {0}", ex.Message), isError: true);
             }
         }
 
@@ -151,11 +150,11 @@ namespace CommandCenter.Pages
             try
             {
                 Clipboard.SetText(text);
-                Main.Toast(Loc.T("Support report copied. Paste it in the Generals Online Discord."));
+                Main.Toast("Support report copied. Paste it in the Generals Online Discord.");
             }
             catch (Exception ex)
             {
-                Main.Toast(Loc.T("Could not copy: {0}", ex.Message), isError: true);
+                Main.Toast(string.Format("Could not copy: {0}", ex.Message), isError: true);
             }
         }
 
@@ -164,26 +163,26 @@ namespace CommandCenter.Pages
         {
             if (result.Id.StartsWith("sample:"))
             {
-                Main.Toast(Loc.T("This is a sample problem; nothing was changed."));
+                Main.Toast("This is a sample problem; nothing was changed.");
                 return;
             }
             int before = BackupService.Load().Count;
             try
             {
-                OperationLog.Record("fix", result.Id, result.Title.ToString(), result.Fix!);
+                OperationLog.Record("fix", result.Id, result.Title, result.Fix!);
             }
             catch (Exception ex)
             {
-                Main.Toast($"{result.Title.Localized}: {ex.Message}", isError: true);
+                Main.Toast($"{result.Title}: {ex.Message}", isError: true);
                 return;
             }
             var made = BackupService.Load().Skip(before).ToList();
-            Main.Toast(Loc.T("Fixed: {0}", result.Title.Localized), made.Count == 0 ? null : () =>
+            Main.Toast(string.Format("Fixed: {0}", result.Title), made.Count == 0 ? null : () =>
             {
                 foreach (var entry in Enumerable.Reverse(made))
                     BackupService.Undo(entry);
                 _ = AppState.RefreshHealthAsync();
-                Main.Toast(Loc.T("Change undone"));
+                Main.Toast("Change undone");
             });
             _ = AppState.RefreshHealthAsync();
         }
