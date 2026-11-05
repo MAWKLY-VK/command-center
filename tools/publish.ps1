@@ -11,8 +11,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
-$project = Join-Path $root "CommandCenter\CommandCenter.csproj"
-$build = Join-Path $root "CommandCenter\bin\publish"
+$project = Join-Path $root "src\CommandCenter.App\CommandCenter.App.csproj"
+$build = Join-Path $root "src\CommandCenter.App\bin\publish"
 $out = Join-Path $root "publish"
 
 # The version comes from <Version> in the project file

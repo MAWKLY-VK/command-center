@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- Command Center is a 32-bit program, so its tests run in a 32-bit test host as well -->
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+
+  <!-- Versions are in Directory.Packages.props -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CommandCenter.Core\CommandCenter.Core.csproj" />
+    <ProjectReference Include="..\..\src\CommandCenter.App\CommandCenter.App.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="System.IO" />
+    <Using Include="CommandCenter.Core.Content" />
+    <Using Include="CommandCenter.Core.Game" />
+    <Using Include="CommandCenter.Core.Imaging" />
+    <Using Include="CommandCenter.Core.Integrity" />
+    <Using Include="CommandCenter.Core.Localization" />
+    <Using Include="CommandCenter.Core.Net" />
+    <Using Include="CommandCenter.Core.Safety" />
+    <Using Include="CommandCenter.Core.Settings" />
+    <Using Include="CommandCenter.Core.Updates" />
+  </ItemGroup>
+
+</Project>

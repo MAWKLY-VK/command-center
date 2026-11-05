@@ -6,7 +6,6 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Windows.Media.Imaging;
 using CommandCenter.Imaging;
-using CommandCenter.Services;
 
 // Builds the map library from a folder of downloaded maps:
 //   maps/<id>.zip      one map each, inside a folder named like the map (the way the game wants it)
