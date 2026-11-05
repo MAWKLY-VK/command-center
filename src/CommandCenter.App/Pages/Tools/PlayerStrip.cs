@@ -59,7 +59,7 @@ namespace CommandCenter.Pages.Tools
             for (int i = 0; i < players.Count; i++)
             {
                 if (i > 0 && versus && players[i].Side != players[i - 1].Side)
-                    Add(new TextBlock { Text = Loc.T("vs"), FontSize = 11, Foreground = Views.Hint, VerticalAlignment = VerticalAlignment.Center });
+                    Add(new TextBlock { Text = "vs", FontSize = 11, Foreground = Views.Hint, VerticalAlignment = VerticalAlignment.Center });
                 var chip = Chip(players[i]);
                 Add(chip);
                 _chips.Add(chip);

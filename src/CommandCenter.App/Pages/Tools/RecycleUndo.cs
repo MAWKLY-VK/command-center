@@ -37,7 +37,7 @@ namespace CommandCenter.Pages.Tools
                         RecycleBin.SendFile(path);
                     }
                     if (Directory.Exists(path) || File.Exists(path))
-                        throw new IOException(Loc.T("It is still there."));
+                        throw new IOException("It is still there.");
                     done.Add((path, copy));
                     removed.Add(path);
                 }
