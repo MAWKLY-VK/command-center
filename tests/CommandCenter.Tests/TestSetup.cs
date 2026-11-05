@@ -109,6 +109,35 @@ namespace CommandCenter.Tests
         }
     }
 
+    // A game text table (generals.csf) written byte by byte without CsfFile, so a table that CsfFile produces can be
+    // compared with one made independently: the header, then each label with one string, its UTF-16 text inverted
+    internal static class CsfTables
+    {
+        public static byte[] Of(params (string Label, string Text)[] labels)
+        {
+            using var stream = new MemoryStream();
+            using var w = new BinaryWriter(stream);
+            w.Write(System.Text.Encoding.ASCII.GetBytes(" FSC"));
+            w.Write(3);
+            w.Write(labels.Length);
+            w.Write(labels.Length);
+            w.Write(0);
+            w.Write(0);
+            foreach (var (label, text) in labels)
+            {
+                w.Write(System.Text.Encoding.ASCII.GetBytes(" LBL"));
+                w.Write(1);
+                w.Write(label.Length);
+                w.Write(System.Text.Encoding.ASCII.GetBytes(label));
+                w.Write(System.Text.Encoding.ASCII.GetBytes(" RTS"));
+                w.Write(text.Length);
+                w.Write(System.Text.Encoding.Unicode.GetBytes(text).Select(b => (byte)~b).ToArray());
+            }
+            w.Flush();
+            return stream.ToArray();
+        }
+    }
+
     // Runs a test in Arabic and puts English back afterwards
     internal sealed class Arabic : IDisposable
     {
