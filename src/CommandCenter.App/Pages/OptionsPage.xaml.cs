@@ -875,10 +875,11 @@ namespace CommandCenter.Pages
             sb.AppendLine();
             sb.AppendLine("─ Connectivity ─");
             sb.AppendLine($"CDN:          {(r.CdnSuccess ? $"{r.CdnLatencyMs}ms" : "Unreachable")}");
-            sb.AppendLine($"STUN:         {(r.StunSuccess ? $"OK — {RedactEndpoint(r.StunExternalEndpoint)} ({r.StunLatencyMs}ms)" : "Unreachable")}");
+            sb.AppendLine($"STUN:         {(r.StunSuccess ? $"OK — {r.StunExternalEndpoint} ({r.StunLatencyMs}ms)" : "Unreachable")}");
             sb.AppendLine($"TURN:         {(r.TurnSuccess ? $"OK — {r.TurnEndpoint} ({r.TurnLatencyMs}ms)" : "Unreachable")}");
             sb.AppendLine($"NAT Type:     {r.NatType} — {r.NatTypeDetail}");
-            try { Clipboard.SetText(sb.ToString()); } catch { }
+            // Addresses (the player's own among them) and the user and PC names are hidden, like in the support report
+            try { Clipboard.SetText(Redaction.Report(sb.ToString())); } catch { }
         }
 
         private void ResetDiagnosticsUI()
@@ -950,7 +951,7 @@ namespace CommandCenter.Pages
             // STUN
             SetRow(dotStun, valStun,
                 r.StunSuccess,
-                r.StunSuccess ? $"{r.StunLatencyMs}ms  ({RedactEndpoint(r.StunExternalEndpoint)})" : "Unreachable",
+                r.StunSuccess ? $"{r.StunLatencyMs}ms  ({Redaction.Report(r.StunExternalEndpoint)})" : "Unreachable",
                 r.StunSuccess ? LatencyColor(r.StunLatencyMs) : DiagRed);
 
             // TURN
@@ -1033,20 +1034,5 @@ namespace CommandCenter.Pages
             NatType.Symmetric         => "Symmetric",
             _                         => "Unknown"
         };
-
-        private static string RedactIp(string ip)
-        {
-            int last = ip.LastIndexOf('.');
-            return last >= 0 ? ip[..last] + ".XXX" : ip;
-        }
-
-        // Redacts the IP portion of an "ip:port" endpoint string
-        private static string RedactEndpoint(string endpoint)
-        {
-            int colon = endpoint.LastIndexOf(':');
-            string ip   = colon >= 0 ? endpoint[..colon] : endpoint;
-            string port = colon >= 0 ? endpoint[colon..]  : "";
-            return RedactIp(ip) + port;
-        }
     }
 }

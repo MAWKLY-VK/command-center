@@ -135,7 +135,7 @@ namespace CommandCenter.Pages
             }
         }
 
-        // A plain-text summary for the Generals Online Discord; the Windows user and PC names are replaced
+        // A plain-text summary for the Generals Online Discord; addresses and the Windows user and PC names are hidden
         public static void CopySupportReport()
         {
             var sb = new System.Text.StringBuilder();
@@ -144,9 +144,7 @@ namespace CommandCenter.Pages
             sb.AppendLine($"Client {AppState.ClientVersion()} · anti-cheat {GoSettings.Load().AntiCheat} · launcher {AppState.Version}");
             foreach (var h in AppState.Health.OrderByDescending(h => h.Status))
                 sb.AppendLine($"[{h.Status}] {h.Title}: {h.Detail}");
-            string text = sb.ToString()
-                .Replace(Environment.UserName, "<user>", StringComparison.OrdinalIgnoreCase)
-                .Replace(Environment.MachineName, "<pc>", StringComparison.OrdinalIgnoreCase);
+            string text = Redaction.Report(sb.ToString());
             try
             {
                 Clipboard.SetText(text);
