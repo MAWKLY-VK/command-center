@@ -357,9 +357,7 @@ namespace CommandCenter.Core.Updates
             catch (Exception error)
             {
                 _failedVersion = Normalize(version);
-                // Windows' own reason, without the paths .NET puts around it
-                string why = error is Win32Exception windows ? new Win32Exception(windows.NativeErrorCode).Message : error.Message;
-                string failed = $"Version {version.ToString(3)} could not start ({why.TrimEnd('.')})";
+                string failed = $"Version {version.ToString(3)} could not start ({WhyNotStarted(error)})";
                 try
                 {
                     PutBackOrAsk(exe);
@@ -372,6 +370,20 @@ namespace CommandCenter.Core.Updates
                 throw new PreviousVersionRestoredException($"{failed}, so the previous version was put back.", error);
             }
         }
+
+        // Why Windows did not start a program, in plain words and without the paths .NET puts around its reason: the cases
+        // the spec names first, then Windows' own text
+        private static string WhyNotStarted(Exception error) => error is not Win32Exception windows
+            ? error.Message.TrimEnd('.')
+            : windows.NativeErrorCode switch
+            {
+                2 or 3 => "the file is missing",
+                5 => "Windows or an antivirus blocked it",
+                193 or 216 => "it is not a valid program for this PC",
+                225 or 226 => "an antivirus blocked it",
+                1260 => "a Windows policy blocked it",
+                int code => new Win32Exception(code).Message.Replace("%1", "the program").TrimEnd('.'),
+            };
 
         private static void PutBackOrAsk(string exe)
         {
