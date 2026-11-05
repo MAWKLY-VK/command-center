@@ -3,10 +3,12 @@ using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using System.Windows;
 
 namespace CommandCenter.Services
 {
+    // A start position on a map: 0..1 across it, top-left origin
+    public readonly record struct MapPoint(double X, double Y);
+
     public sealed class MapInfo
     {
         public required string Name { get; init; }
@@ -16,7 +18,7 @@ namespace CommandCenter.Services
         public DateTime Modified { get; init; }
         public string? PreviewPath { get; init; }
         public int Players { get; set; }
-        public List<Point> Starts { get; set; } = new();   // 0..1 across the map, top-left origin
+        public List<MapPoint> Starts { get; set; } = new();   // 0..1 across the map, top-left origin
         public bool Installed { get; set; }
         public LibraryMap? Entry { get; init; }    // set for maps from a library catalog
         public bool CustomRules => Entry?.CustomRules == true;   // its map.ini changes rules on this map
@@ -71,7 +73,7 @@ namespace CommandCenter.Services
                 else if (FromOwnCache(mapFile, info) is { } own)
                 {
                     map.Players = own.Players;
-                    map.Starts = own.Starts.Select(s => new Point(s[0], s[1])).ToList();
+                    map.Starts = own.Starts.Select(s => new MapPoint(s[0], s[1])).ToList();
                 }
                 maps.Add(map);
             }
@@ -111,7 +113,7 @@ namespace CommandCenter.Services
                 SizeBytes = map.SizeBytes,
                 Modified = published,
                 Players = map.Players,
-                Starts = (map.Starts ?? new List<double[]>()).Select(s => new Point(s[0], s[1])).ToList(),
+                Starts = (map.Starts ?? new List<double[]>()).Select(s => new MapPoint(s[0], s[1])).ToList(),
                 Installed = installed,
                 Entry = map,
             };
@@ -151,7 +153,7 @@ namespace CommandCenter.Services
         // ── The game's MapCache.ini ──
         // Keys are the full map path with "_XX" hex escapes, for example "..._5Cmy_20map_5Cmy_20map_2Emap"
 
-        public sealed record GameCacheEntry(int Players, List<Point> Starts);
+        public sealed record GameCacheEntry(int Players, List<MapPoint> Starts);
 
         public static Dictionary<string, GameCacheEntry> ReadMapCache(string path)
         {
@@ -161,7 +163,7 @@ namespace CommandCenter.Services
             string? key = null;
             int players = 0;
             double maxX = 0, maxY = 0;
-            var starts = new SortedDictionary<int, Point>();
+            var starts = new SortedDictionary<int, MapPoint>();
             var coord = new Regex(@"X:\s*(-?[\d.]+)\s+Y:\s*(-?[\d.]+)");
 
             foreach (string raw in File.ReadLines(path))
@@ -181,8 +183,8 @@ namespace CommandCenter.Services
                 if (line.Equals("END", StringComparison.OrdinalIgnoreCase))
                 {
                     var points = maxX > 0 && maxY > 0
-                        ? starts.Values.Select(p => new Point(Math.Clamp(p.X / maxX, 0, 1), Math.Clamp(1 - p.Y / maxY, 0, 1))).ToList()
-                        : new List<Point>();
+                        ? starts.Values.Select(p => new MapPoint(Math.Clamp(p.X / maxX, 0, 1), Math.Clamp(1 - p.Y / maxY, 0, 1))).ToList()
+                        : new List<MapPoint>();
                     result[key] = new GameCacheEntry(players, points);
                     key = null;
                     continue;
@@ -199,7 +201,7 @@ namespace CommandCenter.Services
                     maxY = Num(m.Groups[2].Value);
                 }
                 else if (Regex.Match(name, @"^Player_(\d)_Start$") is { Success: true } s && coord.Match(value) is { Success: true } c)
-                    starts[int.Parse(s.Groups[1].Value)] = new Point(Num(c.Groups[1].Value), Num(c.Groups[2].Value));
+                    starts[int.Parse(s.Groups[1].Value)] = new MapPoint(Num(c.Groups[1].Value), Num(c.Groups[2].Value));
             }
             return result;
         }
@@ -228,7 +230,7 @@ namespace CommandCenter.Services
         // Waypoints sit in the map's object list as "waypointName" properties; positions are not needed
         // to count players, and the start markers are left out for maps the game never cached.
 
-        private static (int Players, List<Point> Starts) ReadStarts(string mapFile)
+        private static (int Players, List<MapPoint> Starts) ReadStarts(string mapFile)
         {
             try
             {
@@ -237,11 +239,11 @@ namespace CommandCenter.Services
                     data = RefPack.Decompress(data);
                 string text = Encoding.ASCII.GetString(data);
                 int players = Regex.Matches(text, @"Player_(\d)_Start").Select(m => m.Groups[1].Value).Distinct().Count();
-                return (players, new List<Point>());
+                return (players, new List<MapPoint>());
             }
             catch
             {
-                return (0, new List<Point>());
+                return (0, new List<MapPoint>());
             }
         }
 

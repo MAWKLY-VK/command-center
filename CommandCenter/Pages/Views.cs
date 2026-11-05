@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using CommandCenter.Imaging;
+using CommandCenter.Localization;
 using CommandCenter.Services;
 
 namespace CommandCenter.Pages
@@ -111,7 +112,7 @@ namespace CommandCenter.Pages
             if (!GamePaths.UseGameFolder(dialog.FolderName))
             {
                 MessageBox.Show(Loc.T("That folder does not hold Zero Hour. Choose the folder with WindowZH.big and INIZH.big in it."), "Command Center",
-                    MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, Loc.MessageBoxOptions);
+                    MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK, LocUi.MessageBoxOptions);
                 return false;
             }
             AppState.ForgetHotkeys();

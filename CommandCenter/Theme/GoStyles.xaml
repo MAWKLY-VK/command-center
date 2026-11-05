@@ -1,6 +1,6 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:l="clr-namespace:CommandCenter.Services">
+                    xmlns:l="clr-namespace:CommandCenter.Localization">
 
     <!-- Generals Online launcher look: navy #01031A, sidebar #00020F, blue #2980FF, gold PLAY #FECD03 -->
 
@@ -156,7 +156,7 @@
         <!-- Map, player and unit names: left to right like the names themselves, starting on the reading side -->
         <Style x:Key="NameTextStyle" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
             <Setter Property="FlowDirection" Value="LeftToRight"/>
-            <Setter Property="TextAlignment" Value="{x:Static l:Loc.StartAlignment}"/>
+            <Setter Property="TextAlignment" Value="{x:Static l:LocUi.StartAlignment}"/>
         </Style>
 
     <!-- Home page buttons -->

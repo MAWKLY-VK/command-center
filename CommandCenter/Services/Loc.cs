@@ -3,15 +3,14 @@ using System.Collections.Frozen;
 using System.Globalization;
 using System.IO;
 using System.Text.Json;
-using System.Windows;
-using System.Windows.Markup;
 
 namespace CommandCenter.Services
 {
     // Translations looked up by their English text, gettext style, so wrapping a string costs nothing:
     //   C#    Loc.T("Play online")              Loc.T("Installed {0} maps", count)
     //         Loc.N(count, "1 map", "{0} maps") picks the plural form the language needs
-    //   XAML  Text="{l:T Play online}"          with xmlns:l="clr-namespace:CommandCenter.Services"
+    //   XAML  Text="{l:T Play online}"          with xmlns:l="clr-namespace:CommandCenter.Localization"
+    // The WPF parts (the {l:T} extension, reading direction, alignment) are in the App's Localization/LocUi.cs.
     //
     // Each language is one JSON file in Localization/ (English text: translation), embedded in the program.
     // A missing or empty entry shows the English text. The table is built once at startup and only read
@@ -22,7 +21,6 @@ namespace CommandCenter.Services
 
         public static string Language { get; private set; } = "en";
         public static bool IsRightToLeft => Language == "ar";
-        public static FlowDirection FlowDirection => IsRightToLeft ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
 
         // Formats numbers and dates in the text. Arabic keeps Western digits and the Gregorian calendar.
         public static CultureInfo Culture { get; private set; } = CultureInfo.CurrentCulture;
@@ -98,10 +96,6 @@ namespace CommandCenter.Services
         // ends stay in place ("Particle Cannon (Uplink)"); Arabic text is left as it is.
         public static string Embed(string text) => IsRightToLeft && !text.Any(c => c is >= '\u0600' and <= '\u06FF') ? Ltr(text) : text;
 
-        // Names and other text that stays left to right (with FlowDirection LeftToRight) still starts on the reading side
-        // of the line, so a long name is cut at its end: "A lagoon Too Far [20\u2026" instead of "\u2026A lagoon Too Far [2".
-        public static TextAlignment StartAlignment => IsRightToLeft ? TextAlignment.Right : TextAlignment.Left;
-
         // "A", "A and B", "A, B and C"
         public static string List(IEnumerable<string> items)
         {
@@ -116,8 +110,6 @@ namespace CommandCenter.Services
         public static string Join(IEnumerable<string> items) => string.Join(Separator(", "), items);
 
         private static string Separator(string english) => IsRightToLeft ? RtlMark + T(english) : T(english);
-
-        public static MessageBoxOptions MessageBoxOptions => IsRightToLeft ? MessageBoxOptions.RtlReading | MessageBoxOptions.RightAlign : MessageBoxOptions.None;
 
         // CLDR plural categories
         private static string PluralForm(long n)
@@ -199,21 +191,5 @@ namespace CommandCenter.Services
             }
             return table.ToFrozenDictionary(StringComparer.Ordinal);
         }
-    }
-
-    // {l:T Play online}, {l:T 'Text with a {0} at the start'} or {l:T Text='...'}.
-    // A comma ends an argument in XAML markup, so "{l:T Hello, world}" arrives in parts and is joined again with ", ".
-    [MarkupExtensionReturnType(typeof(string))]
-    public sealed class TExtension : MarkupExtension
-    {
-        public TExtension() { }
-        public TExtension(string text) => Text = text;
-        public TExtension(string a, string b) => Text = a + ", " + b;
-        public TExtension(string a, string b, string c) => Text = a + ", " + b + ", " + c;
-        public TExtension(string a, string b, string c, string d) => Text = a + ", " + b + ", " + c + ", " + d;
-
-        public string Text { get; set; } = "";
-
-        public override object ProvideValue(IServiceProvider serviceProvider) => Loc.T(Text);
     }
 }

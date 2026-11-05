@@ -1,7 +1,7 @@
 <UserControl x:Class="CommandCenter.Pages.Tools.AddonsSection"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:l="clr-namespace:CommandCenter.Services">
+             xmlns:l="clr-namespace:CommandCenter.Localization">
     <UserControl.Resources>
         <!-- One control bar to choose: flat box, blue when chosen like the sidebar tabs -->
         <Style x:Key="BarChoiceStyle" TargetType="RadioButton">

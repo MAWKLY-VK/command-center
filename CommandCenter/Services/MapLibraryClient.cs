@@ -51,12 +51,13 @@ namespace CommandCenter.Services
     {
         public const string OnlineLibrary = "https://raw.githubusercontent.com/MAWKLY-VK/zh-map-library/main/";
 
-        // --map-library <address or folder>
+        // --map-library <address or folder> and --library-folder <folder>, set by AppServices at startup
         public static string? SourceOverride { get; set; }
+        public static string? LibraryFolder { get; set; }
 
         // Where the library is read from: the online library, unless --map-library or --library-folder points
         // elsewhere (for testing a new catalog)
-        public static string CurrentSource => Value(SourceOverride) ?? Value(AppState.LibraryFolder) ?? OnlineLibrary;
+        public static string CurrentSource => Value(SourceOverride) ?? Value(LibraryFolder) ?? OnlineLibrary;
 
         // A client for the current source, or null when it is a plain folder of maps (read with MapCatalog.Scan)
         public static MapLibraryClient? ForCurrentSource() => IsCatalogSource(CurrentSource) ? new MapLibraryClient(CurrentSource) : null;

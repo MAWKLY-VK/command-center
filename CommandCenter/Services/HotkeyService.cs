@@ -731,51 +731,7 @@ namespace CommandCenter.Services
             return mods + name;
         }
 
-        // Maps a WPF key to the game's KEY_ name; null when the game has no such key
-        public static string? GameKeyName(System.Windows.Input.Key key)
-        {
-            {
-                if (key >= System.Windows.Input.Key.A && key <= System.Windows.Input.Key.Z)
-                    return "KEY_" + key;
-                if (key >= System.Windows.Input.Key.D0 && key <= System.Windows.Input.Key.D9)
-                    return "KEY_" + (key - System.Windows.Input.Key.D0);
-                if (key >= System.Windows.Input.Key.F1 && key <= System.Windows.Input.Key.F12)
-                    return "KEY_" + key;
-                if (key >= System.Windows.Input.Key.NumPad0 && key <= System.Windows.Input.Key.NumPad9)
-                    return "KEY_KP" + (key - System.Windows.Input.Key.NumPad0);
-                return key switch
-                {
-                    System.Windows.Input.Key.Space => "KEY_SPACE",
-                    System.Windows.Input.Key.Tab => "KEY_TAB",
-                    System.Windows.Input.Key.Enter => "KEY_ENTER",
-                    System.Windows.Input.Key.Back => "KEY_BACKSPACE",
-                    System.Windows.Input.Key.Delete => "KEY_DEL",
-                    System.Windows.Input.Key.Insert => "KEY_INS",
-                    System.Windows.Input.Key.Home => "KEY_HOME",
-                    System.Windows.Input.Key.End => "KEY_END",
-                    System.Windows.Input.Key.PageUp => "KEY_PGUP",
-                    System.Windows.Input.Key.PageDown => "KEY_PGDN",
-                    System.Windows.Input.Key.Up => "KEY_UP",
-                    System.Windows.Input.Key.Down => "KEY_DOWN",
-                    System.Windows.Input.Key.Left => "KEY_LEFT",
-                    System.Windows.Input.Key.Right => "KEY_RIGHT",
-                    System.Windows.Input.Key.OemMinus => "KEY_MINUS",
-                    System.Windows.Input.Key.OemPlus => "KEY_EQUAL",
-                    System.Windows.Input.Key.OemOpenBrackets => "KEY_LBRACKET",
-                    System.Windows.Input.Key.OemCloseBrackets => "KEY_RBRACKET",
-                    System.Windows.Input.Key.OemSemicolon => "KEY_SEMICOLON",
-                    System.Windows.Input.Key.OemQuotes => "KEY_APOSTROPHE",
-                    System.Windows.Input.Key.OemTilde => "KEY_TICK",
-                    System.Windows.Input.Key.OemBackslash or System.Windows.Input.Key.Oem5 => "KEY_BACKSLASH",
-                    System.Windows.Input.Key.OemComma => "KEY_COMMA",
-                    System.Windows.Input.Key.OemPeriod => "KEY_PERIOD",
-                    System.Windows.Input.Key.OemQuestion => "KEY_SLASH",
-                    System.Windows.Input.Key.Add => "KEY_KPPLUS",
-                    System.Windows.Input.Key.Subtract => "KEY_KPMINUS",
-                    _ => null,
-                };
-            }
-        }
+        // A WPF key's KEY_ name: Input/GameKeyNames.cs in the App
 
         public static string ModifiersName(bool ctrl, bool alt, bool shift) => (ctrl, alt, shift) switch
         {

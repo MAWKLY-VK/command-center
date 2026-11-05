@@ -1,5 +1,6 @@
 using CommandCenter.Models;
 using CommandCenter.Imaging;
+using CommandCenter.Localization;
 using CommandCenter.Services;
 using System;
 using System.Collections.Generic;
@@ -788,7 +789,7 @@ namespace CommandCenter.Pages
             if (_loadingLauncher || cmbLanguage.SelectedItem is not ComboBoxItem { Tag: string code } || code == Loc.Language)
                 return;
             var answer = MessageBox.Show(Loc.T("Restart Command Center now to switch the language?"), "Command Center",
-                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes, Loc.MessageBoxOptions);
+                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes, LocUi.MessageBoxOptions);
             if (answer != MessageBoxResult.Yes)
             {
                 LoadLauncherOptions();

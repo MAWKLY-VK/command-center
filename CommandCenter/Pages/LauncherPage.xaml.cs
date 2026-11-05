@@ -7,6 +7,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using CommandCenter.Localization;
 using CommandCenter.Services;
 
 namespace CommandCenter.Pages
@@ -230,7 +231,7 @@ namespace CommandCenter.Pages
             if (kind == BarKind.Pro)
             {
                 BarTileText.FlowDirection = FlowDirection.LeftToRight;
-                BarTileText.TextAlignment = Loc.StartAlignment;
+                BarTileText.TextAlignment = LocUi.StartAlignment;
             }
             else
             {
@@ -324,7 +325,7 @@ namespace CommandCenter.Pages
             if (!GamePaths.GameFound)
             {
                 var answer = MessageBox.Show(Loc.T("Generals Online is not installed in the game folder:\n{0}\n\nInstall it, then press Play again. Open the Generals Online download page?", GamePaths.Game),
-                    "Command Center", MessageBoxButton.YesNo, MessageBoxImage.Information, MessageBoxResult.Yes, Loc.MessageBoxOptions);
+                    "Command Center", MessageBoxButton.YesNo, MessageBoxImage.Information, MessageBoxResult.Yes, LocUi.MessageBoxOptions);
                 if (answer == MessageBoxResult.Yes)
                     Views.Open(HealthService.DownloadPage);
                 return;
@@ -333,7 +334,7 @@ namespace CommandCenter.Pages
             {
                 ShowGameState(true);
                 MessageBox.Show(Loc.T("The game is already running."), "Command Center",
-                    MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, Loc.MessageBoxOptions);
+                    MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK, LocUi.MessageBoxOptions);
                 return;
             }
 
@@ -374,7 +375,7 @@ namespace CommandCenter.Pages
                 if (minimized)
                     window.WindowState = WindowState.Normal;
                 MessageBox.Show(Loc.T("Failed to launch the game: {0}", ex.Message), "Command Center",
-                    MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK, Loc.MessageBoxOptions);
+                    MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK, LocUi.MessageBoxOptions);
             }
             finally
             {
@@ -392,12 +393,12 @@ namespace CommandCenter.Pages
             if (!GameLauncher.HasOfficialLauncher)
             {
                 if (MessageBox.Show(reason + "\n\n" + Loc.T("Open the Generals Online download page?"), "Command Center",
-                        MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.Yes, Loc.MessageBoxOptions) == MessageBoxResult.Yes)
+                        MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.Yes, LocUi.MessageBoxOptions) == MessageBoxResult.Yes)
                     Views.Open(HealthService.DownloadPage);
                 return;
             }
             if (MessageBox.Show(reason + "\n\n" + Loc.T("Start the official Generals Online launcher instead?"), "Command Center",
-                    MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.Yes, Loc.MessageBoxOptions) != MessageBoxResult.Yes)
+                    MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.Yes, LocUi.MessageBoxOptions) != MessageBoxResult.Yes)
                 return;
             try
             {
@@ -406,7 +407,7 @@ namespace CommandCenter.Pages
             catch (Exception ex)
             {
                 MessageBox.Show(Loc.T("Failed to launch the game: {0}", ex.Message), "Command Center",
-                    MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK, Loc.MessageBoxOptions);
+                    MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK, LocUi.MessageBoxOptions);
             }
         }
 
@@ -414,7 +415,7 @@ namespace CommandCenter.Pages
         private bool LocateGame()
         {
             var answer = MessageBox.Show(Loc.T("Command & Conquer Generals - Zero Hour was not found. Choose its folder now?\n\nChoose No to see where to get the game."), "Command Center",
-                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes, Loc.MessageBoxOptions);
+                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes, LocUi.MessageBoxOptions);
             if (answer == MessageBoxResult.No)
             {
                 Views.Main.ShowQuestions();

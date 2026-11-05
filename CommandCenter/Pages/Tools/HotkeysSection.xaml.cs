@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using CommandCenter.Imaging;
+using CommandCenter.Input;
 using CommandCenter.Services;
 
 namespace CommandCenter.Pages.Tools
@@ -623,7 +624,7 @@ namespace CommandCenter.Pages.Tools
 
             if (_hk == null || _gameKey == null || modifier)
                 return;
-            string? name = HotkeyService.GameKeyName(key);
+            string? name = GameKeyNames.Of(key);
             if (name == null)
             {
                 _listenHint = Loc.T("The game cannot use that key. Try a letter, number, F-key or numpad key.");

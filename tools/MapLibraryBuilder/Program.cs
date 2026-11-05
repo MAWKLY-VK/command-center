@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Windows.Media.Imaging;
+using CommandCenter.Imaging;
 using CommandCenter.Services;
 
 // Builds the map library from a folder of downloaded maps:
@@ -158,7 +159,7 @@ foreach (var c in byHash.Values.OrderBy(c => c.Stem, StringComparer.OrdinalIgnor
     {
         preview = $"previews/{id}.png";
         var encoder = new PngBitmapEncoder();
-        encoder.Frames.Add(BitmapFrame.Create(image));
+        encoder.Frames.Add(BitmapFrame.Create(image.ToBitmap()));
         using var png = File.Create(Path.Combine(output, "previews", id + ".png"));
         encoder.Save(png);
     }

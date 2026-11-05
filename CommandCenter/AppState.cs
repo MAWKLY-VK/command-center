@@ -6,8 +6,6 @@ namespace CommandCenter
     // Data several pages share, loaded once in the background and refreshed on demand.
     public static class AppState
     {
-        public static string? LibraryFolder { get; set; }
-
         public static ServerStats? Stats { get; private set; }
         public static event Action? StatsChanged;
 

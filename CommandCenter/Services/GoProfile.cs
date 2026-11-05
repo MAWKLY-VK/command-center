@@ -51,11 +51,17 @@ namespace CommandCenter.Services
 
         private static string CachePath => Path.Combine(GamePaths.AppData, "cache", "go-profile.json");
 
-        // --go-profile <file> uses a local file instead (for tests); otherwise the last profile fetched, else the
-        // built-in values
+        // --go-profile <file>: a local file used instead of the fetched profile (for tests and screenshots). AppServices
+        // sets it at startup, before anything reads Current.
+        public static string? FileOverride { get; set; }
+
+        // Forgets the profile in use, so the next read of Current loads it again (for tests)
+        internal static void Reset() => _current = null;
+
+        // The --go-profile file, otherwise the last profile fetched, else the built-in values
         private static GoProfile LoadLocal()
         {
-            string? path = App.Arg("--go-profile") ?? (File.Exists(CachePath) ? CachePath : null);
+            string? path = FileOverride ?? (File.Exists(CachePath) ? CachePath : null);
             try
             {
                 if (path != null && Parse(File.ReadAllText(path)) is { } profile)
@@ -68,7 +74,7 @@ namespace CommandCenter.Services
         // Fetches the current profile in the background; an offline or broken answer keeps the one in use
         public static async Task RefreshAsync()
         {
-            if (App.Arg("--go-profile") != null)
+            if (FileOverride != null)
                 return;
             try
             {

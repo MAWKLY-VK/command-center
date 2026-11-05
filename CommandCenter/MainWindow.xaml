@@ -5,7 +5,7 @@
     xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
     xmlns:pages="clr-namespace:CommandCenter.Pages"
     xmlns:c="clr-namespace:CommandCenter.Controls"
-    xmlns:l="clr-namespace:CommandCenter.Services"
+    xmlns:l="clr-namespace:CommandCenter.Localization"
     Title="Command Center"
     Icon="Assets/app.ico"
     Width="1100" Height="640" MinWidth="980" MinHeight="600"

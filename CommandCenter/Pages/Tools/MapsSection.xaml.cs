@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CommandCenter.Imaging;
+using CommandCenter.Localization;
 using CommandCenter.Services;
 
 namespace CommandCenter.Pages.Tools
@@ -666,7 +667,7 @@ namespace CommandCenter.Pages.Tools
                 string question = Loc.N(maps.Count, "Download and install {0} map ({1})?", "Download and install {0} maps ({1})?",
                     Loc.Ltr(Views.Size(maps.Sum(t => t.Info.SizeBytes))));
                 if (MessageBox.Show(Window.GetWindow(this), question, Loc.T("Map library"), MessageBoxButton.YesNo, MessageBoxImage.Question,
-                        MessageBoxResult.No, Loc.MessageBoxOptions) != MessageBoxResult.Yes)
+                        MessageBoxResult.No, LocUi.MessageBoxOptions) != MessageBoxResult.Yes)
                     return;
             }
             _ = InstallAsync(maps);

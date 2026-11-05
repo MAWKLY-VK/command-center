@@ -1,7 +1,7 @@
 <UserControl x:Class="CommandCenter.Pages.UpdateOverlay"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:l="clr-namespace:CommandCenter.Services"
+             xmlns:l="clr-namespace:CommandCenter.Localization"
              Visibility="Collapsed">
     <UserControl.Resources>
         <Style x:Key="BarStyle" TargetType="ProgressBar">

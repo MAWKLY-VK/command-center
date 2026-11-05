@@ -9,6 +9,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Threading;
 using CommandCenter.Pages;
+using CommandCenter.Localization;
 using CommandCenter.Services;
 
 namespace CommandCenter
@@ -129,7 +130,7 @@ namespace CommandCenter
         {
             if (e.Content is FrameworkElement page)
             {
-                page.FlowDirection = Loc.FlowDirection;
+                page.FlowDirection = LocUi.FlowDirection;
                 ShowBackdropFor(page);
                 Enter(page);
             }
@@ -273,7 +274,7 @@ namespace CommandCenter
             if (UpdateOverlay.Restarting || _tools == null || !_tools.HasPendingChanges)
                 return;
             var answer = MessageBox.Show(this, Loc.T("You have unsaved changes. Close without saving?"), "Command Center",
-                MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No, Loc.MessageBoxOptions);
+                MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No, LocUi.MessageBoxOptions);
             if (answer != MessageBoxResult.Yes)
                 e.Cancel = true;
         }

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using CommandCenter.Localization;
 using CommandCenter.Services;
 
 namespace CommandCenter
@@ -27,6 +28,8 @@ namespace CommandCenter
                 args.SetObserved();
                 LogError(args.Exception);
             };
+            // The run options reach the services before anything reads them
+            AppServices.Configure(Environment.GetCommandLineArgs());
             UpdateService.CleanUp();
 
             // Generals Online's current program names and service address, in the background
@@ -40,13 +43,7 @@ namespace CommandCenter
                 CultureInfo.CurrentCulture = Loc.Culture;
             }
 
-            if (Arg("--library-folder") is { } library)
-                AppState.LibraryFolder = library;
-            if (Arg("--map-library") is { } mapLibrary)
-                MapLibraryClient.SourceOverride = mapLibrary;
-            AppState.Samples = HasArg("--samples");
-
-            var window = new MainWindow { FlowDirection = Loc.FlowDirection };
+            var window = new MainWindow { FlowDirection = LocUi.FlowDirection };
             MainWindow = window;
 
             if (Arg("--capture") is { } folder)

@@ -1,7 +1,6 @@
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Windows.Media;
 
 namespace CommandCenter.Services
 {
@@ -235,27 +234,17 @@ namespace CommandCenter.Services
         // (render2dsentence.cpp), about 9/10 of Arial's own width.
         private const double LatinScale = 0.9;
 
-        private static readonly Lazy<GlyphTypeface?> Arial = new(() =>
-        {
-            try
-            {
-                string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arial.ttf");
-                return File.Exists(path) ? new GlyphTypeface(new Uri(path)) : null;
-            }
-            catch
-            {
-                return null;
-            }
-        });
+        // Arial's width in em for a character, or null when Arial lacks it. The App supplies it at startup
+        // (AppServices), because only WPF can read the font here.
+        public static Func<char, double?>? ArialAdvance { get; set; }
 
         // Width in em; a character the font lacks counts as half an em
         public static double Width(string text)
         {
-            var font = Arial.Value;
             double width = 0;
             foreach (char c in text)
             {
-                double advance = font != null && font.CharacterToGlyphMap.TryGetValue(c, out ushort glyph) ? font.AdvanceWidths[glyph] : 0.5;
+                double advance = ArialAdvance?.Invoke(c) ?? 0.5;
                 width += c < 0x100 ? advance * LatinScale : advance;
             }
             return width;
