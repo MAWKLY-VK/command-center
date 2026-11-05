@@ -407,6 +407,9 @@ namespace CommandCenter.Pages.Tools
                 catch (Exception ex) { failed.Add($"{result.Title.Localized}: {ex.Message}"); }
             }
             var made = BackupService.Load().Skip(before).ToList();
+            // A fix can change the game's text table, which the hotkey editor reads
+            if (made.Count > 0)
+                AppState.ForgetHotkeys();
             if (failed.Count > 0)
             {
                 Views.Main.Toast(Loc.T("Some fixes failed: {0}", string.Join("; ", failed)), isError: true);
@@ -417,6 +420,7 @@ namespace CommandCenter.Pages.Tools
                 {
                     foreach (var entry in Enumerable.Reverse(made))
                         BackupService.Undo(entry);
+                    AppState.ForgetHotkeys();
                     _ = AppState.RefreshHealthAsync();
                     Views.Main.Toast(Loc.T("All fixes undone"));
                 });
@@ -525,7 +529,10 @@ namespace CommandCenter.Pages.Tools
             try
             {
                 if (BackupService.Undo(entry))
+                {
+                    AppState.ForgetHotkeys();
                     Views.Main.Toast(Loc.T("Undone: {0}", Plain(entry.Title)));
+                }
                 else
                     Views.Main.Toast(Loc.T("Changed again since, so this cannot be undone here"), isError: true);
             }

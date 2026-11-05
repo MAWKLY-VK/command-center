@@ -47,7 +47,10 @@ namespace CommandCenter
             // Screenshots skip the update check unless a manifest is given
             if (App.Arg("--update-url") != null || !App.HasArg("--capture"))
                 _updateCheck = CheckUpdateAsync();
+            bool stepDue = !AppSettings.Current.EnglishOnlyStepDone;
             _englishOnlyStep = RunEnglishOnlyStepAsync();
+            if (stepDue)
+                AppState.ReadHotkeysAfter(_englishOnlyStep);
         }
 
         // ── Navigation ──
@@ -379,6 +382,7 @@ namespace CommandCenter
                 Toast(reason, isError: true);
                 return;
             }
+            AppState.ForgetHotkeys();
             _ = AppState.RefreshHealthAsync();
             Toast("The Arabic game text is back. Health can remove it later.");
         }

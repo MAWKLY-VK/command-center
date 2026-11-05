@@ -1,19 +1,11 @@
 using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 // The language is a setting for the whole program (Loc), so tests that switch it must not run at the same time as others
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace CommandCenter.Tests
 {
-    internal static class TestStartup
-    {
-        // The services get their WPF pieces from the App at startup (AppServices); the tests need them as well
-        [ModuleInitializer]
-        internal static void ConnectWpf() => AppServices.ConnectWpf();
-    }
-
     // A file in the temporary folder that is deleted when the test ends
     internal sealed class TempFile : IDisposable
     {

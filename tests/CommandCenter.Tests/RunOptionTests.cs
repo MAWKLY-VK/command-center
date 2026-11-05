@@ -28,20 +28,6 @@ namespace CommandCenter.Tests
         }
     }
 
-    public class ArialWidthTests
-    {
-        // Arial has 2048 units per em, "A" is 1366 of them wide and a space 569. Latin text counts at 9/10 of that.
-        [Fact]
-        public void Latin_letters_count_at_nine_tenths_of_their_arial_width()
-        {
-            Assert.Equal(1366 / 2048.0 * 0.9, ArabicShaping.Width("A"), 9);
-            Assert.Equal((1366 + 569) / 2048.0 * 0.9, ArabicShaping.Width("A "), 9);
-        }
-
-        [Fact]
-        public void A_character_arial_lacks_counts_as_half_an_em() => Assert.Equal(0.5, ArabicShaping.Width("\uE000"), 9);
-    }
-
     public class GameKeyNameTests
     {
         [Theory]

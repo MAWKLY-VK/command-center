@@ -19,6 +19,7 @@ namespace CommandCenter
         public static event Action? ReplaysChanged;
 
         private static Task<HotkeyService?>? _hotkeys;
+        private static Task _readHotkeysAfter = Task.CompletedTask;
 
         public static int ProblemCount => Health.Count(h => h.Status == HealthStatus.Problem);
         public static int WarningCount => Health.Count(h => h.Status == HealthStatus.Warning);
@@ -52,15 +53,21 @@ namespace CommandCenter
 
         public static Task<HotkeyService?> Hotkeys()
         {
-            _hotkeys ??= Task.Run<HotkeyService?>(() =>
+            _hotkeys ??= Task.Run<HotkeyService?>(async () =>
             {
+                // The step logs its own errors; the hotkeys are read either way
+                try { await _readHotkeysAfter; }
+                catch { }
                 try { return HotkeyService.Load(GamePaths.Game); }
                 catch { return null; }
             });
             return _hotkeys;
         }
 
-        // The community data patch changes which buttons and keys the game has, so the hotkeys are read again
+        // The first start's one-time step can change the game's text table, so the hotkeys are read after it
+        public static void ReadHotkeysAfter(Task step) => _readHotkeysAfter = step;
+
+        // The hotkeys are read again next time: the game folder, the community data patch or the game's text changed
         public static void ForgetHotkeys() => _hotkeys = null;
 
         // Built from the same texts as the real checks, so they show translated

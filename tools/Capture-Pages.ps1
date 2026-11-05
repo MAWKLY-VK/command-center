@@ -37,7 +37,7 @@ $pages = @(
     'tools:replays',
     'tools:hotkeys:buttons', 'tools:hotkeys:keys', 'tools:hotkeys:letters',
     'tools:addons',
-    'options:language', 'options:game', 'options:camera', 'options:chat', 'options:input', 'options:graphics',
+    'options:game', 'options:camera', 'options:chat', 'options:input', 'options:graphics',
     'options:social', 'options:network', 'options:datapacks', 'options:plugins', 'options:launcher'
 )
 # The pages that show the made-up health problems

@@ -815,15 +815,12 @@ namespace CommandCenter.Core.Content
             Reload();
         }
 
+        // A changed button gets the game's own name with the new key, also in a table that still holds 0.4.0's Arabic
+        // game text
         internal byte[] BuildCsf()
         {
-            // With the Arabic game text on, a changed button keeps its Arabic name and gets the new key
-            bool arabic = ArabicGameText.IsIn(_csf);
             foreach (var (label, key) in _pendingKeys)
-            {
-                string english = _originalCsf.Get(label) ?? "";
-                _csf.Set(label, (arabic ? ArabicGameText.LabelFor(label, english, key) : null) ?? LabelText(english, key));
-            }
+                _csf.Set(label, LabelText(_originalCsf.Get(label) ?? "", key));
             return _csf.ToBytes();
         }
 

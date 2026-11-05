@@ -58,11 +58,9 @@
 
             <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Focusable="False">
             <StackPanel Margin="0,8,0,0">
-                <RadioButton x:Name="rbLanguage" Content="LANGUAGE" GroupName="OptionsTabs"
+                <RadioButton x:Name="rbGame" Content="{l:T GAME FOLDER}" GroupName="OptionsTabs"
                              Style="{StaticResource NavTabStyle}" IsChecked="True"
                              Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbGame" Content="{l:T GAME FOLDER}" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
                 <RadioButton x:Name="rbCamera" Content="{l:T CAMERA}" GroupName="OptionsTabs"
                              Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
                 <RadioButton x:Name="rbChat" Content="{l:T CHAT}" GroupName="OptionsTabs"
@@ -97,50 +95,8 @@
 
             <!-- All panels overlap in the same cell — only one visible at a time -->
             <Grid>
-                <!-- CAMERA -->
-                <!-- LANGUAGE: Command Center's own interface language -->
-                <StackPanel x:Name="PanelLanguage" Visibility="Visible">
-                    <TextBlock Text="{l:T LANGUAGE}" Style="{StaticResource SectionHeaderStyle}"/>
-                    <!-- Both cards as wide as the wider one -->
-                    <StackPanel MaxWidth="760" HorizontalAlignment="Left">
-                    <Border Style="{StaticResource GlassCardStyle}" Padding="18,14">
-                        <DockPanel>
-                            <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="12" Background="#29B07AFF" Margin="0,0,14,0">
-                                <c:Icon Kind="globe" Width="20" Height="20" Foreground="#C3A0FF"/>
-                            </Border>
-                            <ComboBox x:Name="cmbLanguage" DockPanel.Dock="Right" Width="200" Height="36" Margin="16,0,0,0"
-                                      VerticalAlignment="Center" SelectionChanged="CmbLanguage_SelectionChanged"/>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="{l:T Interface language}" FontSize="15" FontWeight="Bold"/>
-                                <TextBlock Text="{l:T Command Center restarts to switch the language.}" Style="{StaticResource HintStyle}" Margin="0,2,0,0"/>
-                            </StackPanel>
-                        </DockPanel>
-                    </Border>
-
-                    <!-- The game's own text in Arabic (ArabicGameText) -->
-                    <Border Style="{StaticResource GlassCardStyle}" Padding="18,14" Margin="0,12,0,0">
-                        <StackPanel>
-                            <DockPanel>
-                                <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="12" Background="#2452D273" Margin="0,0,14,0">
-                                    <c:Icon Kind="monitor" Width="20" Height="20" Foreground="#7BE39A"/>
-                                </Border>
-                                <Button x:Name="btnArabicOn" DockPanel.Dock="Right" Content="{l:T TURN ON}" Style="{StaticResource GoldButtonStyle}"
-                                        MinWidth="90" Margin="10,0,0,0" VerticalAlignment="Center" Click="ArabicOn_Click"/>
-                                <Button x:Name="btnArabicOff" DockPanel.Dock="Right" Content="{l:T TURN OFF}" Style="{StaticResource DiagButtonStyle}"
-                                        Margin="16,0,0,0" VerticalAlignment="Center" Click="ArabicOff_Click"/>
-                                <StackPanel VerticalAlignment="Center">
-                                    <TextBlock Text="{l:T Game text in Arabic (test)}" FontSize="15" FontWeight="Bold"/>
-                                    <TextBlock x:Name="txtArabicState" Style="{StaticResource HintStyle}" Margin="0,2,0,0" TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </DockPanel>
-                            <StackPanel x:Name="panelArabicNotes" Margin="56,10,0,0"/>
-                        </StackPanel>
-                    </Border>
-                    </StackPanel>
-                </StackPanel>
-
                 <!-- GAME FOLDER: which Zero Hour this launcher plays, and where the game keeps its data -->
-                <StackPanel x:Name="PanelGame" Visibility="Collapsed">
+                <StackPanel x:Name="PanelGame" Visibility="Visible">
                     <TextBlock Text="{l:T GAME FOLDER}" Style="{StaticResource SectionHeaderStyle}"/>
                     <Border Style="{StaticResource GlassCardStyle}" Padding="18,16" MaxWidth="760" HorizontalAlignment="Stretch">
                         <StackPanel>
@@ -191,6 +147,7 @@
                     </Border>
                 </StackPanel>
 
+                <!-- CAMERA -->
                 <StackPanel x:Name="PanelCamera" Visibility="Collapsed">
                     <TextBlock Text="{l:T CAMERA}" Style="{StaticResource SectionHeaderStyle}"/>
                     <Grid Margin="0,0,0,12">
