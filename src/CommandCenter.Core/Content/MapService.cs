@@ -56,6 +56,21 @@ namespace CommandCenter.Core.Content
         // Installs every map folder found under a folder or inside a .zip. Returns the installed map names.
         public static List<string> Install(string source)
         {
+            try
+            {
+                var installed = InstallFrom(source);
+                OperationLog.Done("install map", source, installed.Count > 0 ? string.Join(", ", installed) : "No map found");
+                return installed;
+            }
+            catch (Exception error)
+            {
+                OperationLog.Failed("install map", source, error.Message);
+                throw;
+            }
+        }
+
+        private static List<string> InstallFrom(string source)
+        {
             string? temp = null;
             try
             {
@@ -117,13 +132,12 @@ namespace CommandCenter.Core.Content
             }
         }
 
-        public static void Remove(MapEntry map)
-        {
-            Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(
-                map.FolderPath,
-                Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
-                Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
-        }
+        public static void Remove(MapEntry map) =>
+            OperationLog.Record("remove map", map.FolderPath, "To the Recycle Bin", () =>
+                Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(
+                    map.FolderPath,
+                    Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                    Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin));
 
         // Multiplayer maps place one waypoint per start position: Player_1_Start, Player_2_Start, ...
         public static int CountPlayers(string mapFile)

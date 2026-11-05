@@ -760,7 +760,24 @@ namespace CommandCenter.Core.Content
             return files;
         }
 
+        // Writes the changed keys; returns the files saved, for example "generals.csf and CommandMap.ini"
         public string Save()
+        {
+            string game = _files.LoosePath("");
+            try
+            {
+                string saved = SaveFiles();
+                OperationLog.Done("save hotkeys", game, saved.Length > 0 ? saved : "Nothing changed");
+                return saved;
+            }
+            catch (Exception error)
+            {
+                OperationLog.Failed("save hotkeys", game, error.Message);
+                throw;
+            }
+        }
+
+        private string SaveFiles()
         {
             var parts = new List<string>();
             int buttons = _pendingKeys.Count(p => p.Value != SavedKeyFor(p.Key));

@@ -27,6 +27,7 @@
   <!-- The services use each other across folders -->
   <ItemGroup>
     <Using Include="CommandCenter.Core.Content" />
+    <Using Include="CommandCenter.Core.Diagnostics" />
     <Using Include="CommandCenter.Core.Game" />
     <Using Include="CommandCenter.Core.Imaging" />
     <Using Include="CommandCenter.Core.Integrity" />

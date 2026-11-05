@@ -79,7 +79,10 @@ namespace CommandCenter.Core.Updates
         }
 
         // Downloads the new program to a temporary file and checks its SHA-256. Returns the file's path.
-        public static async Task<string> DownloadAsync(UpdateInfo update, IProgress<(long Done, long Total)> progress)
+        public static Task<string> DownloadAsync(UpdateInfo update, IProgress<(long Done, long Total)> progress) =>
+            OperationLog.RecordAsync("download update", update.Url, "Version " + update.VersionText, () => DownloadFileAsync(update, progress));
+
+        private static async Task<string> DownloadFileAsync(UpdateInfo update, IProgress<(long Done, long Total)> progress)
         {
             string temp = Path.Combine(Path.GetTempPath(), $"CommandCenter-{update.Version.ToString(3)}.exe.download");
             using var stall = new CancellationTokenSource();
@@ -152,7 +155,10 @@ namespace CommandCenter.Core.Updates
 
         // Puts the downloaded program in place of this one. Windows lets a running program be renamed but not
         // deleted, so this copy is moved aside as <name>.old.exe and removed by the next start.
-        public static void Install(string downloaded)
+        public static void Install(string downloaded) =>
+            OperationLog.Record("install update", Environment.ProcessPath ?? "", "From " + downloaded, () => ReplaceProgram(downloaded));
+
+        private static void ReplaceProgram(string downloaded)
         {
             var (exe, staged, old) = Files();
             try
@@ -179,18 +185,19 @@ namespace CommandCenter.Core.Updates
         }
 
         // Starts the new program with the same arguments; the caller then closes this one
-        public static void Restart()
-        {
-            var (exe, _, _) = Files();
-            var start = new ProcessStartInfo(exe) { UseShellExecute = false, WorkingDirectory = Environment.CurrentDirectory };
-            foreach (string arg in Environment.GetCommandLineArgs().Skip(1))
+        public static void Restart() =>
+            OperationLog.Record("restart", Environment.ProcessPath ?? "", "After the update", () =>
             {
-                // The test switch is not passed on, so a wrong manifest cannot cause an update loop
-                if (!arg.Equals("--update-auto", StringComparison.OrdinalIgnoreCase))
-                    start.ArgumentList.Add(arg);
-            }
-            Process.Start(start)?.Dispose();
-        }
+                var (exe, _, _) = Files();
+                var start = new ProcessStartInfo(exe) { UseShellExecute = false, WorkingDirectory = Environment.CurrentDirectory };
+                foreach (string arg in Environment.GetCommandLineArgs().Skip(1))
+                {
+                    // The test switch is not passed on, so a wrong manifest cannot cause an update loop
+                    if (!arg.Equals("--update-auto", StringComparison.OrdinalIgnoreCase))
+                        start.ArgumentList.Add(arg);
+                }
+                Process.Start(start)?.Dispose();
+            });
 
         // Removes the copy an earlier update moved aside. That program may still be closing, so this keeps trying for a while.
         public static void CleanUp()

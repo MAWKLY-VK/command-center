@@ -170,7 +170,7 @@ namespace CommandCenter.Pages
             int before = BackupService.Load().Count;
             try
             {
-                result.Fix!();
+                OperationLog.Record("fix", result.Id, result.Title.ToString(), result.Fix!);
             }
             catch (Exception ex)
             {

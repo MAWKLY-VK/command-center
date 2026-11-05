@@ -43,17 +43,21 @@ namespace CommandCenter.Core.Game
 
         private static void Start(string exe, string arguments)
         {
-            // The game window comes from a process started by the anti-cheat launcher, not by us. Windows only lets it
-            // take the foreground if we pass that right on while we still hold it; without this the full-screen game
-            // opens behind and drops to the taskbar. The official launcher does the same.
-            AllowSetForegroundWindow(AnyProcess);
-
-            var info = new ProcessStartInfo(Path.Combine(GamePaths.Game, exe), arguments)
+            string path = Path.Combine(GamePaths.Game, exe);
+            OperationLog.Record("launch game", path, arguments, () =>
             {
-                WorkingDirectory = GamePaths.Game,
-                UseShellExecute = false,
-            };
-            Process.Start(info)?.Dispose();
+                // The game window comes from a process started by the anti-cheat launcher, not by us. Windows only lets it
+                // take the foreground if we pass that right on while we still hold it; without this the full-screen game
+                // opens behind and drops to the taskbar. The official launcher does the same.
+                AllowSetForegroundWindow(AnyProcess);
+
+                var info = new ProcessStartInfo(path, arguments)
+                {
+                    WorkingDirectory = GamePaths.Game,
+                    UseShellExecute = false,
+                };
+                Process.Start(info)?.Dispose();
+            });
         }
 
         // The game, its anti-cheat launcher and the game's own updater. The official launcher stays open next to the

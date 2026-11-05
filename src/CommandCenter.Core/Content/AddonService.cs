@@ -88,7 +88,12 @@ namespace CommandCenter.Core.Content
             Packages.FirstOrDefault(p => p.Kind == kind && (kind != BarKind.Pro || p.Resolution == resolution));
 
         // Moves the current bar out (quarantine, so Undo can bring it back), then installs the chosen one
-        public static async Task<List<BackupEntry>> ApplyAsync(BarKind kind, string? resolution, IProgress<string>? progress = null)
+        public static Task<List<BackupEntry>> ApplyAsync(BarKind kind, string? resolution, IProgress<string>? progress = null) =>
+            OperationLog.RecordAsync("install add-on", GamePaths.Game,
+                kind == BarKind.Pro ? $"Control bar {kind} {resolution}" : $"Control bar {kind}",
+                () => ApplyBarAsync(kind, resolution, progress));
+
+        private static async Task<List<BackupEntry>> ApplyBarAsync(BarKind kind, string? resolution, IProgress<string>? progress)
         {
             if (GameLauncher.IsGameRunning())
                 throw new InvalidOperationException("Close the game first; it keeps its archives open.");

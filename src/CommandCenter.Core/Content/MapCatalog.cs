@@ -303,9 +303,12 @@ namespace CommandCenter.Core.Content
         public static string Remove(MapInfo map)
         {
             string folder = Path.Combine(RemovedFolder, DateTime.Now.ToString("yyyyMMdd-HHmmss-fff"));
-            Directory.CreateDirectory(folder);
             string target = Path.Combine(folder, Path.GetFileName(map.Folder));
-            Directory.Move(map.Folder, target);
+            OperationLog.Record("remove map", map.Folder, "Moved to " + target, () =>
+            {
+                Directory.CreateDirectory(folder);
+                Directory.Move(map.Folder, target);
+            });
             return target;
         }
     }

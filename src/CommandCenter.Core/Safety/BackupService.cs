@@ -91,7 +91,10 @@ namespace CommandCenter.Core.Safety
                 throw new InvalidOperationException(Loc.T(GameRunningMessage));
         }
 
-        public static BackupEntry WriteFile(string title, string target, byte[] content, string detail = "")
+        public static BackupEntry WriteFile(string title, string target, byte[] content, string detail = "") =>
+            OperationLog.Record("write", target, OperationLog.Describe(title, detail), () => Write(title, target, content, detail));
+
+        private static BackupEntry Write(string title, string target, byte[] content, string detail)
         {
             EnsureAllowed(target);
             EnsureGameClosed(target);
@@ -124,7 +127,10 @@ namespace CommandCenter.Core.Safety
         }
 
         // Moves a file into the launcher's quarantine folder; undo moves it back.
-        public static BackupEntry MoveToQuarantine(string title, string path, string detail = "")
+        public static BackupEntry MoveToQuarantine(string title, string path, string detail = "") =>
+            OperationLog.Record("quarantine", path, OperationLog.Describe(title, detail), () => Quarantine(title, path, detail));
+
+        private static BackupEntry Quarantine(string title, string path, string detail)
         {
             EnsureAllowed(path);
             EnsureGameClosed(path);
@@ -150,7 +156,11 @@ namespace CommandCenter.Core.Safety
         }
 
         // Sets (or deletes, when newValue is null) a string value under HKEY_CURRENT_USER, keeping the old one.
-        public static BackupEntry SetUserRegistryValue(string title, string key, string valueName, string? newValue, string detail = "")
+        public static BackupEntry SetUserRegistryValue(string title, string key, string valueName, string? newValue, string detail = "") =>
+            OperationLog.Record("registry", $@"HKCU\{key}\{valueName}", OperationLog.Describe(title, detail),
+                () => SetRegistry(title, key, valueName, newValue, detail));
+
+        private static BackupEntry SetRegistry(string title, string key, string valueName, string? newValue, string detail)
         {
             using var regKey = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(key);
             string? old = regKey.GetValue(valueName) as string;
@@ -178,7 +188,10 @@ namespace CommandCenter.Core.Safety
         }
 
         // Clears the read-only flag on files; undo sets it again on the same files.
-        public static BackupEntry ClearReadOnly(string title, string folder, IEnumerable<string> paths, string detail = "")
+        public static BackupEntry ClearReadOnly(string title, string folder, IEnumerable<string> paths, string detail = "") =>
+            OperationLog.Record("clear read-only", folder, OperationLog.Describe(title, detail), () => ClearReadOnlyFlags(title, folder, paths, detail));
+
+        private static BackupEntry ClearReadOnlyFlags(string title, string folder, IEnumerable<string> paths, string detail)
         {
             var cleared = new List<string>();
             try
@@ -253,10 +266,13 @@ namespace CommandCenter.Core.Safety
             if (!CanUndo(entry))
                 return false;
 
-            Restore(entry);
-            var entries = Load();
-            entries.RemoveAll(e => e.Id == entry.Id);
-            Save(entries);
+            OperationLog.Record("undo", entry.Target, OperationLog.Describe(entry.Title, entry.Detail), () =>
+            {
+                Restore(entry);
+                var entries = Load();
+                entries.RemoveAll(e => e.Id == entry.Id);
+                Save(entries);
+            });
             return true;
         }
 
@@ -270,11 +286,14 @@ namespace CommandCenter.Core.Safety
             if (forTarget.Count == 0)
                 return false;
 
-            Restore(forTarget[0]);
-            foreach (var entry in forTarget.Skip(1).Where(e => e.BackupFile != null && e.Kind == "file"))
-                TryDelete(entry.BackupFile!);
-            entries.RemoveAll(e => forTarget.Contains(e));
-            Save(entries);
+            OperationLog.Record("restore original", target, forTarget[0].Title, () =>
+            {
+                Restore(forTarget[0]);
+                foreach (var entry in forTarget.Skip(1).Where(e => e.BackupFile != null && e.Kind == "file"))
+                    TryDelete(entry.BackupFile!);
+                entries.RemoveAll(e => forTarget.Contains(e));
+                Save(entries);
+            });
             return true;
         }
 
@@ -332,17 +351,19 @@ namespace CommandCenter.Core.Safety
         public static void SendFile(string path)
         {
             if (File.Exists(path))
-                Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(path,
-                    Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
-                    Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+                OperationLog.Record("recycle", path, "", () =>
+                    Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(path,
+                        Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                        Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin));
         }
 
         public static void SendFolder(string path)
         {
             if (Directory.Exists(path))
-                Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(path,
-                    Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
-                    Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin);
+                OperationLog.Record("recycle", path, "", () =>
+                    Microsoft.VisualBasic.FileIO.FileSystem.DeleteDirectory(path,
+                        Microsoft.VisualBasic.FileIO.UIOption.OnlyErrorDialogs,
+                        Microsoft.VisualBasic.FileIO.RecycleOption.SendToRecycleBin));
         }
     }
 }
