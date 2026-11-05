@@ -190,12 +190,11 @@ namespace CommandCenter.Core.Updates
             {
                 var (exe, _, _) = Files();
                 var start = new ProcessStartInfo(exe) { UseShellExecute = false, WorkingDirectory = Environment.CurrentDirectory };
-                foreach (string arg in Environment.GetCommandLineArgs().Skip(1))
-                {
-                    // The test switch is not passed on, so a wrong manifest cannot cause an update loop
-                    if (!arg.Equals("--update-auto", StringComparison.OrdinalIgnoreCase))
-                        start.ArgumentList.Add(arg);
-                }
+                // The test switch is not passed on, so a wrong manifest cannot cause an update loop. The new copy waits for
+                // this one to close before it takes the single-copy lock.
+                var args = Environment.GetCommandLineArgs().Skip(1).Where(a => !a.Equals("--update-auto", StringComparison.OrdinalIgnoreCase));
+                foreach (string arg in SingleInstance.ArgumentsForRestart(args))
+                    start.ArgumentList.Add(arg);
                 Process.Start(start)?.Dispose();
             });
 

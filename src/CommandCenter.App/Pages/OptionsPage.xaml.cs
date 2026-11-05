@@ -797,13 +797,14 @@ namespace CommandCenter.Pages
             AppSettings.Current.Save();
             SaveGameSettings();
 
-            // Same arguments as this run, without a language given on the command line
+            // Same arguments as this run, without a language given on the command line; the new copy waits for this
+            // one to close before it takes the single-copy lock
             var args = Environment.GetCommandLineArgs().Skip(1).ToList();
             int lang = args.FindIndex(a => a.Equals("--lang", StringComparison.OrdinalIgnoreCase));
             if (lang >= 0)
                 args.RemoveRange(lang, Math.Min(2, args.Count - lang));
             var start = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false };
-            foreach (string arg in args)
+            foreach (string arg in SingleInstance.ArgumentsForRestart(args))
                 start.ArgumentList.Add(arg);
             System.Diagnostics.Process.Start(start)?.Dispose();
             Application.Current.Shutdown();

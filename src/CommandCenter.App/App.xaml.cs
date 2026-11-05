@@ -17,9 +17,26 @@ namespace CommandCenter
 
         public static bool HasArg(string name) => Environment.GetCommandLineArgs().Any(a => a.Equals(name, StringComparison.OrdinalIgnoreCase));
 
+        // One Command Center per data folder (decision D2); null when this copy closed because another one runs
+        private SingleInstance? _instance;
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+
+            // A second copy for the same data folder brings the first one to the front and closes quietly
+            string[] commandLine = Environment.GetCommandLineArgs();
+            _instance = SingleInstance.Acquire(GamePaths.UserData, SingleInstance.RestartOf(commandLine));
+            if (!_instance.IsFirst)
+            {
+                _instance.AskFirstToShow();
+                _instance.Dispose();
+                _instance = null;
+                Shutdown();
+                return;
+            }
+            _instance.OnShowRequested(() => Dispatcher.BeginInvoke(ShowWindowAgain));
+
             DispatcherUnhandledException += OnUnhandled;
             // A background task that fails with nobody waiting for it (a refresh, a download) would vanish without a trace
             TaskScheduler.UnobservedTaskException += (_, args) =>
@@ -28,7 +45,7 @@ namespace CommandCenter
                 LogError(args.Exception);
             };
             // The run options reach the services before anything reads them
-            AppServices.Configure(Environment.GetCommandLineArgs());
+            AppServices.Configure(commandLine);
             UpdateService.CleanUp();
 
             // Generals Online's current program names and service address, in the background
@@ -51,9 +68,23 @@ namespace CommandCenter
                 window.Show();
         }
 
+        // Another copy was started for this data folder: show this one instead, restored if it was minimized
+        private void ShowWindowAgain()
+        {
+            if (MainWindow is not { IsLoaded: true } window)
+                return;
+            if (window.WindowState == WindowState.Minimized)
+                window.WindowState = WindowState.Normal;
+            window.Show();
+            window.Activate();
+        }
+
         // Next to --capture screenshots, list the wrapped strings that still have no translation
         protected override void OnExit(ExitEventArgs e)
         {
+            // On the UI thread, which took the lock in OnStartup
+            _instance?.Dispose();
+
             if (Arg("--capture") is { } folder && Loc.Language != "en")
             {
                 try
