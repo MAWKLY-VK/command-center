@@ -31,10 +31,15 @@ Generals Online launcher.
 - Nothing in the game folder, `Options.ini` or `settings.json` is changed while the game is running.
 - Generals Online's `settings.json` and `launcher.json` are only written when you change a setting, and only the settings you changed;
   fields Command Center does not know stay as they are. The anti-cheat choice is never changed for you.
+- Changes stay inside the game folder and the game's Documents folder, also when a folder in them links somewhere else.
 - No DLL injection, no handles opened to the game process, no changes to Generals Online's program files.
+- Command Center starts only the programs it needs: Explorer, the firewall settings, the game's own programs and itself after an update.
 - Hotkeys and control bars do not take part in the multiplayer check, so they never cause a mismatch.
-- The network diagnostics contact only Generals Online's servers and Cloudflare, and run no speed test. They show your country (read over HTTPS from Cloudflare), not your internet provider, and the copied report hides the last part of your address.
-- A failure that shows no message is written to `errors.log` in Command Center's folder, to attach to a bug report.
+- Updates, the Generals Online profile and the online map library are used only with the maintainer's signature ([ADR 0007](docs/adr/0007-ecdsa-signed-manifests.md)).
+- Map zips are checked before anything is installed: their size, number of files, compression and file names. A map installed over another one keeps a backup of each file it replaces, with Undo.
+- Downloads follow the Windows proxy setting. The network diagnostics still test the direct route the game uses.
+- The network diagnostics contact only Generals Online's servers and Cloudflare, and run no speed test. They show your country (read over HTTPS from Cloudflare), not your internet provider. The copied reports hide the last part of IPv4 addresses, all but the start of IPv6 addresses, and your Windows user and PC names.
+- A failure that shows no message, and each damaged file that was skipped, is written to `errors.log` in Command Center's folder, to attach to a bug report.
 
 ## Next to the official launcher
 
@@ -49,7 +54,7 @@ Command Center is a companion, not a replacement. It works alongside the General
 
 ### Following Generals Online changes
 
-Generals Online's program names, the anti-cheat plugin name, the `launcher.json` channel key, which channels start through Easy Anti-Cheat and the service address live in [go-profile.json](go-profile.json). Every copy of Command Center reads it from this repository when it starts and keeps the last good one, so a rename by Generals Online is fixed by editing that file, without a new release. A profile is ignored unless every program is a plain `.exe` name (no folders) and the address is on `playgenerals.online` over https.
+Generals Online's program names, the anti-cheat plugin name, the `launcher.json` channel key, which channels start through Easy Anti-Cheat and the service address live in [go-profile.json](go-profile.json). Every copy of Command Center reads it from this repository when it starts and keeps the last good one, so a rename by Generals Online is fixed by editing that file, without a new release. A profile is ignored unless every program is a plain `.exe` name (no folders) and the address is on `playgenerals.online` over https. From 0.5.0 it is also ignored without a valid signature in `go-profile.json.sig`, so every change to it is signed again with `tools/Sign-File.cs`.
 
 Health compares the installed live client with the fingerprint Generals Online publishes for its own update check (`VersionManifest`, a CRC-32 of the whole file); the file is only read.
 
@@ -69,22 +74,32 @@ the game's text in Arabic; both are gone.
 Needs Windows 10 or 11 and the .NET 10 SDK.
 
 ```
-dotnet build CommandCenter/CommandCenter.csproj -c Release
+dotnet build CommandCenter.slnx -c Release
 ```
 
-The program is `CommandCenter/bin/Release/net10.0-windows/CommandCenter.exe`. `CommandCenter.slnx` opens it together with its tests.
+The program is `src/CommandCenter.App/bin/Release/net10.0-windows/CommandCenter.exe`. `CommandCenter.slnx` holds it,
+its services (`src/CommandCenter.Core`) and the tests.
 
 The tests run 32-bit like the program, so they also need the x86 .NET 10 runtime (the Generals Online launcher installs it):
 
 ```
-dotnet test CommandCenter.Tests/CommandCenter.Tests.csproj
+dotnet test tests/CommandCenter.Tests/CommandCenter.Tests.csproj -c Release
 ```
 
-GitHub builds and tests every push and pull request (`.github/workflows/build.yml`) and keeps the built program for two weeks.
+Package versions are locked in each project's `packages.lock.json`; after changing a package, run `dotnet restore` and
+commit the lock files. GitHub builds and tests every push and pull request (`.github/workflows/build.yml`) on the
+32-bit SDK, restores only what the lock files name, and keeps the built program for two weeks.
 
 To make a release, run `tools\publish.ps1 -Notes "What changed"`. It writes a single-file `publish\CommandCenter.exe`
-(about 3 MB) and `publish\update.json`; attach both to a GitHub release tagged `v<version>`. Older copies of
-Command Center then stop working until they update.
+(about 3 MB) and `publish\update.json`. Then sign `update.json` with the maintainer's key (you type the password); its
+signed part stays valid for one year:
+
+```
+dotnet run --file tools/Sign-File.cs -- update publish/update.json <key file>
+```
+
+Attach both files to a GitHub release tagged `v<version>`, with the manual rollback steps from [Updates](#updates) in
+its notes. Older copies of Command Center then stop working until they update.
 
 ## Running
 
@@ -105,10 +120,33 @@ libraries. Options › Game folder shows which copy is used and lets you pick an
 | `--samples` | Add sample health problems to review the layout (their fixes do nothing) |
 | `--drawn-backdrop` | Show the background that copies without Steam art get |
 | `--update-url <url or file>` | Read the update manifest (`update.json`) from here instead of the latest GitHub release; a local file works for testing |
-| `--go-profile <file>` | Use this Generals Online profile instead of the one in this repository (for testing) |
+| `--go-profile <file>` | Use this Generals Online profile instead of the one in this repository (for testing); its `.sig` must sit next to it |
+| `--test-key <public key file>` | Test builds only (`-p:TestKeys=true`): also trust this key and allow an update from a local file, to try the update path. Never published |
 
 Command Center keeps its own files in `Documents\Command and Conquer Generals Zero Hour Data\CommandCenter`
 (backups, quarantine, map cache, settings).
+
+## Updates
+
+An older copy stops working until the new version is installed. The update screen downloads the new program, checks
+it and puts it in place of the old one. When Command Center's folder needs administrator rights, Windows asks for
+permission for that step only.
+
+An update is offered only when the signed part of `update.json` passes every check: the maintainer's signature, a newer
+version, an expiry date one year after signing that has not passed, and a download from this repository's releases.
+The downloaded program must then have that SHA-256 and that version, or nothing is replaced.
+
+The previous version stays next to the new one as `CommandCenter.old.exe` until the new one has stayed open for 30
+seconds or was closed normally. If Windows cannot start the new version at all, the previous one is put back
+automatically and the update screen says why.
+
+If the new version starts and then fails, put the previous one back by hand:
+
+1. Close Command Center.
+2. In its folder, delete `CommandCenter.exe`.
+3. Rename `CommandCenter.old.exe` to `CommandCenter.exe`.
+
+The previous version asks for the update again at its next start.
 
 ## License
 

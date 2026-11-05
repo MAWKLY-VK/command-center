@@ -18,12 +18,22 @@ namespace CommandCenter
         // One Command Center per data folder (decision D2); null when this copy closed because another one runs
         private SingleInstance? _instance;
 
+        // Set once the window was shown in a normal start: a normal close then counts as a successful start
+        private bool _shown;
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
-            // A second copy for the same data folder brings the first one to the front and closes quietly
+            // A copy that Windows started as administrator for one step of an update does that step and nothing else
             string[] commandLine = Environment.GetCommandLineArgs();
+            if (UpdateService.AdministratorStep(commandLine) is { } stepResult)
+            {
+                Shutdown(stepResult);
+                return;
+            }
+
+            // A second copy for the same data folder brings the first one to the front and closes quietly
             try
             {
                 _instance = SingleInstance.Acquire(GamePaths.UserData, SingleInstance.RestartOf(commandLine));
@@ -31,7 +41,7 @@ namespace CommandCenter
             catch (Exception ex)
             {
                 // For example a copy started as administrator holds the names: run without the lock rather than not at all
-                LogError(ex);
+                ErrorLog.Write(ex);
                 _instance = null;
             }
             if (_instance is { IsFirst: false })
@@ -49,7 +59,7 @@ namespace CommandCenter
             TaskScheduler.UnobservedTaskException += (_, args) =>
             {
                 args.SetObserved();
-                LogError(args.Exception);
+                ErrorLog.Write(args.Exception);
             };
             // The run options reach the services before anything reads them
             AppServices.Configure(commandLine);
@@ -62,9 +72,28 @@ namespace CommandCenter
             MainWindow = window;
 
             if (Arg("--capture") is { } folder)
+            {
                 _ = window.CaptureAsync(folder, Arg("--size") ?? "1600x1000", Arg("--pages"));
+            }
             else
+            {
                 window.Show();
+                RemovePreviousVersionOnceStarted();
+            }
+        }
+
+        // After an update the previous version stays beside this one until this one has stayed open for 30 seconds or is
+        // closed normally (P3-D1)
+        private void RemovePreviousVersionOnceStarted()
+        {
+            _shown = true;
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+            timer.Tick += (_, _) =>
+            {
+                timer.Stop();
+                UpdateService.RemoveOldProgram();
+            };
+            timer.Start();
         }
 
         // Another copy was started for this data folder: show this one instead, restored if it was minimized
@@ -80,29 +109,17 @@ namespace CommandCenter
 
         protected override void OnExit(ExitEventArgs e)
         {
+            if (_shown)
+                UpdateService.RemoveOldProgram();
             // On the UI thread, which took the lock in OnStartup
             _instance?.Dispose();
             base.OnExit(e);
         }
 
-        // errors.log in Command Center's folder, to attach to a bug report; it starts over past 256 KB
-        public static void LogError(Exception ex)
-        {
-            try
-            {
-                Directory.CreateDirectory(GamePaths.AppData);
-                string path = Path.Combine(GamePaths.AppData, "errors.log");
-                if (File.Exists(path) && new FileInfo(path).Length > 256 * 1024)
-                    File.Delete(path);
-                File.AppendAllText(path, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {AppState.Version}  {ex}{Environment.NewLine}{Environment.NewLine}");
-            }
-            catch { }
-        }
-
         private void OnUnhandled(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
             e.Handled = true;
-            LogError(e.Exception);
+            ErrorLog.Write(e.Exception);
             if (MainWindow is MainWindow main && main.IsVisible)
                 main.Toast(string.Format("Something went wrong: {0}", e.Exception.Message), isError: true);
             else

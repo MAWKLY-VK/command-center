@@ -92,9 +92,9 @@ namespace CommandCenter.Pages
             try
             {
                 if (File.Exists(path))
-                    Process.Start("explorer.exe", $"/select,\"{path}\"")?.Dispose();
+                    ProcessRunner.Start(new StartRequest(StartKind.ShowInFolder, path))?.Dispose();
                 else if (Directory.Exists(path))
-                    Process.Start("explorer.exe", $"\"{path}\"")?.Dispose();
+                    ProcessRunner.Start(new StartRequest(StartKind.OpenFolder, path))?.Dispose();
             }
             catch { }
         }
@@ -123,11 +123,11 @@ namespace CommandCenter.Pages
             try
             {
                 if (target == "firewall")
-                    Process.Start(new ProcessStartInfo("control.exe", "firewall.cpl") { UseShellExecute = true })?.Dispose();
+                    ProcessRunner.Start(new StartRequest(StartKind.FirewallSettings))?.Dispose();
                 else if (target.StartsWith("select:"))
                     ShowInFolder(target[7..]);
                 else
-                    Process.Start(new ProcessStartInfo(target) { UseShellExecute = true })?.Dispose();
+                    ProcessRunner.Start(new StartRequest(StartKind.Shell, target))?.Dispose();
             }
             catch (Exception ex)
             {
@@ -135,7 +135,7 @@ namespace CommandCenter.Pages
             }
         }
 
-        // A plain-text summary for the Generals Online Discord; the Windows user and PC names are replaced
+        // A plain-text summary for the Generals Online Discord; addresses and the Windows user and PC names are hidden
         public static void CopySupportReport()
         {
             var sb = new System.Text.StringBuilder();
@@ -144,9 +144,7 @@ namespace CommandCenter.Pages
             sb.AppendLine($"Client {AppState.ClientVersion()} · anti-cheat {GoSettings.Load().AntiCheat} · launcher {AppState.Version}");
             foreach (var h in AppState.Health.OrderByDescending(h => h.Status))
                 sb.AppendLine($"[{h.Status}] {h.Title}: {h.Detail}");
-            string text = sb.ToString()
-                .Replace(Environment.UserName, "<user>", StringComparison.OrdinalIgnoreCase)
-                .Replace(Environment.MachineName, "<pc>", StringComparison.OrdinalIgnoreCase);
+            string text = Redaction.Report(sb.ToString());
             try
             {
                 Clipboard.SetText(text);

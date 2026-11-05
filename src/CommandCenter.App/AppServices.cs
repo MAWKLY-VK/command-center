@@ -12,6 +12,15 @@ namespace CommandCenter
             MapLibraryClient.SourceOverride = Value(args, "--map-library");
             MapLibraryClient.LibraryFolder = Value(args, "--library-folder");
             AppState.Samples = Has(args, "--samples");
+#if TEST_KEYS
+            // Test builds only (built with -p:TestKeys=true and never published): the signed files may also come from the
+            // test key in this file, so the update path can be tried without the maintainer's key
+            if (Value(args, "--test-key") is { } testKey)
+            {
+                ManifestVerifier.TestKey = ManifestVerifier.KeyFromPem(System.IO.File.ReadAllText(testKey));
+                UpdateService.AllowLocalDownloads = true;
+            }
+#endif
         }
 
         // The value after an option, as App.Arg reads it

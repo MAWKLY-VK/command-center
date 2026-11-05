@@ -14,3 +14,14 @@ previous release. The replaced program is kept as `.old.exe` until the new one h
 be rolled back. 0.5.0 carries the smallest change that makes the next updates safe.
 
 Decided with the user on 2026-11-04 (plan sections 6 and 10).
+
+## Rollback
+
+Decided with the user on 2026-11-05 (phase 3, P3-D1), the simpler form, without a watchdog:
+
+- `.old.exe` is removed once the new version has stayed open for 30 seconds or was closed normally.
+- If Windows cannot start the new program at all (missing, blocked by an antivirus, not a valid program), the
+  previous one is put back at once and that version is not offered again in that run.
+- A new version that starts and then fails is put back by hand, as README and the release notes explain.
+- In a folder that needs administrator rights, a copy of Command Center started through Windows' prompt does the
+  replace or the put-back and nothing else. It is the only elevation in Command Center.

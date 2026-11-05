@@ -1,5 +1,4 @@
 using System.IO;
-using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -53,6 +52,9 @@ namespace CommandCenter.Core.Content
             ".map", ".tga", ".ini", ".str", ".txt", ".scb", ".wak",
         };
 
+        // What a map zip gives: those files, at most 64 MB each (the largest map in the library is 2.3 MB)
+        public static readonly ExtractRules ZipRules = new(name => MapFileTypes.Contains(Path.GetExtension(name)), 64L * 1024 * 1024);
+
         // Installs every map folder found under a folder or inside a .zip. Returns the installed map names.
         public static List<string> Install(string source)
         {
@@ -69,17 +71,18 @@ namespace CommandCenter.Core.Content
             }
         }
 
+        // A zip is extracted (and checked) in full before any map is written. Maps already written stay when a later one
+        // in the same zip fails.
         private static List<string> InstallFrom(string source)
         {
-            string? temp = null;
+            string? staging = null;
             try
             {
                 string root = source;
                 if (File.Exists(source) && source.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                 {
-                    temp = Path.Combine(Path.GetTempPath(), "GOLauncherMap-" + Guid.NewGuid().ToString("N"));
-                    ExtractZip(source, temp);
-                    root = temp;
+                    staging = ArchiveExtractor.Extract(source, ZipRules);
+                    root = staging;
                 }
                 else if (!Directory.Exists(source))
                 {
@@ -94,13 +97,14 @@ namespace CommandCenter.Core.Content
                 foreach (string folder in mapFolders.OfType<string>())
                 {
                     string name = Path.GetFileName(folder);
-                    if (string.Equals(folder.TrimEnd('\\'), root.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase) && temp != null)
+                    if (string.Equals(folder.TrimEnd('\\'), root.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase) && staging != null)
                         name = Path.GetFileNameWithoutExtension(Directory.EnumerateFiles(folder, "*.map").First());
+                    if (ArchiveExtractor.NameRefusal(name) is { } reason)
+                        throw new InvalidDataException($"\"{name}\" cannot be a map's name: {reason}.");
 
                     string target = Path.Combine(UserMapsFolder, name);
-                    Directory.CreateDirectory(target);
                     foreach (string file in Directory.EnumerateFiles(folder).Where(f => MapFileTypes.Contains(Path.GetExtension(f))))
-                        File.Copy(file, Path.Combine(target, Path.GetFileName(file)), overwrite: true);
+                        Place(Path.Combine(target, Path.GetFileName(file)), BoundedFile.Read(file, ZipRules.FileLimit), name);
                     installed.Add(name);
                 }
 
@@ -108,28 +112,18 @@ namespace CommandCenter.Core.Content
             }
             finally
             {
-                if (temp != null)
-                {
-                    try { Directory.Delete(temp, recursive: true); } catch { }
-                }
+                if (staging != null)
+                    ArchiveExtractor.Discard(staging);
             }
         }
 
-        // Extracts only map files and refuses entries that would land outside the target folder.
-        private static void ExtractZip(string zipPath, string target)
+        // A new file is written as it is; one that is already there is backed up first, with its own Undo
+        private static void Place(string target, byte[] content, string map)
         {
-            string fullTarget = Path.GetFullPath(target) + Path.DirectorySeparatorChar;
-            using var zip = ZipFile.OpenRead(zipPath);
-            foreach (var entry in zip.Entries)
-            {
-                if (string.IsNullOrEmpty(entry.Name) || !MapFileTypes.Contains(Path.GetExtension(entry.Name)))
-                    continue;
-                string destination = Path.GetFullPath(Path.Combine(target, entry.FullName));
-                if (!destination.StartsWith(fullTarget, StringComparison.OrdinalIgnoreCase))
-                    continue;
-                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-                entry.ExtractToFile(destination, overwrite: true);
-            }
+            if (File.Exists(target))
+                BackupService.WriteFile("Map file replaced", target, content, $"{map} · {Path.GetFileName(target)}");
+            else
+                BackupService.CreateFile(target, content);
         }
 
         public static void Remove(MapEntry map) =>
@@ -144,15 +138,16 @@ namespace CommandCenter.Core.Content
         {
             try
             {
-                byte[] data = File.ReadAllBytes(mapFile);
-                if (RefPack.IsCompressed(data))
-                    data = RefPack.Decompress(data);
-
-                string text = Encoding.ASCII.GetString(data);
+                string text = Encoding.ASCII.GetString(RefPack.ReadMap(mapFile));
                 return Regex.Matches(text, @"Player_(\d)_Start")
                     .Select(m => m.Groups[1].Value)
                     .Distinct()
                     .Count();
+            }
+            catch (InvalidDataException ex)
+            {
+                ErrorLog.Skipped(mapFile, ex.Message);
+                return 0;
             }
             catch
             {
@@ -161,31 +156,44 @@ namespace CommandCenter.Core.Content
         }
     }
 
-    // Maps are stored as "EAR\0" + uncompressed size + a RefPack stream.
+    // Maps are stored as "EAR\0" + uncompressed size + a RefPack stream. A stream that declares more than 64 MB, or more
+    // than its commands can produce, is refused before anything is allocated for it.
     public static class RefPack
     {
+        public const int MaxSize = 64 * 1024 * 1024;
+
+        // The most output one byte of a stream can give: a four-byte command copies at most 1028 bytes
+        private const int MostPerByte = 257;
+
         public static bool IsCompressed(byte[] d) =>
             d.Length > 10 && d[0] == 'E' && d[1] == 'A' && d[2] == 'R' && d[3] == 0;
+
+        // A map file's data, read whole (at most 64 MB) and decompressed when it is compressed
+        public static byte[] ReadMap(string path)
+        {
+            byte[] data = BoundedFile.Read(path, MaxSize);
+            return IsCompressed(data) ? Decompress(data) : data;
+        }
 
         public static byte[] Decompress(byte[] d)
         {
             int p = IsCompressed(d) ? 8 : 0;
+            Need(d, p, 2);
             int flags = d[p];
             p += 2;
             if ((flags & 0x01) != 0)
                 p += (flags & 0x80) != 0 ? 4 : 3;
 
-            int size;
-            if ((flags & 0x80) != 0)
-            {
-                size = (d[p] << 24) | (d[p + 1] << 16) | (d[p + 2] << 8) | d[p + 3];
-                p += 4;
-            }
-            else
-            {
-                size = (d[p] << 16) | (d[p + 1] << 8) | d[p + 2];
-                p += 3;
-            }
+            int sizeBytes = (flags & 0x80) != 0 ? 4 : 3;
+            Need(d, p, sizeBytes);
+            long size = 0;
+            for (int i = 0; i < sizeBytes; i++)
+                size = (size << 8) | d[p + i];
+            p += sizeBytes;
+            if (size > MaxSize)
+                throw new InvalidDataException($"It declares {BoundedFile.Describe(size)} of map data; the most is {BoundedFile.Describe(MaxSize)}.");
+            if (size > (long)(d.Length - p) * MostPerByte)
+                throw new InvalidDataException("It declares more map data than it holds.");
 
             byte[] o = new byte[size];
             int q = 0;
@@ -198,6 +206,7 @@ namespace CommandCenter.Core.Content
 
                 if (b0 < 0x80)
                 {
+                    Need(d, p, 2);
                     int b1 = d[p + 1];
                     plain = b0 & 3;
                     copy = ((b0 & 0x1C) >> 2) + 3;
@@ -206,6 +215,7 @@ namespace CommandCenter.Core.Content
                 }
                 else if (b0 < 0xC0)
                 {
+                    Need(d, p, 3);
                     int b1 = d[p + 1], b2 = d[p + 2];
                     plain = (b1 >> 6) & 3;
                     copy = (b0 & 0x3F) + 4;
@@ -214,6 +224,7 @@ namespace CommandCenter.Core.Content
                 }
                 else if (b0 < 0xE0)
                 {
+                    Need(d, p, 4);
                     int b1 = d[p + 1], b2 = d[p + 2], b3 = d[p + 3];
                     plain = b0 & 3;
                     copy = ((b0 & 0x0C) << 6) + b3 + 5;
@@ -229,12 +240,13 @@ namespace CommandCenter.Core.Content
                 {
                     plain = b0 & 3;
                     p += 1;
+                    Need(d, p, Math.Min(plain, o.Length - q));
                     Array.Copy(d, p, o, q, Math.Min(plain, o.Length - q));
                     break;
                 }
 
                 if (q + plain + copy > o.Length || p + plain > d.Length || offset > q + plain)
-                    throw new InvalidDataException("Corrupt RefPack stream");
+                    throw Damaged();
 
                 Array.Copy(d, p, o, q, plain);
                 p += plain;
@@ -245,5 +257,13 @@ namespace CommandCenter.Core.Content
 
             return o;
         }
+
+        private static void Need(byte[] d, int p, int bytes)
+        {
+            if (p + bytes > d.Length)
+                throw Damaged();
+        }
+
+        private static InvalidDataException Damaged() => new("Its map data is damaged.");
     }
 }

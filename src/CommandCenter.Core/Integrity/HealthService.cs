@@ -40,7 +40,7 @@ namespace CommandCenter.Core.Integrity
         public const string GroupSettings = "Settings";
         public const string GroupNetwork = "Network";
 
-        private const string LayersKey = @"Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers";
+        private const string LayersKey = BackupService.LayersKey;
 
         private static string[] GameExecutables
         {

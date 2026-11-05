@@ -16,29 +16,41 @@ namespace CommandCenter.Core.Game
         private readonly List<Label> _labels = new();
         private readonly Dictionary<string, Label> _byName = new(StringComparer.OrdinalIgnoreCase);
 
+        // Every count and length is checked against what is left of the data before anything is read for it, so a damaged
+        // table throws InvalidDataException instead of allocating what it claims
         public static CsfFile Load(byte[] data)
         {
             var csf = new CsfFile();
             using var reader = new BinaryReader(new MemoryStream(data));
 
+            Need(reader, 24);
             csf._header = reader.ReadBytes(24);
-            int labelCount = BitConverter.ToInt32(csf._header, 8);
+            // A label takes at least 12 bytes (" LBL", its string count and name length), a string at least 8
+            int labelCount = Count(BitConverter.ToInt32(csf._header, 8), reader, 12);
 
             for (int i = 0; i < labelCount; i++)
             {
+                Need(reader, 12);
                 reader.ReadBytes(4); // " LBL"
                 int stringCount = reader.ReadInt32();
-                int nameLength = reader.ReadInt32();
+                int nameLength = Count(reader.ReadInt32(), reader, 1);
                 var label = new Label { Name = Encoding.ASCII.GetString(reader.ReadBytes(nameLength)) };
+                stringCount = Count(stringCount, reader, 8);
 
                 for (int s = 0; s < stringCount; s++)
                 {
+                    Need(reader, 8);
                     bool wide = Encoding.ASCII.GetString(reader.ReadBytes(4)) == "WRTS";
-                    int length = reader.ReadInt32();
+                    int length = Count(reader.ReadInt32(), reader, 2);
                     byte[] text = reader.ReadBytes(length * 2);
                     for (int k = 0; k < text.Length; k++)
                         text[k] = (byte)~text[k];
-                    byte[] extra = wide ? reader.ReadBytes(reader.ReadInt32()) : Array.Empty<byte>();
+                    byte[] extra = Array.Empty<byte>();
+                    if (wide)
+                    {
+                        Need(reader, 4);
+                        extra = reader.ReadBytes(Count(reader.ReadInt32(), reader, 1));
+                    }
                     label.Strings.Add((wide, Encoding.Unicode.GetString(text), extra));
                 }
 
@@ -48,6 +60,24 @@ namespace CommandCenter.Core.Game
 
             return csf;
         }
+
+        private static long Left(BinaryReader reader) => reader.BaseStream.Length - reader.BaseStream.Position;
+
+        private static void Need(BinaryReader reader, int bytes)
+        {
+            if (Left(reader) < bytes)
+                throw Damaged();
+        }
+
+        // A count of things of at least this many bytes each, when what is left can hold them
+        private static int Count(int count, BinaryReader reader, int bytesEach)
+        {
+            if (count < 0 || (long)count * bytesEach > Left(reader))
+                throw Damaged();
+            return count;
+        }
+
+        private static InvalidDataException Damaged() => new("The string table is damaged: a count or length runs past its end.");
 
         public string? Get(string name) =>
             _byName.TryGetValue(name, out var label) && label.Strings.Count > 0 ? label.Strings[0].Text : null;

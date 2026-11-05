@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -31,32 +32,29 @@ namespace CommandCenter.Core.Game
 
         public static bool HasOfficialLauncher => File.Exists(Path.Combine(GamePaths.Game, GoProfile.Current.OfficialLauncherExe));
 
-        public static void StartOfficialLauncher() => Start(GoProfile.Current.OfficialLauncherExe, "");
+        public static void StartOfficialLauncher() => Start(GoProfile.Current.OfficialLauncherExe, []);
 
-        public static string Arguments()
+        public static string[] Arguments()
         {
             var launcher = LauncherJson.Load();
-            return launcher.Windowed ? $"-win -xres {launcher.WindowedWidth} -yres {launcher.WindowedHeight}" : "";
+            return launcher.Windowed
+                ? ["-win", "-xres", launcher.WindowedWidth.ToString(CultureInfo.InvariantCulture), "-yres", launcher.WindowedHeight.ToString(CultureInfo.InvariantCulture)]
+                : [];
         }
 
         public static void PlayOnline(Channel channel) => Start(ExecutableFor(channel), Arguments());
 
-        private static void Start(string exe, string arguments)
+        private static void Start(string exe, string[] arguments)
         {
             string path = Path.Combine(GamePaths.Game, exe);
-            OperationLog.Record("launch game", path, arguments, () =>
+            OperationLog.Record("launch game", path, string.Join(" ", arguments), () =>
             {
                 // The game window comes from a process started by the anti-cheat launcher, not by us. Windows only lets it
                 // take the foreground if we pass that right on while we still hold it; without this the full-screen game
-                // opens behind and drops to the taskbar. The official launcher does the same.
+                // opens behind and drops to the taskbar. The official launcher does the same. That process's id is not
+                // known yet, so the right goes to any process, and only until the next input or change of foreground.
                 AllowSetForegroundWindow(AnyProcess);
-
-                var info = new ProcessStartInfo(path, arguments)
-                {
-                    WorkingDirectory = GamePaths.Game,
-                    UseShellExecute = false,
-                };
-                Process.Start(info)?.Dispose();
+                ProcessRunner.Start(new StartRequest(StartKind.InGameFolder, exe, arguments))?.Dispose();
             });
         }
 

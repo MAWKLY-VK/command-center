@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -18,19 +19,18 @@ namespace CommandCenter.Core.Net
         // The fingerprints of the current official clients, published by Generals Online for its own update check
         private static string ManifestUrl => GoProfile.Current.ApiBase + "VersionManifest";
 
-        public static readonly HttpClient Http = new(new SocketsHttpHandler { UseProxy = false, ConnectCallback = ConnectAsync })
-        {
-            Timeout = TimeSpan.FromSeconds(10),
-        };
+        // Through DownloadService, which follows the Windows proxy (P3-D2); a reply takes at most 10 seconds
+        private static async Task<string> GetAsync(string url) =>
+            Encoding.UTF8.GetString(await DownloadService.GetBytesAsync(new Uri(url), DownloadService.SmallFileLimit, TimeSpan.FromSeconds(10)));
 
         public static async Task<ServerStats?> GetStatsAsync()
         {
             try
             {
                 // The first request pays for DNS and the TLS handshake; the second one shows the real response time
-                string json = await Http.GetStringAsync(StatsUrl);
+                string json = await GetAsync(StatsUrl);
                 var watch = Stopwatch.StartNew();
-                try { json = await Http.GetStringAsync(StatsUrl); } catch { }
+                try { json = await GetAsync(StatsUrl); } catch { }
                 watch.Stop();
                 using var doc = JsonDocument.Parse(json);
                 int players = doc.RootElement.TryGetProperty("players", out var p) ? p.GetInt32() : 0;
@@ -48,7 +48,7 @@ namespace CommandCenter.Core.Net
         {
             try
             {
-                using var doc = JsonDocument.Parse(await Http.GetStringAsync(ManifestUrl));
+                using var doc = JsonDocument.Parse(await GetAsync(ManifestUrl));
                 return doc.RootElement.TryGetProperty(GoProfile.Current.ManifestKey, out var value) && value.TryGetUInt32(out uint crc)
                     ? crc
                     : null;
@@ -57,38 +57,6 @@ namespace CommandCenter.Core.Net
             {
                 return null;
             }
-        }
-
-        // Tries IPv4 addresses before IPv6 and gives each one a few seconds, so a home network with a broken
-        // IPv6 route answers quickly instead of waiting for the system's long connect timeout.
-        private static async ValueTask<Stream> ConnectAsync(SocketsHttpConnectionContext context, CancellationToken ct)
-        {
-            var addresses = (await Dns.GetHostAddressesAsync(context.DnsEndPoint.Host, ct))
-                .OrderBy(a => a.AddressFamily == AddressFamily.InterNetwork ? 0 : 1)
-                .ToList();
-            Exception? last = null;
-            foreach (var address in addresses)
-            {
-                var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
-                using var attempt = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                attempt.CancelAfter(TimeSpan.FromSeconds(4));
-                try
-                {
-                    await socket.ConnectAsync(address, context.DnsEndPoint.Port, attempt.Token);
-                    return new NetworkStream(socket, ownsSocket: true);
-                }
-                catch (Exception ex) when (!ct.IsCancellationRequested)
-                {
-                    socket.Dispose();
-                    last = ex;
-                }
-                catch
-                {
-                    socket.Dispose();
-                    throw;
-                }
-            }
-            throw last ?? new SocketException((int)SocketError.HostNotFound);
         }
     }
 

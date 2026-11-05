@@ -1,5 +1,4 @@
 using System.IO;
-using System.IO.Compression;
 using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -30,6 +29,9 @@ namespace CommandCenter.Core.Content
 
         // Archives in the game folder that belong to a control bar add-on
         private static readonly Regex BarArchive = new(@"^\d{3}_ControlBar\w*\.big$", RegexOptions.IgnoreCase);
+
+        // What a control bar package gives: only its archives, at most 256 MB each; scripts and the rest stay in the zip
+        public static readonly ExtractRules ZipRules = new(name => BarArchive.IsMatch(Path.GetFileName(name)), 256L * 1024 * 1024);
 
         public static List<string> InstalledFiles() =>
             Directory.EnumerateFiles(GamePaths.Game, "*.big").Where(f => BarArchive.IsMatch(Path.GetFileName(f))).ToList();
@@ -101,56 +103,56 @@ namespace CommandCenter.Core.Content
                 throw new InvalidOperationException("This control bar was installed by the Generals Online launcher. Change or remove it there.");
 
             int before = BackupService.Load().Count;
-            byte[]? zip = null;
             var package = kind == BarKind.Original ? null : Package(kind, resolution) ?? throw new InvalidOperationException("No package for that choice");
 
-            // Download and check before touching anything in the game folder
-            if (package != null)
+            string? staging = null;
+            try
             {
-                progress?.Report($"Downloading {Views(package)}…");
-                zip = await DownloadAsync(package);
-                string hash = Convert.ToHexString(SHA256.HashData(zip));
-                if (!hash.Equals(package.Sha256, StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidDataException("The download does not match the expected checksum, so nothing was installed.");
-            }
-
-            progress?.Report("Moving the current control bar aside…");
-            foreach (string file in InstalledFiles())
-                BackupService.MoveToQuarantine("Control bar removed", file, Path.GetFileName(file));
-
-            if (zip != null)
-            {
-                progress?.Report("Installing…");
-                using var archive = new ZipArchive(new MemoryStream(zip), ZipArchiveMode.Read);
-                foreach (var entry in archive.Entries)
+                // Download, check and extract before touching anything in the game folder
+                if (package != null)
                 {
-                    string name = Path.GetFileName(entry.FullName);
-                    if (!BarArchive.IsMatch(name))
-                        continue;
-                    using var stream = entry.Open();
-                    using var buffer = new MemoryStream();
-                    await stream.CopyToAsync(buffer);
-                    BackupService.WriteFile("Control bar installed", Path.Combine(GamePaths.Game, name), buffer.ToArray(), $"{name} · {Views(package!)}");
+                    progress?.Report($"Downloading {Views(package)}…");
+                    byte[] zip = await DownloadAsync(package);
+                    string hash = Convert.ToHexString(SHA256.HashData(zip));
+                    if (!hash.Equals(package.Sha256, StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidDataException("The download does not match the expected checksum, so nothing was installed.");
+                    staging = ArchiveExtractor.Extract(new MemoryStream(zip), ZipRules);
                 }
+
+                progress?.Report("Moving the current control bar aside…");
+                foreach (string file in InstalledFiles())
+                    BackupService.MoveToQuarantine("Control bar removed", file, Path.GetFileName(file));
+
+                if (staging != null)
+                {
+                    progress?.Report("Installing…");
+                    foreach (string file in Directory.EnumerateFiles(staging, "*", SearchOption.AllDirectories))
+                    {
+                        string name = Path.GetFileName(file);
+                        BackupService.WriteFile("Control bar installed", Path.Combine(GamePaths.Game, name), BoundedFile.Read(file, ZipRules.FileLimit), $"{name} · {Views(package!)}");
+                    }
+                }
+            }
+            finally
+            {
+                if (staging != null)
+                    ArchiveExtractor.Discard(staging);
             }
 
             return BackupService.Load().Skip(before).ToList();
         }
 
-        // The shared client's 10 seconds cover only the reply headers here, so the 5 MB packages also finish on a slow
-        // connection. Reading stops after five minutes, or once more arrives than the package holds (the checksum then fails).
+        // At most the package's pinned size: anything bigger cannot be the pinned file
         private static async Task<byte[]> DownloadAsync(BarPackage package)
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-            using var response = await GoApi.Http.GetAsync(package.Url, HttpCompletionOption.ResponseHeadersRead, cts.Token);
-            response.EnsureSuccessStatusCode();
-            await using var stream = await response.Content.ReadAsStreamAsync(cts.Token);
-            using var buffer = new MemoryStream();
-            var chunk = new byte[81920];
-            int read;
-            while (buffer.Length <= package.Size && (read = await stream.ReadAsync(chunk, cts.Token)) > 0)
-                buffer.Write(chunk, 0, read);
-            return buffer.ToArray();
+            try
+            {
+                return await DownloadService.GetBytesAsync(new Uri(package.Url), package.Size);
+            }
+            catch (DownloadTooLargeException)
+            {
+                throw new InvalidDataException("The download does not match the expected checksum, so nothing was installed.");
+            }
         }
 
         public static string Views(BarPackage p) => $"Control Bar Pro {p.Resolution}";

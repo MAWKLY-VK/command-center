@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Reflection;
+using System.Security.Cryptography;
 
 // The game paths and the run options (the GO profile, the map library) are set for the whole program, so tests that
 // change them must not run at the same time as others
@@ -70,10 +71,39 @@ namespace CommandCenter.Tests
         }
     }
 
-    // Makes the test host itself count as the running game: a GO profile names its process as the live client
+    // A key made for the tests: files signed with it pass ManifestVerifier while Trust() is in force. The real key is
+    // never used in tests.
+    internal static class TestKeys
+    {
+        private static readonly ECDsa Key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+
+        public static string Sign(SignedKind kind, byte[] content)
+        {
+            byte[] message = System.Text.Encoding.UTF8.GetBytes("command-center:" + ManifestVerifier.KindName(kind) + "\n").Concat(content).ToArray();
+            return Convert.ToBase64String(Key.SignData(message, HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation));
+        }
+
+        // Writes <file>.sig for the file as it is now
+        public static void SignFile(string file, SignedKind kind) => File.WriteAllText(file + ".sig", Sign(kind, File.ReadAllBytes(file)));
+
+        // Trusts the test key until the result is disposed, then trusts again what was trusted before
+        public static IDisposable Trust() => new Trusted();
+
+        private sealed class Trusted : IDisposable
+        {
+            private readonly byte[]? _before = ManifestVerifier.TestKey;
+
+            public Trusted() => ManifestVerifier.TestKey = Key.ExportSubjectPublicKeyInfo();
+
+            public void Dispose() => ManifestVerifier.TestKey = _before;
+        }
+    }
+
+    // Makes the test host itself count as the running game: a signed GO profile names its process as the live client
     internal sealed class GameRunning : IDisposable
     {
         private readonly string _file = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "cc-test-" + Guid.NewGuid().ToString("N") + ".json");
+        private readonly IDisposable _trust = TestKeys.Trust();
 
         public GameRunning()
         {
@@ -92,6 +122,7 @@ namespace CommandCenter.Tests
                   "manifestKey": "execrc_60"
                 }
                 """);
+            TestKeys.SignFile(_file, SignedKind.GoProfile);
             GoProfile.FileOverride = _file;
             GoProfile.Reset();
         }
@@ -100,7 +131,8 @@ namespace CommandCenter.Tests
         {
             GoProfile.FileOverride = null;
             GoProfile.Reset();
-            try { File.Delete(_file); } catch { }
+            _trust.Dispose();
+            try { File.Delete(_file); File.Delete(_file + ".sig"); } catch { }
         }
     }
 
@@ -165,5 +197,15 @@ namespace CommandCenter.Tests
 
         private static void BigEndian(BinaryWriter w, int value) =>
             w.Write(new[] { (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value });
+    }
+
+    // The registry tests change values under their own key, HKCU\Software\CommandCenterTests; Command Center itself
+    // changes only Windows' compatibility layers key. Allowed once, when the test assembly loads.
+    internal static class TestRegistryKeys
+    {
+#pragma warning disable CA2255 // A module initializer is the one place that runs before every test
+        [System.Runtime.CompilerServices.ModuleInitializer]
+#pragma warning restore CA2255
+        internal static void Allow() => BackupService.AllowedRegistryKeys.Add(@"Software\CommandCenterTests\");
     }
 }

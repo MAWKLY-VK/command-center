@@ -67,6 +67,8 @@ namespace CommandCenter.Tests
         {
             string file = Path.Combine(_root, "profile.json");
             File.WriteAllText(file, Profile);
+            TestKeys.SignFile(file, SignedKind.GoProfile);
+            using var trust = TestKeys.Trust();
             AppServices.Configure(["CommandCenter.exe", "--go-profile", file]);
             GoProfile.Reset();
             Assert.Equal("GeneralsOnlineZH_61.exe", GoProfile.Current.LiveExe);

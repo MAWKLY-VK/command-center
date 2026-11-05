@@ -143,7 +143,7 @@ namespace CommandCenter.Tests
 
     public class ReplayHeaderTests
     {
-        private static byte[] Replay(string options, uint start = 1_760_000_000, uint end = 1_760_000_754)
+        internal static byte[] Replay(string options, uint start = 1_760_000_000, uint end = 1_760_000_754)
         {
             using var stream = new MemoryStream();
             using var w = new BinaryWriter(stream);

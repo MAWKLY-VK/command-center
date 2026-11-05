@@ -67,20 +67,22 @@ namespace CommandCenter.Pages
                 if (!_installed)
                 {
                     ShowProgress((0, -1));
-                    UpdateService.CheckFolder();
+                    bool asAdministrator = UpdateService.FolderNeedsAdministrator();
                     string file = await UpdateService.DownloadAsync(_update, new Progress<(long Done, long Total)>(ShowProgress));
-                    Stage.Text = "Installing";
-                    UpdateService.Install(file);
+                    Stage.Text = asAdministrator ? "Installing · Windows asks for permission" : "Installing";
+                    await UpdateService.InstallAsync(file, _update, asAdministrator);
                     _installed = true;
                 }
                 Stage.Text = "Restarting";
                 try
                 {
-                    UpdateService.Restart();
+                    await UpdateService.RestartAsync(_update.Version);
                 }
-                catch (Exception ex)
+                catch (PreviousVersionRestoredException)
                 {
-                    throw new InvalidOperationException(string.Format("The new version is installed but did not start ({0}). Close this window and start Command Center again.", ex.Message));
+                    // This version runs again in its place, so TRY AGAIN downloads and installs again
+                    _installed = false;
+                    throw;
                 }
                 Restarting = true;
                 Application.Current.Shutdown();

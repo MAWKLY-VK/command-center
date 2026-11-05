@@ -65,10 +65,8 @@ namespace CommandCenter.Core.Content
         private static string? Value(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 
         private static readonly TimeSpan CatalogMaxAge = TimeSpan.FromDays(1);
-        private static readonly TimeSpan StallTimeout = TimeSpan.FromSeconds(30);
-        private const long CatalogLimit = 32L * 1024 * 1024;
-        private const long PreviewLimit = 4L * 1024 * 1024;
-        private const long ZipLimit = 256L * 1024 * 1024;
+        private const string TooLarge = "The file is bigger than the library says, so the download was stopped.";
+        private const string NotTheLibrarysFile = "The download does not match the library's checksum, so it was not installed.";
 
         private static readonly Regex SafeId = new(@"^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$");
         private static readonly Regex SafePath = new(@"^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$");
@@ -142,28 +140,32 @@ namespace CommandCenter.Core.Content
             var saved = new FileInfo(cached);
             if (!refresh && saved.Exists && DateTime.UtcNow - saved.LastWriteTimeUtc < CatalogMaxAge)
             {
-                try { return new CatalogResult(Parse(await File.ReadAllBytesAsync(cached, ct).ConfigureAwait(false)), null, null, saved.LastWriteTime); }
+                try { return new CatalogResult(await ReadCachedAsync(cached, ct).ConfigureAwait(false), null, null, saved.LastWriteTime); }
                 catch (Exception) when (!ct.IsCancellationRequested) { }   // damaged copy: download it again
             }
 
             try
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(_web!, "catalog.json"));
-                if (saved.Exists && File.Exists(etagFile))
+                // An unsigned copy left by an older version is never confirmed as unchanged: the catalog comes again
+                if (saved.Exists && File.Exists(etagFile) && (!IsOnlineLibrary || File.Exists(cached + ".sig")))
                     request.Headers.TryAddWithoutValidation("If-None-Match", File.ReadAllText(etagFile).Trim());
-                using var response = await GoApi.Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+                using var response = await DownloadService.SendAsync(request, null, ct).ConfigureAwait(false);
                 if (response.StatusCode == HttpStatusCode.NotModified && saved.Exists)
                 {
-                    var unchanged = Parse(await File.ReadAllBytesAsync(cached, ct).ConfigureAwait(false));
+                    var unchanged = await ReadCachedAsync(cached, ct).ConfigureAwait(false);
                     File.SetLastWriteTimeUtc(cached, DateTime.UtcNow);
                     return new CatalogResult(unchanged, null, null, DateTime.Now);
                 }
-                EnsureSuccess(response);
+                DownloadService.EnsureSuccess(response);
 
-                using var buffer = new MemoryStream();
-                await using (var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false))
-                    await CopyAsync(stream, buffer, CatalogLimit, null, null, ct).ConfigureAwait(false);
-                byte[] data = buffer.ToArray();
+                byte[] data = await DownloadService.ReadAsync(response, DownloadService.CatalogLimit, ct).ConfigureAwait(false);
+                string? signature = null;
+                if (IsOnlineLibrary)
+                {
+                    signature = await SignatureAsync(ct).ConfigureAwait(false);
+                    RequireSignature(data, signature);
+                }
                 var catalog = Parse(data);
 
                 // Saved only once it reads correctly
@@ -173,6 +175,8 @@ namespace CommandCenter.Core.Content
                     string temp = cached + ".tmp";
                     await File.WriteAllBytesAsync(temp, data, ct).ConfigureAwait(false);
                     File.Move(temp, cached, overwrite: true);
+                    if (signature != null)
+                        await File.WriteAllTextAsync(cached + ".sig", signature, ct).ConfigureAwait(false);
                     if (response.Headers.ETag is { } etag)
                         File.WriteAllText(etagFile, etag.ToString());
                     else if (File.Exists(etagFile))
@@ -188,12 +192,45 @@ namespace CommandCenter.Core.Content
                     reason += " The library may be private or may have moved.";
                 if (saved.Exists)
                 {
-                    try { return new CatalogResult(Parse(await File.ReadAllBytesAsync(cached, ct).ConfigureAwait(false)), "Couldn't check for new maps", reason, saved.LastWriteTime); }
+                    try { return new CatalogResult(await ReadCachedAsync(cached, ct).ConfigureAwait(false), "Couldn't check for new maps", reason, saved.LastWriteTime); }
                     catch (Exception) when (!ct.IsCancellationRequested) { }
                 }
-                string title = IsOnlineLibrary ? "The online map library can't be reached right now" : "This map library can't be reached right now";
+                string title = ex is SignatureRefusedException ? "The online map library can't be read"
+                    : IsOnlineLibrary ? "The online map library can't be reached right now" : "This map library can't be reached right now";
                 return new CatalogResult(null, title, reason, null);
             }
+        }
+
+        // The online library's catalog counts only with the maintainer's signature (ADR 0007); a missing signature file
+        // is refused like a wrong one
+        private async Task<string?> SignatureAsync(CancellationToken ct)
+        {
+            try
+            {
+                byte[] signature = await DownloadService.GetBytesAsync(new Uri(_web!, "catalog.json.sig"), DownloadService.SmallFileLimit, null, ct).ConfigureAwait(false);
+                return Encoding.ASCII.GetString(signature);
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+        }
+
+        private sealed class SignatureRefusedException(string message) : IOException(message);
+
+        private static void RequireSignature(byte[] catalog, string? signature)
+        {
+            if (!ManifestVerifier.Verify(SignedKind.MapCatalog, catalog, signature, out string reason))
+                throw new SignatureRefusedException("The catalog's signature was refused. " + reason);
+        }
+
+        // The saved copy, checked again: the online library's copy counts only with its signature
+        private async Task<LibraryCatalog> ReadCachedAsync(string cached, CancellationToken ct)
+        {
+            byte[] data = await File.ReadAllBytesAsync(cached, ct).ConfigureAwait(false);
+            if (IsOnlineLibrary)
+                RequireSignature(data, File.Exists(cached + ".sig") ? await File.ReadAllTextAsync(cached + ".sig", ct).ConfigureAwait(false) : null);
+            return Parse(data);
         }
 
         // Entries that could point outside the library or the Maps folder are left out
@@ -260,21 +297,18 @@ namespace CommandCenter.Core.Content
             if (_webDown || _noPreview.ContainsKey(map.Id))
                 return null;
 
-            string temp = file + "." + Guid.NewGuid().ToString("N")[..8] + ".tmp";
+            string? temp = null;
             try
             {
-                using var response = await GoApi.Http.GetAsync(new Uri(_web!, map.Preview), HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
-                EnsureSuccess(response);
+                temp = await DownloadService.DownloadFileAsync(new Uri(_web!, map.Preview), DownloadService.PreviewLimit, null, null, ct).ConfigureAwait(false);
                 Directory.CreateDirectory(Path.GetDirectoryName(file)!);
-                await using (var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false))
-                await using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true))
-                    await CopyAsync(stream, output, PreviewLimit, null, null, ct).ConfigureAwait(false);
                 File.Move(temp, file, overwrite: true);
                 return file;
             }
             catch (Exception ex)
             {
-                TryDelete(temp);
+                if (temp != null)
+                    TryDelete(temp);
                 // Without a connection every other preview would wait for the same timeout
                 if (ex is HttpRequestException { StatusCode: null } or TimeoutException or TaskCanceledException && !ct.IsCancellationRequested)
                     _webDown = true;
@@ -288,34 +322,38 @@ namespace CommandCenter.Core.Content
         // Downloads (or copies) one map's zip to a temporary file and checks it. The caller deletes the file.
         public async Task<string> DownloadAsync(LibraryMap map, Action<long>? progress = null, CancellationToken ct = default)
         {
-            string temp = Path.Combine(Path.GetTempPath(), "CommandCenter-map-" + Guid.NewGuid().ToString("N") + ".zip");
+            // The catalog's size, but never more than the limit for any map zip
+            long limit = map.SizeBytes > 0 ? Math.Min(map.SizeBytes, DownloadService.MapZipLimit) : DownloadService.MapZipLimit;
+            if (_web != null)
+            {
+                try
+                {
+                    return await DownloadService.DownloadFileAsync(new Uri(_web, map.Zip), limit, map.Sha256,
+                        progress == null ? null : (done, _) => progress(done), ct, ".zip").ConfigureAwait(false);
+                }
+                catch (DownloadTooLargeException) { throw new InvalidDataException(TooLarge); }
+                catch (ChecksumMismatchException) { throw new InvalidDataException(NotTheLibrarysFile); }
+            }
+
+            // A library folder on this PC: the same checks while copying
+            string temp = DownloadService.NewTempPath(".zip");
             try
             {
                 using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-                long limit = map.SizeBytes > 0 ? map.SizeBytes : ZipLimit;
+                string source = LocalFile(map.Zip) is { } local && File.Exists(local)
+                    ? local
+                    : throw new FileNotFoundException($"{map.Zip} is missing from the library folder.");
                 await using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true))
-                {
-                    if (_web != null)
-                    {
-                        using var response = await GoApi.Http.GetAsync(new Uri(_web, map.Zip), HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
-                        EnsureSuccess(response);
-                        await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-                        await CopyAsync(stream, output, limit, hash, progress, ct).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        string source = LocalFile(map.Zip) is { } local && File.Exists(local)
-                            ? local
-                            : throw new FileNotFoundException($"{map.Zip} is missing from the library folder.");
-                        await using var stream = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true);
-                        await CopyAsync(stream, output, limit, hash, progress, ct).ConfigureAwait(false);
-                    }
-                }
-
-                string actual = Convert.ToHexString(hash.GetHashAndReset());
-                if (!actual.Equals(map.Sha256, StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidDataException("The download does not match the library's checksum, so it was not installed.");
+                await using (var stream = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, useAsync: true))
+                    await DownloadService.CopyAsync(stream, output, limit, hash, progress, ct).ConfigureAwait(false);
+                if (!Convert.ToHexString(hash.GetHashAndReset()).Equals(map.Sha256, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidDataException(NotTheLibrarysFile);
                 return temp;
+            }
+            catch (DownloadTooLargeException)
+            {
+                TryDelete(temp);
+                throw new InvalidDataException(TooLarge);
             }
             catch
             {
@@ -390,37 +428,6 @@ namespace CommandCenter.Core.Content
 
         // ── Helpers ──
 
-        private static void EnsureSuccess(HttpResponseMessage response)
-        {
-            if (!response.IsSuccessStatusCode)
-                throw new HttpRequestException($"The server answered {(int)response.StatusCode} {response.ReasonPhrase}.", null, response.StatusCode);
-        }
-
-        // Copies with a size limit, and gives up when the other side stops sending
-        private static async Task CopyAsync(Stream input, Stream output, long limit, IncrementalHash? hash, Action<long>? progress, CancellationToken ct)
-        {
-            var buffer = new byte[81920];
-            long total = 0;
-            while (true)
-            {
-                int read;
-                using (var stall = CancellationTokenSource.CreateLinkedTokenSource(ct))
-                {
-                    stall.CancelAfter(StallTimeout);
-                    try { read = await input.ReadAsync(buffer, stall.Token).ConfigureAwait(false); }
-                    catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new TimeoutException("The server stopped sending data."); }
-                }
-                if (read == 0)
-                    return;
-                total += read;
-                if (total > limit)
-                    throw new InvalidDataException("The file is bigger than the library says, so the download was stopped.");
-                hash?.AppendData(buffer, 0, read);
-                await output.WriteAsync(buffer.AsMemory(0, read), ct).ConfigureAwait(false);
-                progress?.Invoke(total);
-            }
-        }
-
         // A short sentence for the user
         public static string Reason(Exception ex) => ex switch
         {
@@ -428,6 +435,7 @@ namespace CommandCenter.Core.Content
             HttpRequestException { StatusCode: not null } => ex.Message,
             HttpRequestException => "No connection to the server. Check your internet connection.",
             TaskCanceledException => "The server took too long to answer.",
+            DownloadTooLargeException => TooLarge,
             JsonException => "The catalog is damaged or is not a map library catalog.",
             _ => ex.Message,
         };

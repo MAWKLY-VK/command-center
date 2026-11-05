@@ -58,24 +58,39 @@ namespace CommandCenter.Core.Safety
 
         public const string OutsideMessage = "Command Center only changes files in the game folder and in the game's Documents folder.";
 
-        // Command Center changes files only inside the Zero Hour folder and the game's Documents folder. Anything else
-        // (Windows, Program Files, a folder mistaken for the game) is refused here, whatever asked for the change.
+        // Command Center changes files only inside the Zero Hour folder and the game's Documents folder, judged by where the
+        // path really leads. Anything else (Windows, Program Files, a folder mistaken for the game, a junction that leads
+        // out) is refused here, whatever asked for the change.
         public static void EnsureAllowed(string path)
         {
-            string full;
-            try
-            {
-                full = Path.GetFullPath(path);
-            }
-            catch
-            {
-                throw new InvalidOperationException(OutsideMessage);
-            }
-            bool Inside(string root) => root.Length > 0 && full.StartsWith(root.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase);
-            if (Inside(Environment.GetFolderPath(Environment.SpecialFolder.Windows))
-                || !((GamePaths.ZeroHourFound && Inside(GamePaths.Game)) || Inside(GamePaths.UserData)))
+            if (!PathGuard.IsAllowed(path))
                 throw new InvalidOperationException(OutsideMessage);
         }
+
+        // The only registry key Command Center changes: Windows' compatibility layers for programs (Health's fixes)
+        public const string LayersKey = @"Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers";
+
+        public const string RegistryMessage = "Command Center only changes Windows' compatibility settings for programs in the registry.";
+
+        // Keys under HKEY_CURRENT_USER whose values may be set and restored; one that ends in a backslash allows the keys
+        // under it
+        internal static readonly List<string> AllowedRegistryKeys = [LayersKey];
+
+        private static bool IsAllowedRegistryKey(string key) =>
+            AllowedRegistryKeys.Any(allowed => allowed.EndsWith('\\')
+                ? key.Length > allowed.Length && key.StartsWith(allowed, StringComparison.OrdinalIgnoreCase)
+                : key.Equals(allowed, StringComparison.OrdinalIgnoreCase));
+
+        // An entry Command Center could have written: its files in the allowed folders, its copy in the backup folder, a
+        // registry entry on an allowed key. backups.json is a file on disk, so an entry that points anywhere else is
+        // never undone.
+        private static bool IsSafe(BackupEntry entry) => entry.Kind switch
+        {
+            "registry" => IsAllowedRegistryKey(entry.Target) && !string.IsNullOrEmpty(entry.BackupFile),
+            "readonly" => (entry.Files ?? []).All(PathGuard.IsAllowed),
+            "move" => PathGuard.IsAllowed(entry.Target) && entry.BackupFile != null && PathGuard.IsWithin(entry.BackupFile, Path.Combine(Root, "Quarantine")),
+            _ => PathGuard.IsAllowed(entry.Target) && (entry.BackupFile == null || PathGuard.IsWithin(entry.BackupFile, Root)),
+        };
 
         public const string GameRunningMessage = "Close the game first. Command Center does not change the game's files while it is running.";
 
@@ -115,15 +130,47 @@ namespace CommandCenter.Core.Safety
                 File.Copy(target, entry.BackupFile, overwrite: true);
             }
 
-            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-            string temp = target + ".tmp";
-            File.WriteAllBytes(temp, content);
-            File.Move(temp, target, overwrite: true);
+            string folder = Path.GetDirectoryName(target)!;
+            Directory.CreateDirectory(folder);
+            // A new file under a name nobody can guess, so nothing placed beside the target beforehand can take the write
+            string temp = Path.Combine(folder, $"{Path.GetFileName(target)}.{Guid.NewGuid():N}.tmp");
+            try
+            {
+                using (var file = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                    file.Write(content);
+                File.Move(temp, target, overwrite: true);
+            }
+            catch
+            {
+                TryDelete(temp);
+                throw;
+            }
 
             var entries = Load();
             entries.Add(entry);
             Save(entries);
             return entry;
+        }
+
+        // A file where there was none, such as an installed map's: nothing to back up, so no Undo entry, but the place is
+        // checked like every change. A file that is already there is refused; WriteFile backs it up first.
+        public static void CreateFile(string target, byte[] content)
+        {
+            EnsureAllowed(target);
+            EnsureGameClosed(target);
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            var file = new FileStream(target, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            try
+            {
+                file.Write(content);
+            }
+            catch
+            {
+                file.Dispose();
+                TryDelete(target);
+                throw;
+            }
+            file.Dispose();
         }
 
         // Moves a file into the launcher's quarantine folder; undo moves it back.
@@ -162,6 +209,8 @@ namespace CommandCenter.Core.Safety
 
         private static BackupEntry SetRegistry(string title, string key, string valueName, string? newValue, string detail)
         {
+            if (!IsAllowedRegistryKey(key))
+                throw new InvalidOperationException(RegistryMessage);
             using var regKey = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(key);
             string? old = regKey.GetValue(valueName) as string;
             if (newValue == null)
@@ -241,6 +290,8 @@ namespace CommandCenter.Core.Safety
         {
             try
             {
+                if (!IsSafe(entry))
+                    return false;
                 switch (entry.Kind)
                 {
                     case "move":
@@ -279,6 +330,7 @@ namespace CommandCenter.Core.Safety
         // Puts the file back the way it was before the launcher first changed it.
         public static bool RestoreOriginal(string target)
         {
+            EnsureAllowed(target);
             var entries = Load();
             var forTarget = entries.Where(e => string.Equals(e.Target, target, StringComparison.OrdinalIgnoreCase))
                 .OrderBy(e => e.When)
@@ -289,7 +341,7 @@ namespace CommandCenter.Core.Safety
             OperationLog.Record("restore original", target, forTarget[0].Title, () =>
             {
                 Restore(forTarget[0]);
-                foreach (var entry in forTarget.Skip(1).Where(e => e.BackupFile != null && e.Kind == "file"))
+                foreach (var entry in forTarget.Skip(1).Where(e => e.BackupFile != null && e.Kind == "file" && PathGuard.IsWithin(e.BackupFile, Root)))
                     TryDelete(entry.BackupFile!);
                 entries.RemoveAll(e => forTarget.Contains(e));
                 Save(entries);
@@ -302,6 +354,8 @@ namespace CommandCenter.Core.Safety
 
         private static void Restore(BackupEntry entry)
         {
+            if (!IsSafe(entry))
+                throw new InvalidOperationException(entry.Kind == "registry" ? RegistryMessage : OutsideMessage);
             if (entry.Kind != "registry")
                 EnsureGameClosed(entry.Kind == "readonly" ? Path.Combine(entry.Target, "_") : entry.Target);
 
