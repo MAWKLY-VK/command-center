@@ -67,6 +67,18 @@ namespace CommandCenter.Tests
         }
 
         [Fact]
+        public void The_update_screen_gets_windows_reason_without_the_paths_around_it()
+        {
+            UpdateService.ReplaceProgram(_exe, Download(NewProgram));
+            const string Started = @"An error occurred trying to start process 'C:\Users\someone\CommandCenter.exe' with working directory 'C:\Users\someone'.";
+            var error = Assert.Throws<PreviousVersionRestoredException>(() =>
+                UpdateService.RestartOrPutBack(_exe, new Version(9, 0, 0), () => throw new Win32Exception(193, Started + " The file cannot run here.")));
+            Assert.DoesNotContain(@"C:\Users\someone", error.Message);
+            Assert.StartsWith("Version 9.0.0 could not start (", error.Message);
+            Assert.EndsWith("), so the previous version was put back.", error.Message);
+        }
+
+        [Fact]
         public void A_new_program_that_is_gone_is_replaced_by_the_previous_one()
         {
             UpdateService.ReplaceProgram(_exe, Download(NewProgram));

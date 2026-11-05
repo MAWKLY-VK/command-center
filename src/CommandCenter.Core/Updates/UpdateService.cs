@@ -357,7 +357,9 @@ namespace CommandCenter.Core.Updates
             catch (Exception error)
             {
                 _failedVersion = Normalize(version);
-                string failed = $"Version {version.ToString(3)} could not start ({error.Message.TrimEnd('.')})";
+                // Windows' own reason, without the paths .NET puts around it
+                string why = error is Win32Exception windows ? new Win32Exception(windows.NativeErrorCode).Message : error.Message;
+                string failed = $"Version {version.ToString(3)} could not start ({why.TrimEnd('.')})";
                 try
                 {
                     PutBackOrAsk(exe);
