@@ -147,6 +147,8 @@ namespace CommandCenter.Tests
             using var handler = DownloadService.CreateHandler();
             Assert.True(handler.UseProxy);
             Assert.Null(handler.Proxy);
+            // A proxy that asks who is connecting gets the Windows user's own sign-in
+            Assert.Same(System.Net.CredentialCache.DefaultCredentials, handler.DefaultProxyCredentials);
         }
 
         public void Dispose()

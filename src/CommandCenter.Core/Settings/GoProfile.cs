@@ -85,12 +85,21 @@ namespace CommandCenter.Core.Settings
             {
                 var wait = TimeSpan.FromSeconds(8);
                 byte[] json = await DownloadService.GetBytesAsync(new Uri(RemoteUrl), DownloadService.SmallFileLimit, wait);
-                byte[] signature = await DownloadService.GetBytesAsync(new Uri(RemoteUrl + ".sig"), DownloadService.SmallFileLimit, wait);
-                if (Verified(json, Encoding.ASCII.GetString(signature), RemoteUrl) is not { } profile)
+                byte[]? signature;
+                try
+                {
+                    signature = await DownloadService.GetBytesAsync(new Uri(RemoteUrl + ".sig"), DownloadService.SmallFileLimit, wait);
+                }
+                catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    // Not published: refused below, and the operation log says so
+                    signature = null;
+                }
+                if (Verified(json, signature == null ? null : Encoding.ASCII.GetString(signature), RemoteUrl) is not { } profile)
                     return;
                 Directory.CreateDirectory(Path.GetDirectoryName(CachePath)!);
                 await File.WriteAllBytesAsync(CachePath, json);
-                await File.WriteAllBytesAsync(CachePath + ".sig", signature);
+                await File.WriteAllBytesAsync(CachePath + ".sig", signature!);
                 Current = profile;
                 Changed?.Invoke();
             }

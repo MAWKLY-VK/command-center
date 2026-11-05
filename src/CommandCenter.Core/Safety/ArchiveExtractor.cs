@@ -50,7 +50,7 @@ namespace CommandCenter.Core.Safety
                         throw Refused(entry, leaves);
                     if (name.EndsWith('\\') || name.StartsWith(@"__MACOSX\", StringComparison.OrdinalIgnoreCase) || !rules.Accepts(name))
                         continue;
-                    if (NameRefusal(name) is { } reason)
+                    if (PartRefusal(name) is { } reason)
                         throw Refused(entry, reason);
                     if (entry.Length > rules.FileLimit)
                         throw TooLarge(entry, rules.FileLimit);
@@ -89,10 +89,11 @@ namespace CommandCenter.Core.Safety
         // Why a name, in a zip or of a map, cannot be a file Command Center writes, or null. Beyond leaving the folder:
         // Windows device names (CON, NUL and others), names that are empty or only dots before their extension, and
         // parts that Windows would change (trailing dots or spaces, characters it does not allow).
-        public static string? NameRefusal(string name)
+        public static string? NameRefusal(string name) => LeavesFolder(name) ?? PartRefusal(name);
+
+        // The rules for each part of a name that already stays in its folder
+        private static string? PartRefusal(string name)
         {
-            if (LeavesFolder(name) is { } leaves)
-                return leaves;
             foreach (string part in name.TrimEnd('\\').Split('\\'))
             {
                 if (part.Length == 0)

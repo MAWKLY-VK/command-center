@@ -89,6 +89,8 @@ namespace CommandCenter.Tests
             _served[GoProfile.RemoteUrl] = Bytes(Profile);
             await GoProfile.RefreshAsync();
             Assert.Equal(BuiltInLiveExe, GoProfile.Current.LiveExe);
+            // The operation log says why, as it does for a wrong signature
+            Assert.Contains(File.ReadAllLines(OperationLog.FilePath), line => line.Contains("verify GO profile") && line.Contains("It has no signature."));
         }
 
         [Fact]

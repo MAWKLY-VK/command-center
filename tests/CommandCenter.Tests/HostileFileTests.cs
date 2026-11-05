@@ -165,6 +165,21 @@ namespace CommandCenter.Tests
         }
 
         [Fact]
+        public void An_archive_index_with_more_entries_than_the_limit_keeps_only_the_first_ones_and_is_logged()
+        {
+            string archive = Path.Combine(_game.Game, "Crowded.big");
+            int count = GameFiles.MaxEntries + 5;
+            var names = Enumerable.Range(0, count).Select(i => $"F{i}").ToArray();
+            uint first = (uint)IndexSize(names);
+            WriteBig(archive, names.Select(n => (n, first, 1u)).ToArray(), [0x41]);
+
+            var files = new GameFiles(_game.Game, communityPatch: false);
+            Assert.True(files.Exists("F0"));
+            Assert.False(files.Exists($"F{GameFiles.MaxEntries}"));
+            Assert.Single(LogLines(), line => line.Contains(archive));
+        }
+
+        [Fact]
         public void A_file_larger_than_the_read_limit_is_not_read()
         {
             string archive = Path.Combine(_game.Game, "Large.big");

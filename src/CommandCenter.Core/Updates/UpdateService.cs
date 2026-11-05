@@ -40,7 +40,8 @@ namespace CommandCenter.Core.Updates
 
         // Windows' code when the player refuses the administrator prompt
         private const int ErrorCancelled = 1223;
-        private static readonly TimeSpan StepTimeout = TimeSpan.FromMinutes(2);
+        // Far longer than the step takes (it reads and writes one file), so only a copy that hangs reaches it
+        private static readonly TimeSpan StepTimeout = TimeSpan.FromMinutes(10);
 
         // Test builds (and the tests) also accept a download from a local file, to try the update path; release builds
         // never set it
@@ -243,7 +244,16 @@ namespace CommandCenter.Core.Updates
                     {
                         try
                         {
-                            int code = await Task.Run(() => RunAsAdministrator(exe, [ReplaceArgument, downloaded, update.Sha256]));
+                            int code;
+                            try
+                            {
+                                code = await Task.Run(() => RunAsAdministrator(exe, [ReplaceArgument, downloaded, update.Sha256]));
+                            }
+                            catch (TimeoutException) when (HoldsUpdate(exe, update.Sha256))
+                            {
+                                // The step finished its swap after the wait gave up: the folder says what happened
+                                code = StepDone;
+                            }
                             if (code != StepDone)
                                 throw new IOException(StepFailure(code));
                         }
@@ -272,7 +282,9 @@ namespace CommandCenter.Core.Updates
             }
             catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
             {
-                TryDelete(staged);
+                // Only while the program is in place: if putting it back failed too, the new one is all that is left
+                if (File.Exists(exe))
+                    TryDelete(staged);
                 throw new IOException("Could not replace the program file: " + ex.Message, ex);
             }
             finally
@@ -308,7 +320,8 @@ namespace CommandCenter.Core.Updates
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                TryDelete(staged);
+                if (File.Exists(exe))
+                    TryDelete(staged);
                 return StepCannotChange;
             }
         }
@@ -368,6 +381,20 @@ namespace CommandCenter.Core.Updates
                         + "The download page explains how to put it back by hand.", error);
                 }
                 throw new PreviousVersionRestoredException($"{failed}, so the previous version was put back.", error);
+            }
+        }
+
+        // Whether the program file is now the update with this SHA-256
+        private static bool HoldsUpdate(string exe, string sha256)
+        {
+            try
+            {
+                using var file = File.OpenRead(exe);
+                return Convert.ToHexString(SHA256.HashData(file)).Equals(sha256, StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return false;
             }
         }
 
@@ -440,7 +467,7 @@ namespace CommandCenter.Core.Updates
                 if (process == null)
                     throw new IOException("The administrator step did not start.");
                 if (!process.WaitForExit(StepTimeout))
-                    throw new IOException("The administrator step did not finish.");
+                    throw new TimeoutException("The administrator step did not finish.");
                 return process.ExitCode;
             }
         }

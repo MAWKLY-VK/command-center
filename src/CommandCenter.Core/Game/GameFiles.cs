@@ -193,6 +193,9 @@ namespace CommandCenter.Core.Game
         // A name in an archive's index is a path in the game folder, so no longer than a Windows path
         private const int MaxName = 260;
 
+        // Entries kept from one index; the game's largest archive holds about 4,600
+        public const int MaxEntries = 100_000;
+
         // BIG header: "BIGF", archive size (LE), file count (BE), first offset (BE),
         // then per file: offset (BE), size (BE), zero-terminated name. The game skips any other kind (BIG4).
         // A damaged index keeps the entries that make sense: entries that lie outside the archive are left out, and a name
@@ -229,9 +232,18 @@ namespace CommandCenter.Core.Game
                     if (damage != null)
                         break;
                     if ((long)offset + size > length)
+                    {
                         outside++;
+                    }
+                    else if (entries.Count == MaxEntries)
+                    {
+                        damage = $"Its index holds more than {MaxEntries:N0} entries, so the rest of the index was left out.";
+                        break;
+                    }
                     else
+                    {
                         entries.Add((name.ToString(), offset, size));
+                    }
                 }
             }
             catch (EndOfStreamException)

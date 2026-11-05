@@ -127,7 +127,8 @@ CommandCenter.exe --game <copy of Desktop\Test_Generals> --user-data <temp folde
 - Never read or copy `GeneralsOnlineData\credentials.json`. Support bundles must exclude it.
 - Keep every existing protection: backups and Undo, quarantine, the ZipSlip guard, strict `GoProfile` validation,
   editing JSON in place, no writes while the game runs, no DLL injection, and asInvoker. The only elevation allowed is
-  the update replace step.
+  the update's replace step in a folder that needs administrator rights, and putting the previous version back there
+  when the new one cannot start (P3-D1).
 - Colours, fonts and sizes belong in `Theme/` only. No decorative or invented text or numbers. No continuous
   animation except the slow zoom of the Home image. None of the slop markers in the plan's 43-item checklist.
 - Every new or redesigned page is shown to the user as real `--capture` screenshots and approved before it counts

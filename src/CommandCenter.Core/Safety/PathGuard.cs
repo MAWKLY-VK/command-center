@@ -15,16 +15,32 @@ namespace CommandCenter.Core.Safety
             try
             {
                 string real = RealPath(path);
-                if (IsInside(real, RealPath(Environment.GetFolderPath(Environment.SpecialFolder.Windows))))
-                    return false;
-                return (GamePaths.ZeroHourFound && IsInside(real, RealPath(GamePaths.Game)))
-                       || (GamePaths.UserData.Length > 0 && IsInside(real, RealPath(GamePaths.UserData)));
+                var (windows, game, userData) = Roots();
+                return !IsInside(real, windows) && (IsInside(real, game) || IsInside(real, userData));
             }
             catch
             {
                 // A path that cannot be resolved is not one Command Center changes
                 return false;
             }
+        }
+
+        // The real Windows, game and user data folders ("" when there is none), resolved again only when the folders
+        // Command Center uses change, so a batch of files does not resolve them for every file
+        private static (string Key, string Windows, string Game, string UserData)? _roots;
+
+        private static (string Windows, string Game, string UserData) Roots()
+        {
+            string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+            string game = GamePaths.ZeroHourFound ? GamePaths.Game : "";
+            string userData = GamePaths.UserData;
+            string key = windows + "|" + game + "|" + userData;
+            if (_roots is not { } roots || roots.Key != key)
+            {
+                roots = (key, RealPath(windows), game.Length > 0 ? RealPath(game) : "", userData.Length > 0 ? RealPath(userData) : "");
+                _roots = roots;
+            }
+            return (roots.Windows, roots.Game, roots.UserData);
         }
 
         // Whether path really lies inside folder

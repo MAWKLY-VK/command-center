@@ -34,8 +34,14 @@ namespace CommandCenter.Core.Net
 
         private static readonly HttpClient Shared = CreateClient(CreateHandler());
 
-        // Follows the Windows proxy setting (UseProxy with no proxy of its own); without a proxy it connects IPv4 first
-        internal static SocketsHttpHandler CreateHandler() => new() { UseProxy = true, ConnectCallback = ConnectAsync };
+        // Follows the Windows proxy setting (UseProxy with no proxy of its own), signing in to a proxy that asks with the
+        // Windows user's own credentials; without a proxy it connects IPv4 first
+        internal static SocketsHttpHandler CreateHandler() => new()
+        {
+            UseProxy = true,
+            DefaultProxyCredentials = CredentialCache.DefaultCredentials,
+            ConnectCallback = ConnectAsync,
+        };
 
         private static HttpClient CreateClient(HttpMessageHandler handler, bool disposeHandler = true)
         {
