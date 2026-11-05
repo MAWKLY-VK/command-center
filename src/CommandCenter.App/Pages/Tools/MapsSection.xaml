@@ -16,7 +16,7 @@
                 <StackPanel>
                     <Grid Height="{Binding TileWidth, RelativeSource={RelativeSource AncestorType=UserControl}}">
                         <Border CornerRadius="13,13,0,0" Background="#0A0E20"/>
-                        <Border CornerRadius="13,13,0,0" Opacity="{Binding ImageOpacity}" FlowDirection="LeftToRight">
+                        <Border CornerRadius="13,13,0,0" Opacity="{Binding ImageOpacity}">
                             <Border.Background>
                                 <ImageBrush ImageSource="{Binding Preview}" Stretch="UniformToFill"/>
                             </Border.Background>
@@ -38,7 +38,7 @@
                             <Ellipse x:Name="BoxRing" Fill="#59050814" Stroke="#B3FFFFFF" StrokeThickness="2"/>
                             <Path x:Name="Mark" Data="M7,12.5 L10.5,16 L17,8.5" Stroke="White" StrokeThickness="2.6"
                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
-                                  FlowDirection="LeftToRight" Visibility="Collapsed"/>
+                                  Visibility="Collapsed"/>
                         </Grid>
                         <Border Margin="8" Padding="7,0" Height="22" CornerRadius="6" HorizontalAlignment="Left" VerticalAlignment="Top"
                                 Background="#E60C2816" BorderBrush="#9952D273" BorderThickness="1" Visibility="{Binding InstalledVisibility}">
@@ -48,7 +48,7 @@
                             </StackPanel>
                         </Border>
 
-                        <StackPanel Orientation="Horizontal" Margin="9,0,9,8" VerticalAlignment="Bottom" FlowDirection="LeftToRight"
+                        <StackPanel Orientation="Horizontal" Margin="9,0,9,8" VerticalAlignment="Bottom"
                                     HorizontalAlignment="Left">
                             <Border Height="20" Padding="6,0" CornerRadius="6" Background="#BF050814" Margin="0,0,6,0"
                                     Visibility="{Binding PlayersVisibility}">
@@ -61,7 +61,7 @@
                             <TextBlock Text="{Binding SizeText}" FontSize="11" Foreground="#C9CEE0" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Grid>
-                    <TextBlock Text="{Binding Name}" Style="{StaticResource NameTextStyle}" FontSize="12.5" FontWeight="Bold"
+                    <TextBlock Text="{Binding Name}" FontSize="12.5" FontWeight="Bold"
                                Margin="10,7,10,9" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
             </Border>
@@ -156,17 +156,17 @@
                 <RadioButton GroupName="Players" Style="{StaticResource FilterChipStyle}" Tag="1" Checked="Players_Checked">
                     <StackPanel Orientation="Horizontal">
                         <c:Icon Kind="users" Width="13" Height="13" Margin="0,0,6,0"/>
-                        <TextBlock Text="2" FlowDirection="LeftToRight" VerticalAlignment="Center"/>
+                        <TextBlock Text="2" VerticalAlignment="Center"/>
                     </StackPanel>
                 </RadioButton>
                 <RadioButton GroupName="Players" Style="{StaticResource FilterChipStyle}" Tag="2" Checked="Players_Checked">
-                    <TextBlock Text="3–4" FlowDirection="LeftToRight"/>
+                    <TextBlock Text="3–4"/>
                 </RadioButton>
                 <RadioButton GroupName="Players" Style="{StaticResource FilterChipStyle}" Tag="3" Checked="Players_Checked">
-                    <TextBlock Text="5–6" FlowDirection="LeftToRight"/>
+                    <TextBlock Text="5–6"/>
                 </RadioButton>
                 <RadioButton GroupName="Players" Style="{StaticResource FilterChipStyle}" Tag="4" Checked="Players_Checked">
-                    <TextBlock Text="7–8" FlowDirection="LeftToRight"/>
+                    <TextBlock Text="7–8"/>
                 </RadioButton>
             </StackPanel>
             <TextBlock x:Name="Summary" Foreground="#A7AECB" FontSize="12" Margin="16,0,0,0" VerticalAlignment="Center"

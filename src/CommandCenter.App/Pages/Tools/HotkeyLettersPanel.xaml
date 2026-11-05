@@ -30,9 +30,9 @@
                         <TextBlock x:Name="PreviewMessage" Foreground="#A7AECB" FontSize="12" TextWrapping="Wrap" Text="Loading…"/>
                         <StackPanel x:Name="PreviewRows" Visibility="Collapsed">
                             <TextBlock Text="WITHOUT LETTERS" Style="{StaticResource GroupLabelStyle}"/>
-                            <WrapPanel x:Name="BeforeIcons" FlowDirection="LeftToRight" HorizontalAlignment="Left"/>
+                            <WrapPanel x:Name="BeforeIcons" HorizontalAlignment="Left"/>
                             <TextBlock Text="WITH LETTERS" Style="{StaticResource GroupLabelStyle}" Margin="0,12,0,6"/>
-                            <WrapPanel x:Name="AfterIcons" FlowDirection="LeftToRight" HorizontalAlignment="Left"/>
+                            <WrapPanel x:Name="AfterIcons" HorizontalAlignment="Left"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>

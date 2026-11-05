@@ -1,7 +1,5 @@
-using System.Windows;
 using System.Windows.Input;
 using CommandCenter.Input;
-using CommandCenter.Localization;
 
 namespace CommandCenter.Tests
 {
@@ -106,26 +104,6 @@ namespace CommandCenter.Tests
             AppServices.Configure(["CommandCenter.exe"]);
             GoProfile.Reset();
             _game.Dispose();
-        }
-    }
-
-    public class LanguageLayoutTests
-    {
-        [Fact]
-        public void English_reads_left_to_right()
-        {
-            Assert.Equal(FlowDirection.LeftToRight, LocUi.FlowDirection);
-            Assert.Equal(TextAlignment.Left, LocUi.StartAlignment);
-            Assert.Equal(MessageBoxOptions.None, LocUi.MessageBoxOptions);
-        }
-
-        [Fact]
-        public void Arabic_reads_right_to_left()
-        {
-            using var arabic = new Arabic();
-            Assert.Equal(FlowDirection.RightToLeft, LocUi.FlowDirection);
-            Assert.Equal(TextAlignment.Right, LocUi.StartAlignment);
-            Assert.Equal(MessageBoxOptions.RtlReading | MessageBoxOptions.RightAlign, LocUi.MessageBoxOptions);
         }
     }
 }

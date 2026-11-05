@@ -12,7 +12,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Localization\*.json" Exclude="Localization\pending-*.json" LogicalName="Localization.%(Filename)%(Extension)" />
     <EmbeddedResource Include="Data\game-files.json" LogicalName="GameFiles.json" />
   </ItemGroup>
 
@@ -30,7 +29,6 @@
     <Using Include="CommandCenter.Core.Game" />
     <Using Include="CommandCenter.Core.Imaging" />
     <Using Include="CommandCenter.Core.Integrity" />
-    <Using Include="CommandCenter.Core.Localization" />
     <Using Include="CommandCenter.Core.Net" />
     <Using Include="CommandCenter.Core.Safety" />
     <Using Include="CommandCenter.Core.Settings" />

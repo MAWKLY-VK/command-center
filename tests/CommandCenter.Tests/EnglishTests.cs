@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace CommandCenter.Tests
 {
-    // The wording of counts and lists, pinned to what the program has always shown in English (the LocText tests)
+    // The wording of counts and lists, pinned to what the program has always shown in English
     public class EnglishTests
     {
         [Theory]

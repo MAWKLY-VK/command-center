@@ -7,7 +7,7 @@ namespace CommandCenter.Tests
         private const string Humvee = "CONTROLBAR:ConstructAmericaVehicleHumvee";
 
         // Arabic letters in the forms 0.4.0 stored them, as escapes
-        private const string Arabic = "ﻲﻔﻤﻫ";
+        private const string Arabic = "\uFEF2\uFED4\uFEE4\uFEEB";
 
         // Byte for byte the font file 0.4.0 wrote
         private const string FontFile =

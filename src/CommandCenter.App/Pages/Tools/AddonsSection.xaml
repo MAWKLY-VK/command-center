@@ -78,7 +78,7 @@
         <ScrollViewer x:Name="BarsView" Grid.Row="2" VerticalScrollBarVisibility="Auto" Focusable="False">
             <StackPanel x:Name="BarsPanel" Margin="0,0,8,0" SizeChanged="BarsPanel_SizeChanged">
                 <Border BorderBrush="#26FFFFFF" BorderThickness="1" CornerRadius="13" HorizontalAlignment="Center">
-                    <Grid x:Name="CompareBox" ClipToBounds="True" Cursor="SizeWE" Background="Black" FlowDirection="LeftToRight"
+                    <Grid x:Name="CompareBox" ClipToBounds="True" Cursor="SizeWE" Background="Black"
                           Height="120" MouseLeftButtonDown="Compare_Down" MouseMove="Compare_Move" MouseLeftButtonUp="Compare_Up"
                           LostMouseCapture="Compare_LostCapture" SizeChanged="Compare_SizeChanged">
                         <Image x:Name="Before" Stretch="Fill"/>

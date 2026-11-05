@@ -555,7 +555,7 @@ namespace CommandCenter.Pages.Tools
         {
             var line = new DockPanel();
             FrameworkElement badge = _artReady && ReplayRow.Emblem(player) is { } emblem
-                ? new Image { Source = emblem, Width = 20, Height = 20, FlowDirection = FlowDirection.LeftToRight }
+                ? new Image { Source = emblem, Width = 20, Height = 20 }
                 : new Border { Width = 10, Height = 10, Margin = new Thickness(5, 0, 5, 0), Background = Views.PlayerBrush(player.Color) };
             RenderOptions.SetBitmapScalingMode(badge, BitmapScalingMode.Fant);
             badge.VerticalAlignment = VerticalAlignment.Top;
@@ -573,7 +573,6 @@ namespace CommandCenter.Pages.Tools
                 FontWeight = FontWeights.SemiBold,
                 MaxWidth = 210,
                 TextTrimming = TextTrimming.CharacterEllipsis,
-                FlowDirection = FlowDirection.LeftToRight,
                 ToolTip = player.Name,
             };
             DockPanel.SetDock(name, Dock.Left);

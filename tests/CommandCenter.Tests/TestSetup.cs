@@ -1,7 +1,8 @@
 using System.Diagnostics;
 using System.Reflection;
 
-// The language is a setting for the whole program (Loc), so tests that switch it must not run at the same time as others
+// The game paths and the run options (the GO profile, the map library) are set for the whole program, so tests that
+// change them must not run at the same time as others
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
 namespace CommandCenter.Tests
@@ -164,13 +165,5 @@ namespace CommandCenter.Tests
 
         private static void BigEndian(BinaryWriter w, int value) =>
             w.Write(new[] { (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value });
-    }
-
-    // Runs a test in Arabic and puts English back afterwards
-    internal sealed class Arabic : IDisposable
-    {
-        public Arabic() => Loc.Init("ar");
-
-        public void Dispose() => Loc.Init("en");
     }
 }

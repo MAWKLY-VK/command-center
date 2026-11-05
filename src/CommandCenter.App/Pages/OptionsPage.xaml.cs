@@ -1,5 +1,4 @@
 using CommandCenter.Imaging;
-using CommandCenter.Localization;
 using System;
 using System.Collections.Generic;
 using System.IO;

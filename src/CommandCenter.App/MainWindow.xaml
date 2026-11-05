@@ -100,7 +100,7 @@
             <DockPanel Margin="20,0,8,0" LastChildFill="False">
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
                     <Image Source="/Assets/logo.png" Width="38" Height="38" RenderOptions.BitmapScalingMode="HighQuality"/>
-                    <TextBlock FlowDirection="LeftToRight" VerticalAlignment="Center" Margin="10,0,0,0" FontFamily="Bahnschrift"
+                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" FontFamily="Bahnschrift"
                                FontWeight="Bold" FontStretch="Condensed" FontSize="18">
                         <Run Text="COMMAND "/><Run Text="CENTER" Foreground="#FECD03"/>
                     </TextBlock>
@@ -174,7 +174,7 @@
                             </Ellipse>
                             <Ellipse Width="8" Height="8" Fill="#52D273"/>
                         </Grid>
-                        <TextBlock x:Name="OnlineCount" FlowDirection="LeftToRight" FontFamily="Bahnschrift" FontWeight="Bold" FontStretch="Condensed"
+                        <TextBlock x:Name="OnlineCount" FontFamily="Bahnschrift" FontWeight="Bold" FontStretch="Condensed"
                                    FontSize="16" VerticalAlignment="Center"/>
                         <TextBlock x:Name="OnlineLabel" Text="online" Foreground="#D5D9EA" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>

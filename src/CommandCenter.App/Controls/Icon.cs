@@ -91,7 +91,6 @@ namespace CommandCenter.Controls
         public Icon()
         {
             Stretch = Stretch.Uniform;
-            FlowDirection = FlowDirection.LeftToRight;
             SnapsToDevicePixels = true;
         }
 

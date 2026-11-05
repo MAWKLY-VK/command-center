@@ -9,7 +9,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Threading;
 using CommandCenter.Pages;
-using CommandCenter.Localization;
 
 namespace CommandCenter
 {

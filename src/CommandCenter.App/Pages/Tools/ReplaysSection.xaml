@@ -40,13 +40,13 @@
                     <ColumnDefinition Width="104"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <Border Width="50" Height="50" CornerRadius="10" HorizontalAlignment="Left" FlowDirection="LeftToRight">
+                <Border Width="50" Height="50" CornerRadius="10" HorizontalAlignment="Left">
                     <Border.Background>
                         <ImageBrush ImageSource="{Binding Preview}" Stretch="UniformToFill"/>
                     </Border.Background>
                 </Border>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,14,0">
-                    <TextBlock Text="{Binding Map}" Style="{StaticResource NameTextStyle}" FontSize="14" FontWeight="Bold"
+                    <TextBlock Text="{Binding Map}" FontSize="14" FontWeight="Bold"
                                TextTrimming="CharacterEllipsis" ToolTip="{Binding Map}"/>
                     <TextBlock Text="{Binding Sub}" FontSize="12" Foreground="{Binding SubBrush}" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
                 </StackPanel>
@@ -145,7 +145,7 @@
                     DataContext="{Binding SelectedItem, ElementName=List}">
                 <DockPanel>
                     <Grid DockPanel.Dock="Top" Height="132">
-                        <Border CornerRadius="17,17,0,0" Background="#0A0E20" FlowDirection="LeftToRight">
+                        <Border CornerRadius="17,17,0,0" Background="#0A0E20">
                             <Border.OpacityMask>
                                 <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
                                     <GradientStop Color="White" Offset="0.3"/>
@@ -163,7 +163,7 @@
                             <TextBlock Text="{Binding ResultText}" Foreground="{Binding ResultBrush}" FontSize="12" FontWeight="Bold"
                                        VerticalAlignment="Center" MaxWidth="200" TextTrimming="CharacterEllipsis"/>
                         </Border>
-                        <TextBlock Text="{Binding Map}" Style="{StaticResource NameTextStyle}" FontSize="18" FontWeight="Bold" Margin="16,0,16,6"
+                        <TextBlock Text="{Binding Map}" FontSize="18" FontWeight="Bold" Margin="16,0,16,6"
                                    VerticalAlignment="Bottom" TextTrimming="CharacterEllipsis">
                             <TextBlock.Effect>
                                 <DropShadowEffect BlurRadius="12" ShadowDepth="0" Opacity="0.8" Color="Black"/>
@@ -187,8 +187,7 @@
                         <Border CornerRadius="10" Background="#0DFFFFFF" Padding="9,6">
                             <StackPanel>
                                 <TextBlock Text="Money" Style="{StaticResource StatLabel}"/>
-                                <TextBlock Text="{Binding Money}" FontFamily="Bahnschrift" FontWeight="Bold" FontStretch="Condensed" FontSize="15"
-                                           FlowDirection="LeftToRight" TextAlignment="Left"/>
+                                <TextBlock Text="{Binding Money}" FontFamily="Bahnschrift" FontWeight="Bold" FontStretch="Condensed" FontSize="15"/>
                             </StackPanel>
                         </Border>
                     </UniformGrid>

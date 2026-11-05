@@ -9,7 +9,8 @@ namespace CommandCenter.Core.Settings
         // The game folder the player chose when it was not found by itself
         public string? GameFolder { get; set; }
 
-        // "en" or "ar"; empty means English unless Windows is in Arabic
+        // 0.4.0's interface language, "en" or "ar". The one-time step of the English-only version reads it for its
+        // notice and then clears it (ArabicGameTextRemoval.RunOnce).
         public string? Language { get; set; }
 
         // True once the one-time step of the English-only version has run (ArabicGameTextRemoval.RunOnce)

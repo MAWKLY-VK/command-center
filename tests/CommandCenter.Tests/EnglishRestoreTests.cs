@@ -14,7 +14,7 @@ namespace CommandCenter.Tests
             ("GUI:Ok", "OK"));
 
         // Arabic letters in the forms 0.4.0 stored them (joined, each line reversed), as escapes
-        private const string Arabic = "ﻲﻔﻤﻫ";
+        private const string Arabic = "\uFEF2\uFED4\uFEE4\uFEEB";
 
         // The labels 0.4.0 added because Generals Online asks for them and the game's table lacks them (the "added"
         // list of its Arabic table, translation version 4, the only version it shipped)

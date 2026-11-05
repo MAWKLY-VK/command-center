@@ -7,7 +7,6 @@ using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using CommandCenter.Imaging;
-using CommandCenter.Localization;
 
 namespace CommandCenter.Pages.Tools
 {

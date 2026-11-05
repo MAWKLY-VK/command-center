@@ -117,7 +117,7 @@
                                             <TextBlock x:Name="SourceBadgeText" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
                                         </Border>
                                     </StackPanel>
-                                    <TextBlock x:Name="txtGameFolder" Style="{StaticResource NameTextStyle}" FontSize="13" Foreground="#D5D9EA"
+                                    <TextBlock x:Name="txtGameFolder" FontSize="13" Foreground="#D5D9EA"
                                                Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
                                 </StackPanel>
                             </DockPanel>
@@ -137,7 +137,7 @@
                             </Button>
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="Settings, maps and replays" FontSize="15" FontWeight="Bold"/>
-                                <TextBlock x:Name="txtDataFolder" Style="{StaticResource NameTextStyle}" FontSize="13" Foreground="#D5D9EA"
+                                <TextBlock x:Name="txtDataFolder" FontSize="13" Foreground="#D5D9EA"
                                            Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
                                 <TextBlock Text="Where the game itself keeps them, also when an installer moved them." Style="{StaticResource HintStyle}"
                                            Margin="0,3,0,0" TextWrapping="Wrap"/>
@@ -472,7 +472,7 @@
                     <TextBlock Text="CONFIGURATION" Foreground="#A7AECB" FontSize="12" FontWeight="Bold" 
                                Margin="0,0,0,8"/>
                     <Border Background="#07091C" BorderBrush="#1FFFFFFF" BorderThickness="1"
-                            Padding="14,12" MaxHeight="400" Margin="0,0,0,0" FlowDirection="LeftToRight">
+                            Padding="14,12" MaxHeight="400" Margin="0,0,0,0">
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel x:Name="configDetailsPanel">
                                 <TextBlock Text="(No plugin selected)" Foreground="#A0A0C0" FontSize="11"/>

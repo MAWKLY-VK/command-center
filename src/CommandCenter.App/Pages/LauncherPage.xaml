@@ -77,7 +77,6 @@
             <Setter Property="FontFamily" Value="Bahnschrift"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="FontStretch" Value="Condensed"/>
-            <Setter Property="FlowDirection" Value="LeftToRight"/>
         </Style>
     </Page.Resources>
 
@@ -95,7 +94,7 @@
 
             <!-- Title, game details, PLAY and the health line -->
             <StackPanel x:Name="HeroBlock" VerticalAlignment="Bottom" Margin="0,0,28,4">
-                <TextBlock Text="C&amp;C GENERALS · ZERO HOUR" Style="{StaticResource NameTextStyle}" Foreground="#FECD03" FontFamily="Bahnschrift"
+                <TextBlock Text="C&amp;C GENERALS · ZERO HOUR" Foreground="#FECD03" FontFamily="Bahnschrift"
                            FontWeight="SemiBold" FontSize="15"/>
                 <TextBlock Text="Ready for battle" FontSize="46" FontWeight="Bold" Margin="0,2,0,12">
                     <TextBlock.Effect>
@@ -107,13 +106,13 @@
                     <Border Style="{StaticResource ChipStyle}" Margin="0,0,8,8">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <c:Icon Kind="server" Width="14" Height="14" Foreground="#7AB4FF" Margin="0,0,7,0"/>
-                            <TextBlock x:Name="VersionText" FlowDirection="LeftToRight" FontSize="12" Foreground="#D5D9EA" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="VersionText" FontSize="12" Foreground="#D5D9EA" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Border>
                     <Border x:Name="AntiCheatChip" Style="{StaticResource ChipStyle}" Margin="0,0,8,8">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <c:Icon Kind="shield" Width="14" Height="14" Foreground="#52D273" Margin="0,0,7,0"/>
-                            <TextBlock x:Name="AntiCheatText" FlowDirection="LeftToRight" FontSize="12" Foreground="#D5D9EA" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="AntiCheatText" FontSize="12" Foreground="#D5D9EA" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Border>
                     <Button x:Name="SourceChip" Click="SourceChip_Click" Cursor="Hand" Margin="0,0,8,8">
@@ -172,7 +171,7 @@
 
                     <Border x:Name="ClientSelectorPanel" Style="{StaticResource GlassCardStyle}" CornerRadius="12" Padding="4" Margin="12,0,0,0"
                             VerticalAlignment="Center" Visibility="Collapsed">
-                        <StackPanel Orientation="Horizontal" FlowDirection="LeftToRight">
+                        <StackPanel Orientation="Horizontal">
                             <RadioButton x:Name="rbLiveClient" Content="LIVE" Style="{StaticResource ChannelTab}" Checked="ClientSelector_Changed"/>
                             <RadioButton x:Name="rbTestEnv" Content="TEST" Style="{StaticResource ChannelTab}" Checked="ClientSelector_Changed"/>
                         </StackPanel>
@@ -264,7 +263,7 @@
                                 <c:Icon Kind="trophy" Width="13" Height="13" Foreground="#A7AECB" Margin="0,0,6,0"/>
                                 <TextBlock Text="Last match" FontSize="11" Foreground="#A7AECB" VerticalAlignment="Center"/>
                             </DockPanel>
-                            <TextBlock x:Name="LastMatchName" Style="{StaticResource NameTextStyle}" FontSize="14" FontWeight="Bold" Margin="0,3,0,2"
+                            <TextBlock x:Name="LastMatchName" FontSize="14" FontWeight="Bold" Margin="0,3,0,2"
                                        TextTrimming="CharacterEllipsis"/>
                             <TextBlock x:Name="LastMatchInfo" FontSize="11" Foreground="#A7AECB" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
