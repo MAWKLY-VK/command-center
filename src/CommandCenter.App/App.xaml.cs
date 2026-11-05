@@ -18,12 +18,22 @@ namespace CommandCenter
         // One Command Center per data folder (decision D2); null when this copy closed because another one runs
         private SingleInstance? _instance;
 
+        // Set once the window was shown in a normal start: a normal close then counts as a successful start
+        private bool _shown;
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
-            // A second copy for the same data folder brings the first one to the front and closes quietly
+            // A copy that Windows started as administrator for one step of an update does that step and nothing else
             string[] commandLine = Environment.GetCommandLineArgs();
+            if (UpdateService.AdministratorStep(commandLine) is { } stepResult)
+            {
+                Shutdown(stepResult);
+                return;
+            }
+
+            // A second copy for the same data folder brings the first one to the front and closes quietly
             try
             {
                 _instance = SingleInstance.Acquire(GamePaths.UserData, SingleInstance.RestartOf(commandLine));
@@ -62,9 +72,28 @@ namespace CommandCenter
             MainWindow = window;
 
             if (Arg("--capture") is { } folder)
+            {
                 _ = window.CaptureAsync(folder, Arg("--size") ?? "1600x1000", Arg("--pages"));
+            }
             else
+            {
                 window.Show();
+                RemovePreviousVersionOnceStarted();
+            }
+        }
+
+        // After an update the previous version stays beside this one until this one has stayed open for 30 seconds or is
+        // closed normally (P3-D1)
+        private void RemovePreviousVersionOnceStarted()
+        {
+            _shown = true;
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+            timer.Tick += (_, _) =>
+            {
+                timer.Stop();
+                UpdateService.RemoveOldProgram();
+            };
+            timer.Start();
         }
 
         // Another copy was started for this data folder: show this one instead, restored if it was minimized
@@ -80,6 +109,8 @@ namespace CommandCenter
 
         protected override void OnExit(ExitEventArgs e)
         {
+            if (_shown)
+                UpdateService.RemoveOldProgram();
             // On the UI thread, which took the lock in OnStartup
             _instance?.Dispose();
             base.OnExit(e);

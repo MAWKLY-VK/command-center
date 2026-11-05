@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -10,9 +11,13 @@ namespace CommandCenter.Core.Updates
 {
     public sealed record UpdateInfo(Version Version, string VersionText, string Url, string Sha256, string Notes);
 
+    // The new version could not start, so the previous one was put back and this copy keeps running (P3-D1)
+    public sealed class PreviousVersionRestoredException(string message, Exception inner) : Exception(message, inner);
+
     // Mandatory updates. Each release carries an update.json next to the program. Its old fields (version, url, sha256,
     // notes) are for 0.4.0; this version reads only the signed payload (ADR 0007, Format). When that names a newer
-    // version, this copy stops working until the new program is installed.
+    // version, this copy stops working until the new program is installed. The previous program stays beside the new
+    // one as <name>.old.exe until the new one has started successfully (P3-D1, ADR 0009).
     public static class UpdateService
     {
         public const string ManifestUrl = "https://github.com/MAWKLY-VK/command-center/releases/latest/download/update.json";
@@ -21,9 +26,31 @@ namespace CommandCenter.Core.Updates
         // A signed update may only download from this repository's releases
         public const string ReleaseDownloads = "https://github.com/MAWKLY-VK/command-center/releases/download/";
 
+        // The two steps a copy of Command Center started through Windows' administrator prompt may do, the only elevation
+        // in Command Center: this program's file replaces itself with a checked download, and the previous version kept
+        // beside it puts itself back
+        public const string ReplaceArgument = "--replace-program";
+        public const string PutBackArgument = "--put-back-program";
+
+        // How such a copy ends
+        private const int StepDone = 0;
+        private const int StepWrongArguments = 2;
+        private const int StepNotTheDownload = 3;
+        private const int StepCannotChange = 4;
+
+        // Windows' code when the player refuses the administrator prompt
+        private const int ErrorCancelled = 1223;
+        private static readonly TimeSpan StepTimeout = TimeSpan.FromMinutes(2);
+
         // Test builds (and the tests) also accept a download from a local file, to try the update path; release builds
         // never set it
         internal static bool AllowLocalDownloads { get; set; }
+
+        // A version that could not start in this run; it is not offered again until Command Center starts again
+        private static Version? _failedVersion;
+
+        // Set once this copy's own file became the previous version beside a new one; it is not removed then
+        private static bool _replacedThisRun;
 
         // The program's own version: CommandCenter.exe, whose <Version> tools/publish.ps1 also reads. Not this
         // assembly's: the services live in CommandCenter.Core.dll, which has no version of its own.
@@ -46,6 +73,8 @@ namespace CommandCenter.Core.Updates
             }
             if (Read(manifest, out var update) is { } refusal)
                 OperationLog.Failed("check update", source, refusal);
+            if (update != null && update.Version == _failedVersion)
+                return null;
             return update;
         }
 
@@ -119,16 +148,22 @@ namespace CommandCenter.Core.Updates
             return await File.ReadAllBytesAsync(path);
         }
 
-        // Fails early when the program's folder cannot be written, before anything is downloaded
-        public static void CheckFolder()
+        // Before anything is downloaded: whether changing the program's folder needs administrator rights. Fails when
+        // Command Center was not started from its own program file, or when its folder cannot be written at all.
+        public static bool FolderNeedsAdministrator()
         {
-            var (_, staged, _) = Files();
+            var (staged, _, _) = Siblings(ProgramFile());
             try
             {
                 using (File.Create(staged)) { }
                 File.Delete(staged);
+                return false;
             }
-            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+            catch (UnauthorizedAccessException)
+            {
+                return true;
+            }
+            catch (IOException)
             {
                 throw new IOException("Command Center cannot write to the folder it runs from. Get the new version from the download page and replace the program by hand.");
             }
@@ -197,85 +232,329 @@ namespace CommandCenter.Core.Updates
             }
         }
 
-        // Puts the downloaded program in place of this one. Windows lets a running program be renamed but not
-        // deleted, so this copy is moved aside as <name>.old.exe and removed by the next start.
-        public static void Install(string downloaded) =>
-            OperationLog.Record("install update", Environment.ProcessPath ?? "", "From " + downloaded, () => ReplaceProgram(downloaded));
+        // Puts the downloaded program in place of this one, through Windows' administrator prompt when the folder needs
+        // it. This copy's file stays beside the new one as the previous version. The download is removed either way.
+        public static Task InstallAsync(string downloaded, UpdateInfo update, bool asAdministrator) =>
+            OperationLog.RecordAsync("install update", Environment.ProcessPath ?? "",
+                "From " + downloaded + (asAdministrator ? ", as administrator" : ""), async () =>
+                {
+                    string exe = ProgramFile();
+                    if (asAdministrator)
+                    {
+                        try
+                        {
+                            int code = await Task.Run(() => RunAsAdministrator(exe, [ReplaceArgument, downloaded, update.Sha256]));
+                            if (code != StepDone)
+                                throw new IOException(StepFailure(code));
+                        }
+                        finally
+                        {
+                            TryDelete(downloaded);
+                        }
+                    }
+                    else
+                    {
+                        ReplaceProgram(exe, downloaded);
+                    }
+                    _replacedThisRun = true;
+                    return true;
+                });
 
-        private static void ReplaceProgram(string downloaded)
+        // In a folder this copy can write: the download is copied in as <name>.new.exe (a copy takes the folder's
+        // permissions, where a move would keep those of the private temporary folder), then the files are swapped
+        internal static void ReplaceProgram(string exe, string downloaded)
         {
-            var (exe, staged, old) = Files();
+            var (staged, old, _) = Siblings(exe);
             try
             {
-                File.Move(downloaded, staged, overwrite: true);
-                File.Delete(old);
-                File.Move(exe, old);
-                try
-                {
-                    File.Move(staged, exe);
-                }
-                catch
-                {
-                    File.Move(old, exe);
-                    throw;
-                }
+                File.Copy(downloaded, staged, overwrite: true);
+                Swap(exe, staged, old);
             }
             catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
             {
-                TryDelete(downloaded);
                 TryDelete(staged);
                 throw new IOException("Could not replace the program file: " + ex.Message, ex);
             }
+            finally
+            {
+                TryDelete(downloaded);
+            }
         }
 
-        // Starts the new program with the same arguments; the caller then closes this one
-        public static void Restart() =>
-            OperationLog.Record("restart", Environment.ProcessPath ?? "", "After the update", () =>
-            {
-                // The test switch is not passed on, so a wrong manifest cannot cause an update loop. The new copy waits for
-                // this one to close before it takes the single-copy lock.
-                var args = Environment.GetCommandLineArgs().Skip(1).Where(a => !a.Equals("--update-auto", StringComparison.OrdinalIgnoreCase));
-                ProcessRunner.Start(new StartRequest(StartKind.Restart, "", SingleInstance.ArgumentsForRestart(args)))?.Dispose();
-            });
-
-        // Removes the copy an earlier update moved aside. That program may still be closing, so this keeps trying for a while.
-        public static void CleanUp()
+        // The administrator copy's replace. It reads the download once and checks it against the SHA-256 the update
+        // screen gave before anything is written, so it can place only that program in the folder, and nothing it read
+        // is left there when the check fails.
+        internal static int ReplaceAsAdministrator(string exe, string downloaded, string sha256)
         {
-            string old;
+            if (!IsLocalPath(downloaded) || sha256.Length != 64 || !sha256.All(Uri.IsHexDigit))
+                return StepWrongArguments;
+            byte[] program;
             try
             {
-                old = Files().Old;
+                program = ReadAtMost(downloaded, DownloadService.UpdateProgramLimit);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                return StepNotTheDownload;
+            }
+            if (!Convert.ToHexString(SHA256.HashData(program)).Equals(sha256, StringComparison.OrdinalIgnoreCase))
+                return StepNotTheDownload;
+            var (staged, old, _) = Siblings(exe);
+            try
+            {
+                File.WriteAllBytes(staged, program);
+                Swap(exe, staged, old);
+                return StepDone;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                TryDelete(staged);
+                return StepCannotChange;
+            }
+        }
+
+        // The running program can be renamed but not deleted, so it moves aside as the previous version, where it stays
+        // until the new one has started. A failed step leaves the program as it was.
+        private static void Swap(string exe, string staged, string old)
+        {
+            File.Delete(old);
+            File.Move(exe, old);
+            try
+            {
+                File.Move(staged, exe);
             }
             catch
             {
-                return;
+                File.Move(old, exe);
+                throw;
             }
-            if (!File.Exists(old))
-                return;
-            _ = Task.Run(async () =>
-            {
-                for (int i = 0; i < 30 && File.Exists(old); i++)
-                {
-                    try
-                    {
-                        File.Delete(old);
-                    }
-                    catch
-                    {
-                        await Task.Delay(500);
-                    }
-                }
-            });
         }
 
-        private static (string Exe, string Staged, string Old) Files()
+        // Starts the new program with the same arguments; the caller then closes this one. When Windows cannot start it
+        // at all, the previous version is put back and this copy keeps running.
+        public static Task RestartAsync(Version version) =>
+            OperationLog.RecordAsync("restart", Environment.ProcessPath ?? "", "Version " + version.ToString(3), () => Task.Run(() =>
+            {
+                RestartOrPutBack(ProgramFile(), version, () =>
+                {
+                    // The test switch is not passed on, so a wrong manifest cannot cause an update loop. The new copy waits
+                    // for this one to close before it takes the single-copy lock.
+                    var args = Environment.GetCommandLineArgs().Skip(1).Where(a => !a.Equals("--update-auto", StringComparison.OrdinalIgnoreCase));
+                    ProcessRunner.Start(new StartRequest(StartKind.Restart, "", SingleInstance.ArgumentsForRestart(args)))?.Dispose();
+                });
+                return true;
+            }));
+
+        // When Windows cannot start the new program at all (the file is missing, an antivirus blocked it, it is not a
+        // valid program), the previous version is put back and that version is not offered again in this run. A new
+        // version that starts and then fails is put back by hand, as README explains.
+        internal static void RestartOrPutBack(string exe, Version version, Action start)
+        {
+            try
+            {
+                start();
+            }
+            catch (Exception error)
+            {
+                _failedVersion = Normalize(version);
+                string failed = $"Version {version.ToString(3)} could not start ({error.Message.TrimEnd('.')})";
+                try
+                {
+                    PutBackOrAsk(exe);
+                }
+                catch (Exception putBack)
+                {
+                    throw new IOException($"{failed}, and the previous version could not be put back ({putBack.Message.TrimEnd('.')}). "
+                        + "The download page explains how to put it back by hand.", error);
+                }
+                throw new PreviousVersionRestoredException($"{failed}, so the previous version was put back.", error);
+            }
+        }
+
+        private static void PutBackOrAsk(string exe)
+        {
+            try
+            {
+                PutBack(exe);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                int code = RunAsAdministrator(PreviousVersionOf(exe), [PutBackArgument]);
+                if (code != StepDone)
+                    throw new IOException(StepFailure(code));
+            }
+        }
+
+        // The new program moves aside as <name>.failed.exe (renaming works where deleting may not), the previous version
+        // takes its name, and the failed file is removed now or at the next start
+        private static void PutBack(string exe)
+        {
+            var (_, old, failed) = Siblings(exe);
+            if (!File.Exists(old))
+                throw new FileNotFoundException("The previous version is not beside the program.", old);
+            bool present = File.Exists(exe);
+            if (present)
+                File.Move(exe, failed, overwrite: true);
+            try
+            {
+                File.Move(old, exe);
+            }
+            catch
+            {
+                if (present)
+                    File.Move(failed, exe);
+                throw;
+            }
+            TryDelete(failed);
+        }
+
+        // Starts a copy of Command Center as administrator for one step and waits for it to end. Windows asks the player
+        // first.
+        private static int RunAsAdministrator(string program, string[] arguments)
+        {
+            Process? process;
+            try
+            {
+                process = ProcessRunner.Start(new StartRequest(StartKind.AsAdministrator, program, arguments));
+            }
+            catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorCancelled)
+            {
+                throw new IOException("Windows asked for permission, and it was not given.", ex);
+            }
+            using (process)
+            {
+                if (process == null)
+                    throw new IOException("The administrator step did not start.");
+                if (!process.WaitForExit(StepTimeout))
+                    throw new IOException("The administrator step did not finish.");
+                return process.ExitCode;
+            }
+        }
+
+        private static string StepFailure(int code) => code switch
+        {
+            StepNotTheDownload => "The download could not be read or failed its SHA-256 check, so it was not installed.",
+            StepCannotChange => "Could not change the program file in its folder.",
+            _ => $"Could not change the program file: the administrator step ended with code {code}.",
+        };
+
+        // The copy Windows starts as administrator for one step of an update. App runs this before anything else, so
+        // that copy shows no window, takes no lock and reads no settings. Returns its exit code, or null for a normal
+        // start.
+        public static int? AdministratorStep(string[] commandLine)
+        {
+            if (commandLine.Length < 2)
+                return null;
+            bool replace = commandLine[1].Equals(ReplaceArgument, StringComparison.OrdinalIgnoreCase);
+            if (!replace && !commandLine[1].Equals(PutBackArgument, StringComparison.OrdinalIgnoreCase))
+                return null;
+            try
+            {
+                if (replace)
+                    return commandLine.Length == 4 ? ReplaceAsAdministrator(ProgramFile(), commandLine[2], commandLine[3]) : StepWrongArguments;
+                if (commandLine.Length != 2 || ProgramOf(Environment.ProcessPath ?? "") is not { } exe)
+                    return StepWrongArguments;
+                PutBack(exe);
+                return StepDone;
+            }
+            catch
+            {
+                return StepCannotChange;
+            }
+        }
+
+        // Once this version has stayed open for 30 seconds or closed normally, the previous one beside it goes. In a folder
+        // that needs administrator rights it stays until the next update replaces it: Command Center does not ask for
+        // rights for this.
+        public static void RemoveOldProgram()
+        {
+            if (_replacedThisRun)
+                return;
+            try
+            {
+                RemoveOldProgram(ProgramFile());
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Tried again at the next start
+            }
+        }
+
+        internal static void RemoveOldProgram(string exe)
+        {
+            string old = PreviousVersionOf(exe);
+            if (!File.Exists(old))
+                return;
+            File.Delete(old);
+            OperationLog.Done("remove previous version", old);
+        }
+
+        // At start: removes what an interrupted update left beside the program. The previous version stays until this
+        // one has started successfully.
+        public static void CleanUp()
+        {
+            string exe;
+            try
+            {
+                exe = ProgramFile();
+            }
+            catch (IOException)
+            {
+                return;
+            }
+            _ = Task.Run(() => CleanUpLeftovers(exe));
+        }
+
+        internal static void CleanUpLeftovers(string exe)
+        {
+            var (staged, _, failed) = Siblings(exe);
+            TryDelete(staged);
+            TryDelete(failed);
+        }
+
+        // For the tests: a new run
+        internal static void ForgetFailedVersion() => _failedVersion = null;
+
+        internal static string PreviousVersionOf(string exe) => Siblings(exe).Old;
+
+        private static string ProgramFile()
         {
             string? exe = Environment.ProcessPath;
             if (exe == null || Path.GetFileName(exe).Equals("dotnet.exe", StringComparison.OrdinalIgnoreCase))
                 throw new IOException("Command Center was not started from its own program file, so it cannot replace itself.");
+            return exe;
+        }
+
+        // Beside the program: the download being swapped in, the previous version, and a new version that could not start
+        private static (string Staged, string Old, string Failed) Siblings(string exe)
+        {
             string folder = Path.GetDirectoryName(exe)!;
             string name = Path.GetFileNameWithoutExtension(exe);
-            return (exe, Path.Combine(folder, name + ".new.exe"), Path.Combine(folder, name + ".old.exe"));
+            return (Path.Combine(folder, name + ".new.exe"), Path.Combine(folder, name + ".old.exe"), Path.Combine(folder, name + ".failed.exe"));
+        }
+
+        // The program a previous version belongs to: <name>.old.exe beside <name>.exe
+        private static string? ProgramOf(string previous)
+        {
+            const string Suffix = ".old.exe";
+            string name = Path.GetFileName(previous);
+            return name.Length > Suffix.Length && name.EndsWith(Suffix, StringComparison.OrdinalIgnoreCase)
+                ? Path.Combine(Path.GetDirectoryName(previous)!, name[..^Suffix.Length] + ".exe")
+                : null;
+        }
+
+        // A plain path on a local drive, not a network or device path
+        private static bool IsLocalPath(string path) =>
+            Path.IsPathFullyQualified(path) && !path.StartsWith(@"\\", StringComparison.Ordinal);
+
+        private static byte[] ReadAtMost(string path, long limit)
+        {
+            using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (file.Length > limit)
+                throw new IOException("The download is too large.");
+            var data = new byte[file.Length];
+            file.ReadExactly(data);
+            return data;
         }
 
         private static bool IsWeb(string source) =>

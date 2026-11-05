@@ -110,6 +110,24 @@ libraries. Options › Game folder shows which copy is used and lets you pick an
 Command Center keeps its own files in `Documents\Command and Conquer Generals Zero Hour Data\CommandCenter`
 (backups, quarantine, map cache, settings).
 
+## Updates
+
+An older copy stops working until the new version is installed. The update screen downloads the new program, checks
+it and puts it in place of the old one. When Command Center's folder needs administrator rights, Windows asks for
+permission for that step only.
+
+The previous version stays next to the new one as `CommandCenter.old.exe` until the new one has stayed open for 30
+seconds or was closed normally. If Windows cannot start the new version at all, the previous one is put back
+automatically and the update screen says why.
+
+If the new version starts and then fails, put the previous one back by hand:
+
+1. Close Command Center.
+2. In its folder, delete `CommandCenter.exe`.
+3. Rename `CommandCenter.old.exe` to `CommandCenter.exe`.
+
+The previous version asks for the update again at its next start.
+
 ## License
 
 Command Center is free software under the [GNU General Public License v3.0](LICENSE).

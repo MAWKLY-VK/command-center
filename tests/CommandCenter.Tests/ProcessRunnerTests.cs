@@ -99,6 +99,52 @@ namespace CommandCenter.Tests
             Assert.False(info.UseShellExecute);
         }
 
+        [Fact]
+        public void The_update_step_asks_windows_to_start_this_program_as_administrator()
+        {
+            string self = Environment.ProcessPath!;
+            string download = @"C:\Users\Some One\AppData\Local\Temp\CommandCenter-1.exe.download";
+            string sha = new('a', 64);
+            var info = ProcessRunner.Prepare(new StartRequest(StartKind.AsAdministrator, self, [UpdateService.ReplaceArgument, download, sha]))!;
+            Assert.Equal(self, info.FileName);
+            Assert.True(info.UseShellExecute);
+            Assert.Equal("runas", info.Verb);
+            Assert.Equal($"\"--replace-program\" \"{download}\" \"{sha}\"", info.Arguments);
+            Assert.Empty(info.ArgumentList);
+        }
+
+        [Fact]
+        public void The_previous_version_beside_this_program_starts_as_administrator_only_to_put_itself_back()
+        {
+            string self = Environment.ProcessPath!;
+            string old = Path.Combine(Path.GetDirectoryName(self)!, Path.GetFileNameWithoutExtension(self) + ".old.exe");
+            var info = ProcessRunner.Prepare(new StartRequest(StartKind.AsAdministrator, old, [UpdateService.PutBackArgument]))!;
+            Assert.Equal(old, info.FileName);
+            Assert.Equal("runas", info.Verb);
+            Assert.Equal("\"--put-back-program\"", info.Arguments);
+        }
+
+        [Fact]
+        public void Nothing_else_starts_as_administrator()
+        {
+            string self = Environment.ProcessPath!;
+            string old = Path.Combine(Path.GetDirectoryName(self)!, Path.GetFileNameWithoutExtension(self) + ".old.exe");
+            string download = @"C:\Temp\CommandCenter-1.exe.download";
+            string sha = new('a', 64);
+            Assert.Null(Prepare(Path.Combine(Environment.SystemDirectory, "cmd.exe"), UpdateService.ReplaceArgument, download, sha));
+            Assert.Null(Prepare(@"Tools\CommandCenter.exe", UpdateService.ReplaceArgument, download, sha));
+            Assert.Null(Prepare(self));
+            Assert.Null(Prepare(self, "--game", @"C:\Game"));
+            Assert.Null(Prepare(self, UpdateService.ReplaceArgument, download));
+            Assert.Null(Prepare(self, UpdateService.ReplaceArgument, "C:\\Temp\\a\" --game \"b", sha));
+            Assert.Null(Prepare(self, UpdateService.ReplaceArgument, @"C:\Temp\", sha));
+            Assert.Null(Prepare(self, UpdateService.PutBackArgument));
+            Assert.Null(Prepare(old, UpdateService.ReplaceArgument, download, sha));
+
+            static System.Diagnostics.ProcessStartInfo? Prepare(string target, params string[] arguments) =>
+                ProcessRunner.Prepare(new StartRequest(StartKind.AsAdministrator, target, arguments));
+        }
+
         public void Dispose() => _game.Dispose();
     }
 }
