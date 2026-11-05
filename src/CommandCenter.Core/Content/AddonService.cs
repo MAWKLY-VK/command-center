@@ -137,20 +137,17 @@ namespace CommandCenter.Core.Content
             return BackupService.Load().Skip(before).ToList();
         }
 
-        // The shared client's 10 seconds cover only the reply headers here, so the 5 MB packages also finish on a slow
-        // connection. Reading stops after five minutes, or once more arrives than the package holds (the checksum then fails).
+        // At most the package's pinned size: anything bigger cannot be the pinned file
         private static async Task<byte[]> DownloadAsync(BarPackage package)
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-            using var response = await GoApi.Http.GetAsync(package.Url, HttpCompletionOption.ResponseHeadersRead, cts.Token);
-            response.EnsureSuccessStatusCode();
-            await using var stream = await response.Content.ReadAsStreamAsync(cts.Token);
-            using var buffer = new MemoryStream();
-            var chunk = new byte[81920];
-            int read;
-            while (buffer.Length <= package.Size && (read = await stream.ReadAsync(chunk, cts.Token)) > 0)
-                buffer.Write(chunk, 0, read);
-            return buffer.ToArray();
+            try
+            {
+                return await DownloadService.GetBytesAsync(new Uri(package.Url), package.Size);
+            }
+            catch (DownloadTooLargeException)
+            {
+                throw new InvalidDataException("The download does not match the expected checksum, so nothing was installed.");
+            }
         }
 
         public static string Views(BarPackage p) => $"Control Bar Pro {p.Resolution}";
