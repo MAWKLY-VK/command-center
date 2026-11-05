@@ -18,6 +18,7 @@ namespace CommandCenter
         private ToolsPage? _tools;
         private OptionsPage? _options;
         private readonly DispatcherTimer _toastTimer = new() { Interval = TimeSpan.FromSeconds(6) };
+        private (string Message, Action? Undo, bool IsError)? _afterNotice;
         private Action? _toastAction;
         private Task? _updateCheck;
         private Task? _englishOnlyStep;
@@ -295,7 +296,12 @@ namespace CommandCenter
 
         public void Toast(string message, Action? undo = null, bool isError = false)
         {
-            ToastArabic.Visibility = Visibility.Collapsed;
+            // The one-time notice stays until it is closed; the newest toast that comes meanwhile is shown after it
+            if (ToastArabic.Visibility == Visibility.Visible && ToastBox.Visibility == Visibility.Visible)
+            {
+                _afterNotice = (message, undo, isError);
+                return;
+            }
             ToastText.Text = message;
             ToastText.Foreground = isError ? new SolidColorBrush(Color.FromRgb(0xFF, 0x6B, 0x6B)) : Brushes.White;
             ToastBox.BorderBrush = isError ? new SolidColorBrush(Color.FromRgb(0xFF, 0x44, 0x44)) : new SolidColorBrush(Color.FromRgb(0x29, 0x80, 0xFF));
@@ -312,6 +318,12 @@ namespace CommandCenter
         {
             _toastTimer.Stop();
             ToastBox.Visibility = Visibility.Collapsed;
+            ToastArabic.Visibility = Visibility.Collapsed;
+            if (_afterNotice is { } next)
+            {
+                _afterNotice = null;
+                Toast(next.Message, next.Undo, next.IsError);
+            }
         }
 
         private void ToastAction_Click(object sender, RoutedEventArgs e)

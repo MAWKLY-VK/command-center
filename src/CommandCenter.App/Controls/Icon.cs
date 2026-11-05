@@ -7,7 +7,6 @@ using System.Windows.Shapes;
 namespace CommandCenter.Controls
 {
     // A line icon on a 24 x 24 grid, drawn in the text colour: <c:Icon Kind="home" Width="17" Height="17"/>.
-    // Pictures, not text, so a right-to-left layout keeps them as drawn.
     public sealed class Icon : Viewbox
     {
         private static readonly Dictionary<string, string> Shapes = new(StringComparer.OrdinalIgnoreCase)

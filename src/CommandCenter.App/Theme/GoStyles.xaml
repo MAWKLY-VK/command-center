@@ -3,8 +3,7 @@
 
     <!-- Generals Online launcher look: navy #01031A, sidebar #00020F, blue #2980FF, gold PLAY #FECD03 -->
 
-        <!-- The Windows check box look, with the tick kept left to right: right-to-left layout mirrors drawings, and a
-             mirrored tick reads wrong in Arabic -->
+        <!-- The Windows check box look -->
         <Style TargetType="CheckBox">
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontSize" Value="13"/>

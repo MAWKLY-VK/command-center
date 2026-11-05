@@ -481,8 +481,6 @@ namespace CommandCenter.Core.Integrity
                 var info = FileVersionInfo.GetVersionInfo(path);
                 string product = (info.ProductName ?? info.FileDescription ?? "").Trim();
                 string label = product.Length > 0 ? product : what;
-                // The file's own product name stays as it is; the built-in description is translated
-                string shown = product.Length > 0 ? product : what;
                 if (dll.Equals("d3d8.dll", StringComparison.OrdinalIgnoreCase))
                 {
                     // Generals Online loads DirectX 8 from the Windows folder only, so GenTool, dgVoodoo or DXVK here
@@ -490,14 +488,14 @@ namespace CommandCenter.Core.Integrity
                     found.Add(new HealthResult
                     {
                         Id = "wrapper:" + dll, Group = GroupFiles, Title = "d3d8.dll is not used by Generals Online", Status = HealthStatus.Passed,
-                        Detail = string.Format("{0}. Generals Online loads the DirectX 8 that comes with Windows, so this file only affects the original game", shown),
+                        Detail = string.Format("{0}. Generals Online loads the DirectX 8 that comes with Windows, so this file only affects the original game", label),
                     });
                     continue;
                 }
                 found.Add(new HealthResult
                 {
                     Id = "wrapper:" + dll, Group = GroupFiles, Title = string.Format("{0} replaces part of the game", dll), Status = HealthStatus.Warning,
-                    Detail = string.Format("{0}. Generals Online does not need it and the anti-cheat can refuse to start with it", shown),
+                    Detail = string.Format("{0}. Generals Online does not need it and the anti-cheat can refuse to start with it", label),
                     FixLabel = "Quarantine",
                     FixPreview = string.Format("Moves {0} to the launcher's quarantine folder. Undo puts it back.", dll),
                     Fix = () => BackupService.MoveToQuarantine("Quarantined " + dll, path, label),

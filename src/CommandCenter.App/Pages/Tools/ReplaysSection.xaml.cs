@@ -70,7 +70,7 @@ namespace CommandCenter.Pages.Tools
         public string Time => Entry.Start.ToString("HH:mm");
         public string Length => Views.Length(Entry.Length);
 
-        public string PlayersTip => string.Join("\n", Entry.Players.Select(p => $"{PlayerName(p)} · {Army(p)}"));
+        public string PlayersTip => string.Join("\n", Entry.Players.Select(p => $"{p.Name} · {Army(p)}"));
 
         public IReadOnlyList<PlayerChip> Chips
         {
@@ -137,7 +137,7 @@ namespace CommandCenter.Pages.Tools
                 }
                 var winners = Entry.Players.Where((p, i) => ResultOf(i)?.Result == MatchResult.Won).ToList();
                 if (winners.Count > 0)
-                    return string.Format("{0} won", PlayerName(winners[0]) + (winners.Count > 1 ? $" +{winners.Count - 1}" : ""));
+                    return string.Format("{0} won", winners[0].Name + (winners.Count > 1 ? $" +{winners.Count - 1}" : ""));
                 return "—";
             }
         }
@@ -165,7 +165,7 @@ namespace CommandCenter.Pages.Tools
                     return null;
                 var lines = Entry.Players.Select((p, i) => (p, r: ResultOf(i)))
                     .Where(x => x.r?.HasLeft == true)
-                    .Select(x => $"{PlayerName(x.p)} · {LeaveText(x.r!)}")
+                    .Select(x => $"{x.p.Name} · {LeaveText(x.r!)}")
                     .ToList();
                 if (!_results.HasWinner)
                     lines.Add("A replay only shows who won when the other side surrendered or left; a defeat in the game is not recorded.");
@@ -183,7 +183,7 @@ namespace CommandCenter.Pages.Tools
             foreach (var side in Sides(Entry))
             {
                 foreach (var (p, _) in side)
-                    chips.Add(new PlayerChip(PlayerName(p), Views.PlayerBrush(p.Color), art ? Emblem(p) : null, number));
+                    chips.Add(new PlayerChip(p.Name, Views.PlayerBrush(p.Color), art ? Emblem(p) : null, number));
                 number++;
             }
             return chips;
@@ -198,8 +198,6 @@ namespace CommandCenter.Pages.Tools
 
         public static BitmapSource? Emblem(ReplayPlayer player) =>
             FactionArt.Emblem(player.Faction, player.General, Views.PlayerBrush(player.Color) is SolidColorBrush b ? b.Color : Colors.White);
-
-        public static string PlayerName(ReplayPlayer player) => player.Name;
 
         public static string Army(ReplayPlayer player) => player.Faction switch
         {
@@ -458,7 +456,7 @@ namespace CommandCenter.Pages.Tools
             }
             root.Children.Add(grid);
 
-            var observers = r.Players.Where(p => p.Faction == Faction.Observer).Select(ReplayRow.PlayerName).ToList();
+            var observers = r.Players.Where(p => p.Faction == Faction.Observer).Select(p => p.Name).ToList();
             if (observers.Count > 0)
                 root.Children.Add(Line(string.Format("Watched by {0}", English.List(observers)), Views.Hint));
             if (r.Desync)
@@ -475,7 +473,7 @@ namespace CommandCenter.Pages.Tools
             if (r.SuperweaponsOff)
                 info.Add("Superweapons off");
             if (row.Recorder >= 0 && row.Recorder < r.Players.Count)
-                info.Add(string.Format("Recorded by {0}", ReplayRow.PlayerName(r.Players[row.Recorder])));
+                info.Add(string.Format("Recorded by {0}", r.Players[row.Recorder].Name));
             var file = Line(string.Join("  ·  ", info), Views.Hint);
             file.ToolTip = r.FilePath;
             root.Children.Add(file);
@@ -568,7 +566,7 @@ namespace CommandCenter.Pages.Tools
             var top = new DockPanel { LastChildFill = false };
             var name = new TextBlock
             {
-                Text = ReplayRow.PlayerName(player),
+                Text = player.Name,
                 FontSize = 12,
                 FontWeight = FontWeights.SemiBold,
                 MaxWidth = 210,

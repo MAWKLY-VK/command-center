@@ -167,9 +167,10 @@ namespace CommandCenter.Core.Content
         {
             try
             {
-                return File.Exists(table) && CsfFile.Load(File.ReadAllBytes(table)).Contains(MarkerLabel);
+                // Label names are stored as plain ASCII (string values are not), so a damaged table cannot make this fail
+                return File.Exists(table) && File.ReadAllBytes(table).AsSpan().IndexOf(Encoding.ASCII.GetBytes(MarkerLabel)) >= 0;
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 // A table that cannot be read is not one 0.4.0 wrote
                 return false;

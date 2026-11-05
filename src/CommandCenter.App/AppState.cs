@@ -78,15 +78,15 @@ namespace CommandCenter
             yield return new HealthResult
             {
                 Id = "sample:runtime", Group = HealthService.GroupFiles, Title = "Old Visual C++ file inside the game folder", Status = HealthStatus.Problem,
-                Detail = string.Format("{0} ({1}) is loaded instead of the system copy, so the game stops with \"Entry Point Not Found\"", "msvcp140.dll", "14.0.24215.1"),
+                Detail = "msvcp140.dll (14.0.24215.1) is loaded instead of the system copy, so the game stops with \"Entry Point Not Found\"",
                 Note = Sample("Usually left by GenPatcher or an old repack."),
-                FixLabel = "Quarantine", FixPreview = string.Format("Moves {0} to the launcher's quarantine folder. Undo puts it back.", "msvcp140.dll"), Fix = () => { },
+                FixLabel = "Quarantine", FixPreview = "Moves msvcp140.dll to the launcher's quarantine folder. Undo puts it back.", Fix = () => { },
             };
             yield return new HealthResult
             {
-                Id = "sample:archive", Group = HealthService.GroupFiles, Title = string.Format("{0} changes unit rules", "ExtraRulesZH.big"), Status = HealthStatus.Problem,
+                Id = "sample:archive", Group = HealthService.GroupFiles, Title = "ExtraRulesZH.big changes unit rules", Status = HealthStatus.Problem,
                 Detail = "Other players do not have it, so online games end with \"The host has modified INI files\"",
-                FixLabel = "Quarantine", FixPreview = string.Format("Moves {0} to the launcher's quarantine folder. Undo puts it back.", "ExtraRulesZH.big"), Fix = () => { },
+                FixLabel = "Quarantine", FixPreview = "Moves ExtraRulesZH.big to the launcher's quarantine folder. Undo puts it back.", Fix = () => { },
             };
             yield return new HealthResult
             {
