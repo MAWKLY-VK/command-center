@@ -25,8 +25,8 @@ namespace CommandCenter.Pages
         public void Open(UpdateInfo update)
         {
             _update = update;
-            Message.Text = Loc.T("Version {0} is ready. This version stops working until you update.", update.VersionText);
-            Versions.Text = Loc.T("Installed {0} · New {1}", UpdateService.Current.ToString(3), update.Version.ToString(3));
+            Message.Text = string.Format("Version {0} is ready. This version stops working until you update.", update.VersionText);
+            Versions.Text = string.Format("Installed {0} · New {1}", UpdateService.Current.ToString(3), update.Version.ToString(3));
             Notes.Text = update.Notes;
             NotesBox.Visibility = update.Notes.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
@@ -69,18 +69,18 @@ namespace CommandCenter.Pages
                     ShowProgress((0, -1));
                     UpdateService.CheckFolder();
                     string file = await UpdateService.DownloadAsync(_update, new Progress<(long Done, long Total)>(ShowProgress));
-                    Stage.Text = Loc.T("Installing");
+                    Stage.Text = "Installing";
                     UpdateService.Install(file);
                     _installed = true;
                 }
-                Stage.Text = Loc.T("Restarting");
+                Stage.Text = "Restarting";
                 try
                 {
                     UpdateService.Restart();
                 }
                 catch (Exception ex)
                 {
-                    throw new InvalidOperationException(Loc.T("The new version is installed but did not start ({0}). Close this window and start Command Center again.", ex.Message));
+                    throw new InvalidOperationException(string.Format("The new version is installed but did not start ({0}). Close this window and start Command Center again.", ex.Message));
                 }
                 Restarting = true;
                 Application.Current.Shutdown();
@@ -88,10 +88,10 @@ namespace CommandCenter.Pages
             catch (Exception ex)
             {
                 ProgressBox.Visibility = Visibility.Collapsed;
-                Error.Text = Loc.T("Update failed. {0}", ex.Message);
+                Error.Text = string.Format("Update failed. {0}", ex.Message);
                 Error.Visibility = Visibility.Visible;
                 DownloadPage.Visibility = Visibility.Visible;
-                UpdateNow.Content = Loc.T("TRY AGAIN");
+                UpdateNow.Content = "TRY AGAIN";
                 UpdateNow.IsEnabled = true;
                 Keyboard.Focus(UpdateNow);
             }
@@ -107,13 +107,13 @@ namespace CommandCenter.Pages
             {
                 Bar.Value = (double)p.Done / p.Total;
                 Percent.Text = $"{p.Done * 100 / p.Total}%";
-                Stage.Text = Loc.T("Downloading · {0} of {1}", Views.Size(p.Done), Views.Size(p.Total));
+                Stage.Text = string.Format("Downloading · {0} of {1}", Views.Size(p.Done), Views.Size(p.Total));
             }
             else
             {
                 Bar.Value = 0;
                 Percent.Text = "";
-                Stage.Text = p.Done > 0 ? Loc.T("Downloading · {0}", Views.Size(p.Done)) : Loc.T("Downloading");
+                Stage.Text = p.Done > 0 ? string.Format("Downloading · {0}", Views.Size(p.Done)) : "Downloading";
             }
         }
 

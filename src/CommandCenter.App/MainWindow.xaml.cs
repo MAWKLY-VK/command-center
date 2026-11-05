@@ -129,12 +129,10 @@ namespace CommandCenter
 
         private void Options_Click(object sender, RoutedEventArgs e) => ShowOptions();
 
-        // A Frame does not pass FlowDirection on to its pages, so each page gets it here
         private void ContentFrame_Navigated(object sender, NavigationEventArgs e)
         {
             if (e.Content is FrameworkElement page)
             {
-                page.FlowDirection = LocUi.FlowDirection;
                 ShowBackdropFor(page);
                 Enter(page);
             }
@@ -277,8 +275,8 @@ namespace CommandCenter
                 options.Commit();
             if (UpdateOverlay.Restarting || _tools == null || !_tools.HasPendingChanges)
                 return;
-            var answer = MessageBox.Show(this, Loc.T("You have unsaved changes. Close without saving?"), "Command Center",
-                MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No, LocUi.MessageBoxOptions);
+            var answer = MessageBox.Show(this, "You have unsaved changes. Close without saving?", "Command Center",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
             if (answer != MessageBoxResult.Yes)
                 e.Cancel = true;
         }
@@ -303,7 +301,7 @@ namespace CommandCenter
             ToastText.Foreground = isError ? new SolidColorBrush(Color.FromRgb(0xFF, 0x6B, 0x6B)) : Brushes.White;
             ToastBox.BorderBrush = isError ? new SolidColorBrush(Color.FromRgb(0xFF, 0x44, 0x44)) : new SolidColorBrush(Color.FromRgb(0x29, 0x80, 0xFF));
             _toastAction = undo;
-            ToastAction.Content = Loc.T("UNDO");
+            ToastAction.Content = "UNDO";
             ToastAction.Visibility = undo != null ? Visibility.Visible : Visibility.Collapsed;
             ToastBox.Visibility = Visibility.Visible;
             _toastTimer.Stop();
@@ -476,23 +474,7 @@ namespace CommandCenter
             var dpi = VisualTreeHelper.GetDpi(this);
             int w = (int)Math.Round(Root.ActualWidth * dpi.DpiScaleX), h = (int)Math.Round(Root.ActualHeight * dpi.DpiScaleY);
             var bitmap = new RenderTargetBitmap(w, h, dpi.PixelsPerInchX, dpi.PixelsPerInchY, PixelFormats.Pbgra32);
-            if (FlowDirection == FlowDirection.RightToLeft)
-            {
-                // The right-to-left mirror sits on the window, not on Root; add it so the picture matches the screen
-                var area = Root.RenderSize;
-                var mirrored = new DrawingVisual();
-                using (var dc = mirrored.RenderOpen())
-                {
-                    dc.PushTransform(new MatrixTransform(-1, 0, 0, 1, area.Width, 0));
-                    dc.DrawRectangle(new VisualBrush(Root) { Stretch = Stretch.None, ViewboxUnits = BrushMappingMode.Absolute, Viewbox = new Rect(area),
-                        AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top }, null, new Rect(area));
-                }
-                bitmap.Render(mirrored);
-            }
-            else
-            {
-                bitmap.Render(Root);
-            }
+            bitmap.Render(Root);
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(bitmap));
             using var stream = File.Create(path);

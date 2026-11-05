@@ -5,7 +5,6 @@
     xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
     xmlns:pages="clr-namespace:CommandCenter.Pages"
     xmlns:c="clr-namespace:CommandCenter.Controls"
-    xmlns:l="clr-namespace:CommandCenter.Localization"
     Title="Command Center"
     Icon="Assets/app.ico"
     Width="1100" Height="640" MinWidth="980" MinHeight="600"
@@ -111,13 +110,13 @@
                     <RadioButton x:Name="TabHome" Style="{StaticResource FrameTab}" Checked="Tab_Checked" Tag="home">
                         <StackPanel Orientation="Horizontal">
                             <c:Icon Kind="home" Width="17" Height="17" Margin="0,0,7,0"/>
-                            <TextBlock Text="{l:T HOME}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
+                            <TextBlock Text="HOME" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </RadioButton>
                     <RadioButton x:Name="TabHealth" Style="{StaticResource FrameTab}" Checked="Tab_Checked" Tag="health">
                         <StackPanel Orientation="Horizontal">
                             <c:Icon Kind="shield" Width="17" Height="17" Margin="0,0,7,0"/>
-                            <TextBlock Text="{l:T HEALTH}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
+                            <TextBlock Text="HEALTH" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
                             <Border x:Name="HealthBadge" MinWidth="18" Height="18" CornerRadius="9" Padding="5,0" Margin="7,0,0,0" Background="#FFB020"
                                     Visibility="Collapsed" VerticalAlignment="Center">
                                 <TextBlock x:Name="HealthBadgeText" Foreground="#1A1300" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"
@@ -128,43 +127,43 @@
                     <RadioButton x:Name="TabMaps" Style="{StaticResource FrameTab}" Checked="Tab_Checked" Tag="maps">
                         <StackPanel Orientation="Horizontal">
                             <c:Icon Kind="map" Width="17" Height="17" Margin="0,0,7,0"/>
-                            <TextBlock Text="{l:T MAPS}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
+                            <TextBlock Text="MAPS" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </RadioButton>
                     <RadioButton x:Name="TabReplays" Style="{StaticResource FrameTab}" Checked="Tab_Checked" Tag="replays">
                         <StackPanel Orientation="Horizontal">
                             <c:Icon Kind="film" Width="17" Height="17" Margin="0,0,7,0"/>
-                            <TextBlock Text="{l:T REPLAYS}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
+                            <TextBlock Text="REPLAYS" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </RadioButton>
                     <RadioButton x:Name="TabHotkeys" Style="{StaticResource FrameTab}" Checked="Tab_Checked" Tag="hotkeys">
                         <StackPanel Orientation="Horizontal">
                             <c:Icon Kind="keyboard" Width="17" Height="17" Margin="0,0,7,0"/>
-                            <TextBlock Text="{l:T HOTKEYS}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
+                            <TextBlock Text="HOTKEYS" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </RadioButton>
                     <RadioButton x:Name="TabAddons" Style="{StaticResource FrameTab}" Checked="Tab_Checked" Tag="addons">
                         <StackPanel Orientation="Horizontal">
                             <c:Icon Kind="layers" Width="17" Height="17" Margin="0,0,7,0"/>
-                            <TextBlock Text="{l:T ADD-ONS}" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
+                            <TextBlock Text="ADD-ONS" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
                         </StackPanel>
                     </RadioButton>
                 </StackPanel>
 
                 <Button DockPanel.Dock="Right" Style="{StaticResource ChromeButtonStyle}" shell:WindowChrome.IsHitTestVisibleInChrome="True"
-                        Click="Close_Click" ToolTip="{l:T Close}" AutomationProperties.Name="{l:T Close}">
+                        Click="Close_Click" ToolTip="Close" AutomationProperties.Name="Close">
                     <c:Icon Kind="close" Width="15" Height="15"/>
                 </Button>
                 <Button DockPanel.Dock="Right" Style="{StaticResource ChromeButtonStyle}" shell:WindowChrome.IsHitTestVisibleInChrome="True"
-                        Click="Minimize_Click" ToolTip="{l:T Minimize}" AutomationProperties.Name="{l:T Minimize}">
+                        Click="Minimize_Click" ToolTip="Minimize" AutomationProperties.Name="Minimize">
                     <c:Icon Kind="minus" Width="15" Height="15"/>
                 </Button>
                 <Button x:Name="OptionsButton" DockPanel.Dock="Right" Style="{StaticResource IconButtonStyle}" Margin="0,0,6,0"
-                        shell:WindowChrome.IsHitTestVisibleInChrome="True" Click="Options_Click" ToolTip="{l:T OPTIONS}"
-                        AutomationProperties.Name="{l:T OPTIONS}">
+                        shell:WindowChrome.IsHitTestVisibleInChrome="True" Click="Options_Click" ToolTip="OPTIONS"
+                        AutomationProperties.Name="OPTIONS">
                     <c:Icon Kind="sliders" Width="17" Height="17"/>
                 </Button>
-                <Border x:Name="OnlinePill" DockPanel.Dock="Right" Style="{StaticResource ChipStyle}" Height="32" CornerRadius="16" Margin="0,0,10,0" ToolTip="{l:T online now}"
+                <Border x:Name="OnlinePill" DockPanel.Dock="Right" Style="{StaticResource ChipStyle}" Height="32" CornerRadius="16" Margin="0,0,10,0" ToolTip="online now"
                         VerticalAlignment="Center" Visibility="Collapsed">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Grid Width="10" Height="10" Margin="0,0,8,0">
@@ -177,7 +176,7 @@
                         </Grid>
                         <TextBlock x:Name="OnlineCount" FlowDirection="LeftToRight" FontFamily="Bahnschrift" FontWeight="Bold" FontStretch="Condensed"
                                    FontSize="16" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="OnlineLabel" Text="{l:T online}" Foreground="#D5D9EA" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="OnlineLabel" Text="online" Foreground="#D5D9EA" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Border>
             </DockPanel>
@@ -199,7 +198,7 @@
                 <Button x:Name="ToastAction" Style="{StaticResource SmallButtonStyle}" Margin="14,0,0,0" Content="UNDO"
                         Click="ToastAction_Click" Visibility="Collapsed"/>
                 <Button Style="{StaticResource ChromeButtonStyle}" Width="28" Height="28" Margin="6,0,0,0" Click="ToastClose_Click"
-                        AutomationProperties.Name="{l:T Close}">
+                        AutomationProperties.Name="Close">
                     <c:Icon Kind="close" Width="13" Height="13"/>
                 </Button>
             </StackPanel>

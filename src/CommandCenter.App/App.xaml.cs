@@ -68,7 +68,7 @@ namespace CommandCenter
                 CultureInfo.CurrentCulture = Loc.Culture;
             }
 
-            var window = new MainWindow { FlowDirection = LocUi.FlowDirection };
+            var window = new MainWindow();
             MainWindow = window;
 
             if (Arg("--capture") is { } folder)
@@ -124,7 +124,7 @@ namespace CommandCenter
             e.Handled = true;
             LogError(e.Exception);
             if (MainWindow is MainWindow main && main.IsVisible)
-                main.Toast(Loc.T("Something went wrong: {0}", e.Exception.Message), isError: true);
+                main.Toast(string.Format("Something went wrong: {0}", e.Exception.Message), isError: true);
             else
                 MessageBox.Show(e.Exception.ToString(), "Command Center", MessageBoxButton.OK, MessageBoxImage.Error);
         }
