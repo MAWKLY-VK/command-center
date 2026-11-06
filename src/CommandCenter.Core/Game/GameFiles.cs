@@ -76,23 +76,24 @@ namespace CommandCenter.Core.Game
         // header. A larger one is skipped and written to the error log.
         public const int ReadLimit = ImageLimits.Texture * ImageLimits.Texture * 4 + 1024 * 1024;
 
-        public byte[]? Read(string relativePath)
+        // limit: a smaller limit for a kind of file, such as an interface sound
+        public byte[]? Read(string relativePath, int limit = ReadLimit)
         {
             string loose = LoosePath(relativePath);
             if (File.Exists(loose))
-                return ReadLoose(loose);
-            return ReadFromArchive(relativePath);
+                return ReadLoose(loose, limit);
+            return ReadFromArchive(relativePath, limit);
         }
 
         public string ReadText(string relativePath) =>
             Read(relativePath) is { } data ? Encoding.Latin1.GetString(data) : "";
 
         // A file on disk, or null when it is larger than the read limit
-        public static byte[]? ReadLoose(string path)
+        public static byte[]? ReadLoose(string path, int limit = ReadLimit)
         {
             try
             {
-                return BoundedFile.Read(path, ReadLimit);
+                return BoundedFile.Read(path, limit);
             }
             catch (InvalidDataException ex)
             {
@@ -101,15 +102,15 @@ namespace CommandCenter.Core.Game
             }
         }
 
-        public byte[]? ReadFromArchive(string relativePath)
+        public byte[]? ReadFromArchive(string relativePath, int limit = ReadLimit)
         {
             if (!_index.TryGetValue(Normalize(relativePath), out var list))
                 return null;
 
             var entry = list[0];
-            if (entry.Size > ReadLimit)
+            if (entry.Size > limit)
             {
-                ErrorLog.Skipped($"{relativePath} in {entry.Archive}", $"It is larger than {BoundedFile.Describe(ReadLimit)}.");
+                ErrorLog.Skipped($"{relativePath} in {entry.Archive}", $"It is larger than {BoundedFile.Describe(limit)}.");
                 return null;
             }
             using var stream = File.OpenRead(entry.Archive);

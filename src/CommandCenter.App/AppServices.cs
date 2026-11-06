@@ -22,6 +22,10 @@ namespace CommandCenter
         public static IServerStatus Server { get; } = new ServerStatus(GoApi.GetStatsAsync);
         public static IGameLauncher Launcher { get; } = new WindowsGameLauncher();
 
+        // The game's interface sounds (ticket 14), only while Appearance's setting is on and a game was found
+        public static InterfaceSoundPlayer Sounds { get; } = new(() => Appearance.InterfaceSounds && GamePaths.Game.Length > 0,
+            () => GameSounds.Read(new GameFiles(GamePaths.Game)), Speaker.Play);
+
         // Every check: the local ones off the UI thread, then the network ones; --samples puts its made-up problems first
         private static async Task<IReadOnlyList<HealthResult>> RunHealthChecksAsync()
         {
@@ -46,6 +50,7 @@ namespace CommandCenter
             GameFolder.Changed += () =>
             {
                 AppState.ForgetHotkeys();
+                Sounds.Forget();
                 _ = AppState.RefreshHealthAsync();
                 _ = AppState.RefreshMatchGuardAsync();
             };

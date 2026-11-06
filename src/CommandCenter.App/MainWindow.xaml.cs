@@ -30,9 +30,19 @@ namespace CommandCenter
         private Storyboard? _zoom;
         private HomeImage? _shownImage;
 
+        // The game's click on every button, tab and box while interface sounds are on (ticket 14): once per press, for the
+        // control pressed rather than each one around it, and not for a scroll bar's arrows, which repeat while held
+        static MainWindow() => EventManager.RegisterClassHandler(typeof(System.Windows.Controls.Primitives.ButtonBase),
+            System.Windows.Controls.Primitives.ButtonBase.ClickEvent, new RoutedEventHandler((sender, e) =>
+            {
+                if (sender is not System.Windows.Controls.Primitives.RepeatButton && ReferenceEquals(sender, e.OriginalSource))
+                    _ = AppServices.Sounds.PlayClickAsync();
+            }), handledEventsToo: true);
+
         public MainWindow()
         {
             InitializeComponent();
+            _ = AppServices.Sounds.PrepareAsync();
             _toastTimer.Tick += (_, _) => HideToast();
             PreviewKeyDown += OnPreviewKeyDown;
             Closing += OnClosing;

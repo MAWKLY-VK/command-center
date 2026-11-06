@@ -29,6 +29,12 @@ namespace CommandCenter.Pages
                 () => AppState.MatchChanges, () => LauncherJson.Load().PreferLive, SavePreferLive);
             DataContext = _model;
 
+            // The game's menu sound as PLAY starts it, while interface sounds are on (ticket 14)
+            play.Changed += () =>
+            {
+                if (play.Phase == PlayPhase.Starting)
+                    _ = AppServices.Sounds.PlayLaunchAsync();
+            };
             AppState.ReplaysChanged += () => Dispatcher.Invoke(() => _ = lastMatch.ShowAsync());
             AppState.MatchGuardChanged += () => Dispatcher.Invoke(_model.RefreshGuard);
             // Another profile or game folder can name other programs
