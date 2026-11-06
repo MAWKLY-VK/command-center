@@ -149,31 +149,27 @@ namespace CommandCenter.Pages
         // A coloured line under PLAY: problems in red, warnings in amber, or a quiet all-clear
         private void ShowHealth()
         {
-            if (AppState.HealthCheckedAt == null)
+            // The words come from Health's report; the colours stay until Home moves to the new look (ticket 13)
+            var report = AppServices.Health.Report;
+            if (!report.IsReady)
             {
                 HealthChip.Visibility = Visibility.Collapsed;
                 return;
             }
-            int problems = AppState.ProblemCount;
-            int warnings = AppState.WarningCount;
             string color;
-            if (problems + warnings == 0)
+            if (report.Issues == 0)
             {
                 color = "#52D273";
                 HealthIcon.Kind = "check-circle";
-                HealthText.Text = "Your game passed every check";
                 HealthReview.Visibility = Visibility.Collapsed;
             }
             else
             {
-                color = problems > 0 ? "#FF5A5F" : "#FFAA00";
-                var parts = new List<string>();
-                if (problems > 0) parts.Add(English.Plural(problems, "{0} problem", "{0} problems"));
-                if (warnings > 0) parts.Add(English.Plural(warnings, "{0} warning", "{0} warnings"));
+                color = report.Problems > 0 ? "#FF5A5F" : "#FFAA00";
                 HealthIcon.Kind = "alert";
-                HealthText.Text = string.Format("{0} found with your game", English.List(parts));
                 HealthReview.Visibility = Visibility.Visible;
             }
+            HealthText.Text = report.HomeLine;
             var brush = Views.Brush(color);
             HealthIcon.Foreground = brush;
             HealthText.Foreground = Views.Brush("#E6E9F5");

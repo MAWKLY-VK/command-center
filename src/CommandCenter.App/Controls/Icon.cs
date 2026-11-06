@@ -107,11 +107,13 @@ namespace CommandCenter.Controls
         private void Build()
         {
             var canvas = new Canvas { Width = 24, Height = 24 };
+            // A bound name can be null (an item with no action); that draws nothing
+            string kind = Kind ?? "";
             var brush = Foreground ?? TryFindResource("Text.Primary") as Brush;
             double thickness = !double.IsNaN(StrokeThickness) ? StrokeThickness : TryFindResource("Icon.Stroke") is double themed ? themed : DefaultStroke;
-            if (Filled.TryGetValue(Kind, out var fill))
+            if (Filled.TryGetValue(kind, out var fill))
                 canvas.Children.Add(new Path { Data = Geometry.Parse(fill), Fill = brush, Stroke = brush, StrokeThickness = thickness, StrokeLineJoin = PenLineJoin.Miter, StrokeMiterLimit = MiterLimit });
-            else if (Shapes.TryGetValue(Kind, out var shape))
+            else if (Shapes.TryGetValue(kind, out var shape))
                 canvas.Children.Add(new Path
                 {
                     Data = Geometry.Parse(shape),

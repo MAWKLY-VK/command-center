@@ -12,6 +12,23 @@ namespace CommandCenter
         public static IAppearance Appearance { get; } = new CommandCenter.Core.Settings.Appearance(() => SystemParameters.ClientAreaAnimation);
         public static IAddons Addons { get; } = new CommandCenter.Core.Content.Addons();
 
+        // Health (ticket 10): the one owner of the checks' results, the fixes, and the history of changes. A fix or an
+        // Undo can change the game's text table, which the hotkey editor reads, so both forget the hotkeys after.
+        public static IHealthChecks Health { get; } = new HealthChecks(RunHealthChecksAsync, () => DateTime.Now);
+        public static FixRunner Fixes { get; } = new(AppState.ForgetHotkeys);
+        public static FixHistory History { get; } = new(AppState.ForgetHotkeys);
+
+        // Every check: the local ones off the UI thread, then the network ones; --samples puts its made-up problems first
+        private static async Task<IReadOnlyList<HealthResult>> RunHealthChecksAsync()
+        {
+            var local = await Task.Run(HealthService.Run);
+            var network = await HealthService.RunNetworkAsync();
+            var all = local.Concat(network).ToList();
+            if (AppState.Samples)
+                all.InsertRange(0, AppState.SampleIssues());
+            return all;
+        }
+
         // First thing at startup, before anything reads a service. args are the command line as the program got it.
         public static void Configure(IReadOnlyList<string> args)
         {

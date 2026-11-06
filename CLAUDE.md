@@ -57,7 +57,7 @@ CommandCenter.exe --game <copy of Desktop\Test_Generals> --user-data <temp folde
 
 - `--capture <folder> --size 1100x640 --pages home,maps:installed,settings:game` saves page screenshots without
   showing the window. `health:history` opens a tab, `settings:network:run` runs the network diagnostics first, and
-  `:end` shows the end of a Settings section taller than the window.
+  `:end` shows the end of a section taller than the window (`settings:network:end`, `health:end`).
 - `--samples` adds fake health problems so their layouts can be reviewed. Their fixes do nothing.
 - `--update-url <url|file>` and `--go-profile <file>` read the update manifest and GO profile from a local file.
 - Also available: `--library-folder` and `--map-library` (map library source) and `--drawn-backdrop`. An old `--lang` is

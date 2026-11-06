@@ -15,6 +15,8 @@ namespace CommandCenter.Tests
         public void Warn(string message) => Warnings.Add(message);
         public Task<UpdateCheck> CheckForUpdateAsync() => Task.FromResult(UpdateAnswer);
         public void RefreshHealth() => HealthRefreshes++;
+        public int HelpShown { get; private set; }
+        public void ShowHelp() => HelpShown++;
     }
 
     internal sealed class FakeGameFolder : IGameFolder

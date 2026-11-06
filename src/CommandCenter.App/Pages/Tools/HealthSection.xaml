@@ -3,129 +3,243 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:c="clr-namespace:CommandCenter.Controls">
     <UserControl.Resources>
-        <Style x:Key="Numeral" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-            <Setter Property="FontFamily" Value="Bahnschrift"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontStretch" Value="Condensed"/>
-        </Style>
+        <!-- A problem or warning: its sign, what is wrong and why it matters, what the fix will change, and its action.
+             A hairline separates it from the one before (the first has none). -->
+        <DataTemplate x:Key="IssueTemplate">
+            <StackPanel>
+                <Border x:Name="Rule" Style="{StaticResource PanelDividerStyle}"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <c:Icon x:Name="Sign" Kind="alert" Width="20" Height="20" Margin="0,0,12,0" VerticalAlignment="Top" Foreground="{StaticResource Warning}"/>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="{Binding Title}" Style="{StaticResource GroupTitleStyle}" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding Detail}" Style="{StaticResource PanelTextStyle}" Margin="0,4,0,0"
+                                   Visibility="{Binding HasDetail, Converter={StaticResource Visible}}"/>
+                        <TextBlock Text="{Binding Note}" Style="{StaticResource PanelTextStyle}" Foreground="{StaticResource Text.Muted}" Margin="0,4,0,0"
+                                   Visibility="{Binding HasNote, Converter={StaticResource Visible}}"/>
+                        <DockPanel Margin="{StaticResource Gap.Text}" Visibility="{Binding HasFixPreview, Converter={StaticResource Visible}}">
+                            <c:Icon DockPanel.Dock="Left" Kind="wrench" Width="16" Height="16" Margin="0,3,8,0" VerticalAlignment="Top"
+                                    Foreground="{StaticResource Text.Secondary}"/>
+                            <TextBlock Text="{Binding FixPreview}" Style="{StaticResource PanelTextStyle}" Margin="0"/>
+                        </DockPanel>
+                    </StackPanel>
+                    <Button Grid.Column="2" Style="{StaticResource QuietButtonStyle}" Margin="16,0,0,0" VerticalAlignment="Top"
+                            Command="{Binding Action}" ToolTip="{Binding FixPreview}" Visibility="{Binding HasAction, Converter={StaticResource Visible}}">
+                        <StackPanel Orientation="Horizontal">
+                            <c:Icon Kind="{Binding ActionIcon}" Width="16" Height="16" Margin="0,0,8,0"/>
+                            <TextBlock Text="{Binding ActionLabel}" Style="{StaticResource ButtonLabelStyle}"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </StackPanel>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsProblem}" Value="True">
+                    <Setter TargetName="Sign" Property="Kind" Value="x-circle"/>
+                    <Setter TargetName="Sign" Property="Foreground" Value="{StaticResource Problem}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource PreviousData}}" Value="{x:Null}">
+                    <Setter TargetName="Rule" Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+
+        <!-- A passed check: its name, what it found, and its action when it offers one. The names share one column
+             across the areas, so what was found lines up. -->
+        <DataTemplate x:Key="PassedTemplate">
+            <Grid Margin="{StaticResource Gap.Text}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="PassedName"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <c:Icon Kind="check" Width="16" Height="16" Margin="0,2,8,0" VerticalAlignment="Top" Foreground="{StaticResource Success}"/>
+                <TextBlock Grid.Column="1" Text="{Binding Title}" Style="{StaticResource StateTextStyle}" VerticalAlignment="Top" Margin="0,0,24,0"/>
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="{Binding Detail}" Style="{StaticResource StateTextStyle}" Foreground="{StaticResource Text.Secondary}" TextWrapping="Wrap"
+                               Visibility="{Binding HasDetail, Converter={StaticResource Visible}}"/>
+                    <TextBlock Text="{Binding Note}" Style="{StaticResource StateTextStyle}" Foreground="{StaticResource Text.Muted}" TextWrapping="Wrap" Margin="0,4,0,0"
+                               Visibility="{Binding HasNote, Converter={StaticResource Visible}}"/>
+                </StackPanel>
+                <Button Grid.Column="3" Style="{StaticResource QuietButtonStyle}" Margin="16,0,0,0" VerticalAlignment="Top" Command="{Binding Action}"
+                        Visibility="{Binding HasAction, Converter={StaticResource Visible}}">
+                    <StackPanel Orientation="Horizontal">
+                        <c:Icon Kind="{Binding ActionIcon}" Width="16" Height="16" Margin="0,0,8,0"/>
+                        <TextBlock Text="{Binding ActionLabel}" Style="{StaticResource ButtonLabelStyle}"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </DataTemplate>
+
+        <!-- One change in the fix history: when, what, and Undo while it can still be undone -->
+        <DataTemplate x:Key="HistoryTemplate">
+            <StackPanel>
+                <Border x:Name="Rule" Style="{StaticResource PanelDividerStyle}" Margin="-20,12,-20,12"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="HistoryWhen"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding Ago}" ToolTip="{Binding Date}" Style="{StaticResource TableCellStyle}" Foreground="{StaticResource Text.Secondary}"
+                               Margin="0,0,24,0"/>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="{Binding Title}" Style="{StaticResource GroupTitleStyle}" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding Detail}" Style="{StaticResource PanelTextStyle}" Margin="0,4,0,0"
+                                   Visibility="{Binding HasDetail, Converter={StaticResource Visible}}"/>
+                    </StackPanel>
+                    <Button Grid.Column="2" Style="{StaticResource QuietButtonStyle}" Margin="16,0,0,0" VerticalAlignment="Top"
+                            Command="{Binding DataContext.UndoCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
+                            IsEnabled="{Binding CanUndo}" ToolTip="{Binding UndoTip}" ToolTipService.ShowOnDisabled="True">
+                        <StackPanel Orientation="Horizontal">
+                            <c:Icon Kind="undo" Width="16" Height="16" Margin="0,0,8,0"/>
+                            <TextBlock Text="Undo" Style="{StaticResource ButtonLabelStyle}"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </StackPanel>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource PreviousData}}" Value="{x:Null}">
+                    <Setter TargetName="Rule" Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
     </UserControl.Resources>
 
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" MaxWidth="960"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <DockPanel Grid.Row="0" Margin="0,0,0,14">
-            <Button x:Name="FixAllButton" DockPanel.Dock="Right" Style="{StaticResource GoldButtonStyle}" Height="40" Margin="10,0,0,0"
-                    VerticalAlignment="Bottom" Visibility="Collapsed" Click="FixAll_Click">
+        <!-- What the checks found, and the two actions: check again, and fix what can be fixed (the one gold button) -->
+        <DockPanel>
+            <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}" Margin="12,0,0,0" VerticalAlignment="Top"
+                    Command="{Binding FixAllCommand}" ToolTip="{Binding FixAllPreview}" Visibility="{Binding CanFixAll, Converter={StaticResource Visible}}">
                 <StackPanel Orientation="Horizontal">
-                    <c:Icon Kind="bolt" Width="15" Height="15" Margin="0,0,8,0"/>
-                    <TextBlock x:Name="FixAllText" VerticalAlignment="Center"/>
+                    <c:Icon Kind="wrench" Width="16" Height="16" Margin="0,0,8,0"/>
+                    <TextBlock Text="{Binding FixAllLabel}" Style="{StaticResource ButtonLabelStyle}"/>
                 </StackPanel>
             </Button>
-            <Button x:Name="CheckButton" DockPanel.Dock="Right" Style="{StaticResource SmallButtonStyle}" Height="40" VerticalAlignment="Bottom"
-                    Click="Check_Click">
+            <Button DockPanel.Dock="Right" Style="{StaticResource QuietButtonStyle}" Margin="16,0,0,0" VerticalAlignment="Top"
+                    Command="{Binding CheckCommand}" ToolTip="Runs every check again. Nothing is changed.">
                 <StackPanel Orientation="Horizontal">
-                    <c:Icon Kind="refresh" Width="15" Height="15" Margin="0,0,8,0"/>
-                    <TextBlock Text="CHECK AGAIN" VerticalAlignment="Center"/>
+                    <c:Icon Kind="refresh" Width="16" Height="16" Margin="0,0,8,0"/>
+                    <TextBlock Text="Check again" Style="{StaticResource ButtonLabelStyle}"/>
                 </StackPanel>
             </Button>
             <StackPanel>
-                <TextBlock Text="HEALTH" Style="{StaticResource SectionHeaderStyle}"/>
-                <TextBlock x:Name="Summary" Style="{StaticResource HintStyle}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                <TextBlock Text="Health" Style="{StaticResource PageTitleStyle}"/>
+                <TextBlock Text="{Binding Summary}" Style="{StaticResource PageIntroStyle}"/>
             </StackPanel>
         </DockPanel>
 
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="230"/>
-                <ColumnDefinition Width="16"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- How much of the game passed, and what is left -->
-            <Border Style="{StaticResource GlassCardStyle}" CornerRadius="18" Padding="20,22" VerticalAlignment="Top">
-                <StackPanel>
-                    <Grid Width="140" Height="140">
-                        <Ellipse Stroke="#14FFFFFF" StrokeThickness="12"/>
-                        <Ellipse x:Name="Ring" Stroke="#52D273" StrokeThickness="12" StrokeDashCap="Round" RenderTransformOrigin="0.5,0.5">
-                            <Ellipse.RenderTransform>
-                                <RotateTransform Angle="-90"/>
-                            </Ellipse.RenderTransform>
-                        </Ellipse>
-                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                            <TextBlock x:Name="PercentText" Style="{StaticResource Numeral}" FontSize="38" HorizontalAlignment="Center" Text="—"/>
-                            <TextBlock x:Name="RingLabel" FontSize="12" Foreground="#A7AECB" HorizontalAlignment="Center"/>
-                        </StackPanel>
-                    </Grid>
-
-                    <Grid Margin="0,20,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="26"/>
-                            <RowDefinition Height="26"/>
-                            <RowDefinition Height="26"/>
-                        </Grid.RowDefinitions>
-                        <Border Width="9" Height="9" CornerRadius="3" Background="#52D273" Margin="0,0,9,0"/>
-                        <TextBlock Grid.Column="1" Text="Passed" FontSize="13" Foreground="#D5D9EA" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="2" x:Name="PassedCount" Style="{StaticResource Numeral}" FontSize="17" VerticalAlignment="Center"/>
-                        <Border Grid.Row="1" Width="9" Height="9" CornerRadius="3" Background="#FFB020" Margin="0,0,9,0"/>
-                        <TextBlock Grid.Row="1" Grid.Column="1" Text="Warnings" FontSize="13" Foreground="#D5D9EA" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Row="1" Grid.Column="2" x:Name="WarningCount" Style="{StaticResource Numeral}" FontSize="17" VerticalAlignment="Center"/>
-                        <Border Grid.Row="2" Width="9" Height="9" CornerRadius="3" Background="#FF6B6B" Margin="0,0,9,0"/>
-                        <TextBlock Grid.Row="2" Grid.Column="1" Text="Problems" FontSize="13" Foreground="#D5D9EA" VerticalAlignment="Center"/>
-                        <TextBlock Grid.Row="2" Grid.Column="2" x:Name="ProblemCount" Style="{StaticResource Numeral}" FontSize="17" VerticalAlignment="Center"/>
-                    </Grid>
-
-                    <Border Height="1" Background="#14FFFFFF" Margin="0,16,0,12"/>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <c:Icon Kind="clock" Width="13" Height="13" Foreground="#A7AECB" Margin="0,0,6,0"/>
-                        <TextBlock x:Name="CheckedAt" Foreground="#A7AECB" FontSize="12" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <DockPanel Grid.Column="2">
-                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
-                    <RadioButton x:Name="TabChecks" GroupName="HealthViews" Style="{StaticResource SubTabStyle}" IsChecked="True"
-                                 Checked="View_Checked"/>
-                    <RadioButton x:Name="TabHistory" GroupName="HealthViews" Style="{StaticResource SubTabStyle}"
-                                 Checked="View_Checked"/>
-                </StackPanel>
-                <Grid>
-                    <ScrollViewer x:Name="ChecksView" VerticalScrollBarVisibility="Auto" Focusable="False">
-                        <StackPanel x:Name="ChecksList" Margin="0,0,8,0"/>
-                    </ScrollViewer>
-                    <Border x:Name="HistoryView" Style="{StaticResource ResultBoxStyle}" Padding="14,12,6,12" Visibility="Collapsed">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
-                            <StackPanel x:Name="HistoryList" Margin="0,0,8,0"/>
-                        </ScrollViewer>
-                    </Border>
-                </Grid>
-            </DockPanel>
-        </Grid>
-
-        <DockPanel Grid.Row="2" Margin="0,12,0,0">
-            <Button DockPanel.Dock="Right" Style="{StaticResource SmallButtonStyle}" Margin="10,0,0,0" Click="Report_Click">
-                <StackPanel Orientation="Horizontal">
-                    <c:Icon Kind="copy" Width="14" Height="14" Margin="0,0,8,0"/>
-                    <TextBlock Text="COPY SUPPORT REPORT" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Button>
-            <Button x:Name="BackupsButton" DockPanel.Dock="Right" Style="{StaticResource SmallButtonStyle}" Margin="10,0,0,0"
-                    Visibility="Collapsed" Click="Backups_Click">
-                <StackPanel Orientation="Horizontal">
-                    <c:Icon Kind="folder" Width="14" Height="14" Margin="0,0,8,0"/>
-                    <TextBlock Text="OPEN BACKUPS" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Button>
-            <TextBlock x:Name="FooterHint" Foreground="#A7AECB" FontSize="11.5" TextWrapping="Wrap" VerticalAlignment="Center"/>
+        <!-- The two views, and when the checks last ran -->
+        <DockPanel Grid.Row="1" Margin="{StaticResource Gap.Stack}">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <c:Icon Kind="clock" Width="16" Height="16" Margin="0,0,8,0" Foreground="{StaticResource Text.Secondary}"/>
+                <TextBlock Text="{Binding CheckedAtText}" Style="{StaticResource StateTextStyle}" Foreground="{StaticResource Text.Secondary}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <RadioButton GroupName="HealthViews" Style="{StaticResource PageTabStyle}" IsChecked="{Binding ShowChecks}">
+                    <TextBlock Text="Checks" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton GroupName="HealthViews" Style="{StaticResource PageTabStyle}" Margin="8,0,0,0" IsChecked="{Binding ShowHistory}">
+                    <TextBlock Text="{Binding HistoryLabel}" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+            </StackPanel>
         </DockPanel>
+
+        <ScrollViewer x:Name="ListScroller" Grid.Row="2" VerticalScrollBarVisibility="Auto" Focusable="False">
+            <Grid Margin="0,0,0,8">
+                <!-- Checks: problems, then warnings, then what passed by area -->
+                <StackPanel Visibility="{Binding ShowChecks, Converter={StaticResource Visible}}">
+                    <Border Style="{StaticResource PanelStyle}" Visibility="{Binding IsLoading, Converter={StaticResource Visible}}">
+                        <StackPanel Orientation="Horizontal">
+                            <c:Icon Kind="clock" Width="16" Height="16" Margin="0,0,8,0" Foreground="{StaticResource Text.Secondary}"/>
+                            <TextBlock Text="Checking game files, Windows, settings and network…" Style="{StaticResource StateTextStyle}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource PanelStyle}" Margin="{StaticResource Gap.Panel}" Visibility="{Binding HasProblems, Converter={StaticResource Visible}}">
+                        <StackPanel>
+                            <TextBlock Text="Problems" Style="{StaticResource PanelTitleStyle}"/>
+                            <ItemsControl ItemsSource="{Binding Problems}" ItemTemplate="{StaticResource IssueTemplate}"
+                                          Margin="{StaticResource Gap.Actions}" Focusable="False"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource PanelStyle}" Margin="{StaticResource Gap.Panel}" Visibility="{Binding HasWarnings, Converter={StaticResource Visible}}">
+                        <StackPanel>
+                            <TextBlock Text="Warnings" Style="{StaticResource PanelTitleStyle}"/>
+                            <ItemsControl ItemsSource="{Binding Warnings}" ItemTemplate="{StaticResource IssueTemplate}"
+                                          Margin="{StaticResource Gap.Actions}" Focusable="False"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource PanelStyle}" Visibility="{Binding HasPassed, Converter={StaticResource Visible}}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding PassedTitle}" Style="{StaticResource PanelTitleStyle}"/>
+                            <ItemsControl ItemsSource="{Binding PassedAreas}" Grid.IsSharedSizeScope="True" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="{StaticResource Gap.Actions}">
+                                            <TextBlock Text="{Binding Name}" Style="{StaticResource GroupTitleStyle}"/>
+                                            <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource PassedTemplate}" Focusable="False"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Fix history: every change Command Center made, newest first, each with Undo -->
+                <Border Style="{StaticResource PanelStyle}" VerticalAlignment="Top" Grid.IsSharedSizeScope="True"
+                        Visibility="{Binding ShowHistory, Converter={StaticResource Visible}}">
+                    <StackPanel>
+                        <TextBlock Text="No fixes yet. Every change appears here with an Undo button." Style="{StaticResource StateTextStyle}"
+                                   Visibility="{Binding NoHistory, Converter={StaticResource Visible}}"/>
+                        <ItemsControl ItemsSource="{Binding HistoryRows}" ItemTemplate="{StaticResource HistoryTemplate}" Focusable="False"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </ScrollViewer>
+
+        <!-- What the page promises, the support report, and the backups behind the history. The line above marks where
+             the list scrolls under. -->
+        <Border Grid.Row="3" BorderBrush="{StaticResource Divider}" BorderThickness="0,1,0,0" Padding="{StaticResource Gap.Actions}">
+        <DockPanel>
+            <Button DockPanel.Dock="Right" Style="{StaticResource QuietButtonStyle}" Margin="12,0,0,0" Command="{Binding CopyReportCommand}">
+                <StackPanel Orientation="Horizontal">
+                    <c:Icon Kind="copy" Width="16" Height="16" Margin="0,0,8,0"/>
+                    <TextBlock Text="Copy support report" Style="{StaticResource ButtonLabelStyle}"/>
+                </StackPanel>
+            </Button>
+            <Button DockPanel.Dock="Right" Style="{StaticResource QuietButtonStyle}" Margin="16,0,0,0" Command="{Binding OpenBackupsCommand}"
+                    Visibility="{Binding ShowHistory, Converter={StaticResource Visible}}">
+                <StackPanel Orientation="Horizontal">
+                    <c:Icon Kind="folder" Width="16" Height="16" Margin="0,0,8,0"/>
+                    <TextBlock Text="Open backups" Style="{StaticResource ButtonLabelStyle}"/>
+                </StackPanel>
+            </Button>
+            <Grid VerticalAlignment="Center">
+                <TextBlock Text="Checks only read your files. Fixes run when you press a button, and each one can be undone." Style="{StaticResource PanelTextStyle}"
+                           Margin="0" Visibility="{Binding ShowChecks, Converter={StaticResource Visible}}"/>
+                <TextBlock Text="Each change is backed up first, so Undo can put back what was there." Style="{StaticResource PanelTextStyle}"
+                           Margin="0" Visibility="{Binding ShowHistory, Converter={StaticResource Visible}}"/>
+            </Grid>
+        </DockPanel>
+        </Border>
     </Grid>
 </UserControl>

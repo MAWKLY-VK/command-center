@@ -265,9 +265,10 @@ namespace CommandCenter
 
         private void ShowHealthBadge()
         {
-            int count = AppState.ProblemCount + AppState.WarningCount;
+            var report = AppServices.Health.Report;
+            int count = report.BadgeCount;
             HealthBadge.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
-            HealthBadge.Background = (Brush)FindResource(AppState.ProblemCount > 0 ? "Problem" : "Warning");
+            HealthBadge.Background = (Brush)FindResource(report.BadgeIsProblem ? "Problem" : "Warning");
             HealthBadgeText.Text = count.ToString();
         }
 
@@ -500,6 +501,9 @@ namespace CommandCenter
                         if (id.Length > 1)
                             _tools!.ShowPart(id[1]);
                         await _tools!.ReadyAsync();
+                        // "end" shows the end of a long section, once its data is there
+                        if (id.Skip(1).Contains("end"))
+                            _tools.ScrollToEnd();
                         break;
                     default:
                         if (id.Length > 1 && Enum.TryParse(id[1], ignoreCase: true, out HomeImage picture))

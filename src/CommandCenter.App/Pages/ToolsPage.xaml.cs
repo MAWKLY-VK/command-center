@@ -38,6 +38,13 @@ namespace CommandCenter.Pages
 
         public Task ReadyAsync() => SectionHost.Content is IToolSection section ? section.ReadyAsync() : Task.CompletedTask;
 
+        // For --capture: the end of a long section (Health only so far)
+        public void ScrollToEnd()
+        {
+            if (SectionHost.Content is HealthSection health)
+                health.ScrollToEnd();
+        }
+
         // Health's checks again, with its own button showing that they run
         public void RunHealthChecks()
         {

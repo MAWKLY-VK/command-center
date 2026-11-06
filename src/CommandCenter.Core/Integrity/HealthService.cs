@@ -37,6 +37,9 @@ namespace CommandCenter.Core.Integrity
         // Or a guide that opens a page or setting for the player
         public string? GuideLabel { get; init; }
         public string? GuideTarget { get; init; }
+
+        // A made-up problem (--samples) for reviewing layouts; its fix changes nothing
+        public bool IsSample { get; init; }
     }
 
     // Read-only checks of the game, its settings and Windows. Fixes go through BackupService so they can be undone.

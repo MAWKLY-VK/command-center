@@ -27,20 +27,6 @@ namespace CommandCenter.Pages
         public static readonly SolidColorBrush Blue = Brush("#2980FF");
         public static readonly SolidColorBrush Gold = Brush("#FECD03");
 
-        public static SolidColorBrush StatusBrush(HealthStatus status) => status switch
-        {
-            HealthStatus.Problem => Problem,
-            HealthStatus.Warning => Warning,
-            _ => Passed,
-        };
-
-        public static string StatusWord(HealthStatus status) => status switch
-        {
-            HealthStatus.Problem => "Problem",
-            HealthStatus.Warning => "Warning",
-            _ => "Passed",
-        };
-
         public static Brush PlayerBrush(int color) =>
             color >= 0 && color < ReplayService.Colors.Length ? Brush(ReplayService.Colors[color]) : Hint;
 
@@ -60,9 +46,12 @@ namespace CommandCenter.Pages
             return image;
         }
 
-        public static string Ago(DateTime when)
+        public static string Ago(DateTime when) => Ago(when, DateTime.Now);
+
+        // As above, against a given time, so view models can be tested with their own clock
+        public static string Ago(DateTime when, DateTime now)
         {
-            var span = DateTime.Now - when;
+            var span = now - when;
             if (span.TotalMinutes < 1) return "just now";
             if (span.TotalMinutes < 60) return string.Format("{0} min ago", (int)span.TotalMinutes);
             if (span.TotalHours < 24) return string.Format("{0} h ago", (int)span.TotalHours);
@@ -149,35 +138,6 @@ namespace CommandCenter.Pages
             {
                 Main.Toast(string.Format("Could not copy: {0}", ex.Message), isError: true);
             }
-        }
-
-        // Runs a health fix, then offers Undo on the change it made
-        public static void ApplyFix(HealthResult result)
-        {
-            if (result.Id.StartsWith("sample:"))
-            {
-                Main.Toast("This is a sample problem; nothing was changed.");
-                return;
-            }
-            int before = BackupService.Load().Count;
-            try
-            {
-                OperationLog.Record("fix", result.Id, result.Title, result.Fix!);
-            }
-            catch (Exception ex)
-            {
-                Main.Toast($"{result.Title}: {ex.Message}", isError: true);
-                return;
-            }
-            var made = BackupService.Load().Skip(before).ToList();
-            Main.Toast(string.Format("Fixed: {0}", result.Title), made.Count == 0 ? null : () =>
-            {
-                foreach (var entry in Enumerable.Reverse(made))
-                    BackupService.Undo(entry);
-                _ = AppState.RefreshHealthAsync();
-                Main.Toast("Change undone");
-            });
-            _ = AppState.RefreshHealthAsync();
         }
     }
 }

@@ -134,6 +134,43 @@
         </Setter>
     </Style>
 
+    <!-- Two views of one page, such as Health's checks and its fix history: quiet text, the shown one in primary text with
+         a line under it in the text colour (gold stays for the window's tabs and the main action) -->
+    <Style x:Key="PageTabStyle" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="MinHeight" Value="{StaticResource Target.Min}"/>
+        <Setter Property="Padding" Value="{StaticResource Pad.Tab}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid x:Name="Face" Background="Transparent">
+                        <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                        <Border x:Name="Line" Height="2" VerticalAlignment="Bottom" Background="{StaticResource Text.Primary}" Visibility="Hidden"/>
+                        <Border x:Name="Ring" BorderBrush="{StaticResource Focus}" BorderThickness="{StaticResource Line.Focus}" Visibility="Hidden"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Bg.Raised}"/>
+                            <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Line" Property="Visibility" Value="Visible"/>
+                            <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Ring" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- One option of a set: a ring with a dot when chosen, in the text colour (gold stays for the main action) -->
     <Style x:Key="ChoiceStyle" TargetType="RadioButton">
         <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
