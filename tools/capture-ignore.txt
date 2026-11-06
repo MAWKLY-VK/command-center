@@ -1,10 +1,11 @@
 # Areas that change between two capture runs of the same build, for tools/Compare-Captures.cs.
-# Found by comparing two runs of the 0.4.0 reference build on 2026-11-05. The values are device pixels of a 1600x1000
-# capture on the maintainer's PC, which saves it as 1942x1102 at its display scaling.
+# Found by comparing two runs of the same build: the 0.4.0 reference on 2026-11-05, and phase 5's Home on 2026-11-06.
+# The values are device pixels of a 1600x1000 capture on the maintainer's PC, which saves it as 1942x1102 at its
+# display scaling.
 #   <capture, or * for all> <x> <y> <width> <height>   # why it changes
-pages/01-home.png         1520 735  372 212   # live servers card: players, lobbies and ping
-pages/02-home-usa.png     1520 735  372 212   # live servers card: players, lobbies and ping
-pages/03-home-china.png   1520 735  372 212   # live servers card: players, lobbies and ping
-pages/04-home-gla.png     1520 735  372 212   # live servers card: players, lobbies and ping
-samples/01-home.png       1520 735  372 212   # live servers card: players, lobbies and ping
-drawn/01-home.png         1520 735  372 212   # live servers card: players, lobbies and ping
+pages/01-home.png         40   1040 760 40    # Home's data line: players online and ping
+pages/02-home-usa.png     40   1040 760 40    # Home's data line: players online and ping
+pages/03-home-china.png   40   1040 760 40    # Home's data line: players online and ping
+pages/04-home-gla.png     40   1040 760 40    # Home's data line: players online and ping
+samples/01-home.png       40   1040 760 40    # Home's data line: players online and ping
+drawn/01-home.png         40   1040 760 40    # Home's data line: players online and ping
