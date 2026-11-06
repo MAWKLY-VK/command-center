@@ -10,6 +10,10 @@ namespace CommandCenter.Core.Integrity
 {
     public enum HealthStatus { Passed, Warning, Problem }
 
+    // What a failing result does to playing: nothing that stops it, the game not starting, or a mismatch with the other
+    // players. PLAY's quick check acts on the last two (P5-D2, PlayDecision).
+    public enum HealthImpact { None, StopsGame, Mismatch }
+
     // Texts are plain English, the same on screen and in the support report
     public sealed class HealthResult
     {
@@ -18,6 +22,9 @@ namespace CommandCenter.Core.Integrity
         public required string Title { get; init; }
         public required string Detail { get; init; }
         public HealthStatus Status { get; init; }
+
+        // Set where a failing result is made, when it stops the game or causes a mismatch
+        public HealthImpact Impact { get; init; }
 
         // Extra context shown under the detail, such as where the problem usually comes from
         public string? Note { get; init; }
@@ -39,6 +46,9 @@ namespace CommandCenter.Core.Integrity
         public const string GroupWindows = "Windows";
         public const string GroupSettings = "Settings";
         public const string GroupNetwork = "Network";
+
+        // The client version check, which turns PLAY into Update when Generals Online has a newer client
+        public const string GoVersionId = "goversion";
 
         private const string LayersKey = BackupService.LayersKey;
 
@@ -115,7 +125,7 @@ namespace CommandCenter.Core.Integrity
             {
                 results.Add(new HealthResult
                 {
-                    Id = "files", Group = GroupFiles, Title = "Zero Hour was not found", Status = HealthStatus.Problem,
+                    Id = "files", Group = GroupFiles, Title = "Zero Hour was not found", Status = HealthStatus.Problem, Impact = HealthImpact.StopsGame,
                     Detail = "Command Center looks where Generals Online and the game's installer recorded it (Steam, EA app or another copy), in the Steam libraries and in its own folder. Press Play to choose the game folder",
                     GuideLabel = "Where to get it", GuideTarget = QuestionsTarget,
                 });
@@ -286,7 +296,7 @@ namespace CommandCenter.Core.Integrity
 
             return new HealthResult
             {
-                Id = "archives", Group = GroupFiles, Status = steam || missing.Count > 0 ? HealthStatus.Problem : HealthStatus.Warning,
+                Id = "archives", Group = GroupFiles, Status = steam || missing.Count > 0 ? HealthStatus.Problem : HealthStatus.Warning, Impact = HealthImpact.Mismatch,
                 Title = missing.Count > 0 ? "Original game archives are missing" : steam ? "Original game archives are damaged or changed" : "Game archives differ from the Steam release",
                 Detail = string.Join(". ", parts),
                 Note = notes.Count > 0 ? string.Join(" ", notes) : null,
@@ -335,7 +345,7 @@ namespace CommandCenter.Core.Integrity
             if (missing.Contains(GamePaths.GameExe) && missing.Contains(GamePaths.EacLauncher))
                 return new HealthResult
                 {
-                    Id = "files", Group = GroupFiles, Title = "Generals Online is not installed", Status = HealthStatus.Problem,
+                    Id = "files", Group = GroupFiles, Title = "Generals Online is not installed", Status = HealthStatus.Problem, Impact = HealthImpact.StopsGame,
                     Detail = "This Zero Hour folder has no Generals Online files. Install Generals Online, then open Command Center again",
                     GuideLabel = "Download", GuideTarget = DownloadPage,
                 };
@@ -344,7 +354,7 @@ namespace CommandCenter.Core.Integrity
                 ? new HealthResult { Id = "files", Group = GroupFiles, Title = "Generals Online files complete", Detail = string.Format("{0}, the anti-cheat launcher and xaudio2_9redist.dll are in place", GamePaths.GameExe), Status = HealthStatus.Passed }
                 : new HealthResult
                 {
-                    Id = "files", Group = GroupFiles, Title = "Game files are missing", Status = HealthStatus.Problem,
+                    Id = "files", Group = GroupFiles, Title = "Game files are missing", Status = HealthStatus.Problem, Impact = HealthImpact.StopsGame,
                     Detail = string.Format("Missing: {0}", English.List(missing, 10)),
                     // Generals Online is not code-signed, so Windows Defender and other antivirus programs flag it after
                     // some updates (Generals Online's own notice of 26 September 2026)
@@ -363,7 +373,7 @@ namespace CommandCenter.Core.Integrity
                 ? new HealthResult { Id = "path", Group = GroupFiles, Title = "Install path is plain English", Detail = "Easy Anti-Cheat can start from this folder", Status = HealthStatus.Passed }
                 : new HealthResult
                 {
-                    Id = "path", Group = GroupFiles, Title = "Install path has non-English letters", Status = HealthStatus.Problem,
+                    Id = "path", Group = GroupFiles, Title = "Install path has non-English letters", Status = HealthStatus.Problem, Impact = HealthImpact.StopsGame,
                     Detail = "Easy Anti-Cheat stops with \"Invalid game executable path\". Move the game to a folder such as C:\\Games",
                 };
         }
@@ -430,7 +440,7 @@ namespace CommandCenter.Core.Integrity
                 string target = path;
                 yield return new HealthResult
                 {
-                    Id = "runtime:" + name, Group = GroupFiles, Title = "Old Visual C++ file inside the game folder", Status = HealthStatus.Problem,
+                    Id = "runtime:" + name, Group = GroupFiles, Title = "Old Visual C++ file inside the game folder", Status = HealthStatus.Problem, Impact = HealthImpact.StopsGame,
                     Detail = string.Format("{0} ({1}) is loaded instead of the system copy, so the game stops with \"Entry Point Not Found\"", name, version),
                     Note = "Usually left by GenPatcher or an old repack.",
                     FixLabel = "Quarantine",
@@ -455,7 +465,7 @@ namespace CommandCenter.Core.Integrity
 
             return new HealthResult
             {
-                Id = "dbghelp", Group = GroupFiles, Title = "Old dbghelp.dll inside the game folder", Status = HealthStatus.Problem,
+                Id = "dbghelp", Group = GroupFiles, Title = "Old dbghelp.dll inside the game folder", Status = HealthStatus.Problem, Impact = HealthImpact.StopsGame,
                 Detail = string.Format("dbghelp.dll ({0}) is loaded instead of the Windows copy. It is too old for Generals Online, which then does not start (\"Entry Point Not Found\") or crashes", local.ToString()),
                 Note = "It comes with the original game files. GenPatcher renames it to dbghelp.dll.bak for the same reason.",
                 FixLabel = "Quarantine",
@@ -546,7 +556,7 @@ namespace CommandCenter.Core.Integrity
                 string path = archive;
                 found.Add(new HealthResult
                 {
-                    Id = "archive:" + relative, Group = GroupFiles, Title = string.Format("{0} changes unit rules", relative), Status = HealthStatus.Problem,
+                    Id = "archive:" + relative, Group = GroupFiles, Title = string.Format("{0} changes unit rules", relative), Status = HealthStatus.Problem, Impact = HealthImpact.Mismatch,
                     Detail = inSubfolder
                         ? "The game also loads archives from folders inside the game folder. Other players do not have it, so online games end with \"The host has modified INI files\""
                         : "Other players do not have it, so online games end with \"The host has modified INI files\"",
@@ -564,7 +574,7 @@ namespace CommandCenter.Core.Integrity
                     continue;
                 found.Add(new HealthResult
                 {
-                    Id = "loose:" + rule, Group = GroupFiles, Title = "Loose rule files", Status = HealthStatus.Problem,
+                    Id = "loose:" + rule, Group = GroupFiles, Title = "Loose rule files", Status = HealthStatus.Problem, Impact = HealthImpact.Mismatch,
                     Detail = string.Format("{0} overrides unit rules and causes \"The host has modified INI files\"", rule.TrimEnd('\\')),
                     Note = "Remove it by hand if it belongs to a mod you still want for offline play.",
                 });
@@ -630,7 +640,7 @@ namespace CommandCenter.Core.Integrity
                 return new HealthResult { Id = "eacexe", Group = GroupFiles, Title = "Anti-cheat finds the game", Detail = string.Format("EasyAntiCheat starts {0}", exe ?? ""), Status = HealthStatus.Passed };
             return new HealthResult
             {
-                Id = "eacexe", Group = GroupFiles, Title = "Anti-cheat cannot find the game", Status = HealthStatus.Problem,
+                Id = "eacexe", Group = GroupFiles, Title = "Anti-cheat cannot find the game", Status = HealthStatus.Problem, Impact = HealthImpact.StopsGame,
                 Detail = string.Format("EasyAntiCheat looks for {0}, which is missing, so it stops with \"Invalid game executable path\"", exe),
                 Note = "Reinstall Generals Online, or restore the file if an antivirus removed it.",
             };
@@ -659,7 +669,7 @@ namespace CommandCenter.Core.Integrity
                 };
             return new HealthResult
             {
-                Id = "acplugin", Group = GroupFiles, Title = "Anti-cheat plugin is missing", Status = HealthStatus.Problem,
+                Id = "acplugin", Group = GroupFiles, Title = "Anti-cheat plugin is missing", Status = HealthStatus.Problem, Impact = HealthImpact.StopsGame,
                 Detail = string.Format("{0} is missing, so the game stops with \"Failed to load the AntiCheat plugin\"", English.List(missing, 3)),
                 Note = "Antivirus programs sometimes remove it by mistake because it is not signed. Restore it from the antivirus quarantine, add the game folder as an exclusion, or install Generals Online again.",
                 GuideLabel = "Show folder",
@@ -736,7 +746,7 @@ namespace CommandCenter.Core.Integrity
                 string files = string.Join(", ", user.Select(u => Path.GetFileName(u.Name)));
                 yield return new HealthResult
                 {
-                    Id = "admin", Group = GroupWindows, Title = "\"Run as administrator\" is set on the game", Status = HealthStatus.Warning,
+                    Id = "admin", Group = GroupWindows, Title = "\"Run as administrator\" is set on the game", Status = HealthStatus.Warning, Impact = HealthImpact.StopsGame,
                     Detail = "Windows blocks the game with error 740 \"The requested operation requires elevation\"",
                     Note = string.Format("Flag RUNASADMIN on {0}", files),
                     FixLabel = "Fix",
@@ -752,7 +762,7 @@ namespace CommandCenter.Core.Integrity
             {
                 yield return new HealthResult
                 {
-                    Id = "adminall", Group = GroupWindows, Title = "\"Run as administrator\" is set for all users", Status = HealthStatus.Warning,
+                    Id = "adminall", Group = GroupWindows, Title = "\"Run as administrator\" is set for all users", Status = HealthStatus.Warning, Impact = HealthImpact.StopsGame,
                     Detail = "Windows blocks the game with error 740. This setting needs administrator rights to change",
                     Note = string.Format("Right-click {0} › Properties › Compatibility › Change settings for all users, then untick \"Run this program as an administrator\".", Path.GetFileName(machine[0].Name)),
                     GuideLabel = "Show file",
@@ -773,7 +783,7 @@ namespace CommandCenter.Core.Integrity
             string files = string.Join(", ", found.Select(f => Path.GetFileName(f.Name)));
             return new HealthResult
             {
-                Id = "compat", Group = GroupWindows, Title = "Old Windows compatibility mode", Status = HealthStatus.Warning,
+                Id = "compat", Group = GroupWindows, Title = "Old Windows compatibility mode", Status = HealthStatus.Warning, Impact = HealthImpact.StopsGame,
                 Detail = string.Format("An old Windows mode is set on {0}; this causes crashes, black screens and the DirectX 8.1 message", files),
                 FixLabel = "Fix",
                 FixPreview = string.Format("Removes the old Windows mode from {0}. Other settings stay.", files),
@@ -894,14 +904,14 @@ namespace CommandCenter.Core.Integrity
             if (!installed)
                 return new HealthResult
                 {
-                    Id = "vcredist", Group = GroupWindows, Title = "Visual C++ runtime is missing", Status = HealthStatus.Problem,
+                    Id = "vcredist", Group = GroupWindows, Title = "Visual C++ runtime is missing", Status = HealthStatus.Problem, Impact = HealthImpact.StopsGame,
                     Detail = "The game does not start without the Visual C++ 2015-2022 x86 runtime",
                     GuideLabel = "Download", GuideTarget = guide,
                 };
             if (minor < MinVcMinor)
                 return new HealthResult
                 {
-                    Id = "vcredist", Group = GroupWindows, Title = "Visual C++ runtime is out of date", Status = HealthStatus.Problem,
+                    Id = "vcredist", Group = GroupWindows, Title = "Visual C++ runtime is out of date", Status = HealthStatus.Problem, Impact = HealthImpact.StopsGame,
                     Detail = string.Format("Version {0} is installed; Generals Online needs 14.{1} or newer, otherwise \"Entry Point Not Found\" appears", version, MinVcMinor),
                     GuideLabel = "Download", GuideTarget = guide,
                 };
@@ -938,7 +948,7 @@ namespace CommandCenter.Core.Integrity
                 ? new HealthResult { Id = "gpu", Group = GroupWindows, Title = "Graphics driver", Detail = string.Join(" · ", real), Status = HealthStatus.Passed }
                 : new HealthResult
                 {
-                    Id = "gpu", Group = GroupWindows, Title = "No graphics driver installed", Status = HealthStatus.Problem,
+                    Id = "gpu", Group = GroupWindows, Title = "No graphics driver installed", Status = HealthStatus.Problem, Impact = HealthImpact.StopsGame,
                     Detail = "Windows uses \"Microsoft Basic Display Adapter\", so the game cannot start DirectX",
                     GuideLabel = "Windows Update", GuideTarget = "ms-settings:windowsupdate",
                 };
@@ -1020,7 +1030,7 @@ namespace CommandCenter.Core.Integrity
 
             return new HealthResult
             {
-                Id = "resolution", Group = GroupSettings, Title = "Resolution not supported", Status = HealthStatus.Problem,
+                Id = "resolution", Group = GroupSettings, Title = "Resolution not supported", Status = HealthStatus.Problem, Impact = HealthImpact.StopsGame,
                 Detail = string.Format("Options.ini is set to {0}, which your display cannot show. Your display is {1}", value.Replace(" ", " × "), $"{width} × {height}"),
                 FixLabel = "Fix",
                 FixPreview = string.Format("Sets Resolution in Options.ini to {0}.", $"{width} × {height}"),
@@ -1077,7 +1087,7 @@ namespace CommandCenter.Core.Integrity
             {
                 return new HealthResult
                 {
-                    Id = "gosettings", Group = GroupSettings, Title = "Generals Online settings are broken", Status = HealthStatus.Problem,
+                    Id = "gosettings", Group = GroupSettings, Title = "Generals Online settings are broken", Status = HealthStatus.Problem, Impact = HealthImpact.StopsGame,
                     Detail = string.Format("settings.json cannot be read and stops the game from starting: {0}", ex.Message.Split('.')[0]),
                     FixLabel = "Reset",
                     FixPreview = "Moves settings.json to quarantine; the game writes a fresh one with default values on next start.",
@@ -1096,7 +1106,7 @@ namespace CommandCenter.Core.Integrity
             if (!on)
                 return new HealthResult
                 {
-                    Id = "datapatch", Group = GroupSettings, Title = "Community data patch is turned off", Status = HealthStatus.Warning,
+                    Id = "datapatch", Group = GroupSettings, Title = "Community data patch is turned off", Status = HealthStatus.Warning, Impact = HealthImpact.Mismatch,
                     Detail = "Most Generals Online rooms use it, so they show greyed out and you cannot join them",
                     Note = "Leave it off only while you play a mod; mods do not work with it.",
                     FixLabel = "Turn on",
@@ -1116,7 +1126,7 @@ namespace CommandCenter.Core.Integrity
                 };
             return new HealthResult
             {
-                Id = "datapatch", Group = GroupSettings, Title = "Community data patch file is missing", Status = HealthStatus.Problem,
+                Id = "datapatch", Group = GroupSettings, Title = "Community data patch file is missing", Status = HealthStatus.Problem, Impact = HealthImpact.Mismatch,
                 Detail = "Every normal room on Generals Online shows greyed out and you cannot join, because your game does not match the other players",
                 Note = string.Format("{0} belongs in the GeneralsOnlineGameData folder inside the game's Documents folder. Start the game once from the official launcher so it updates itself; if it is still missing, install Generals Online again.", file),
                 GuideLabel = "Show folder",
@@ -1315,12 +1325,12 @@ namespace CommandCenter.Core.Integrity
             if (actual == expected)
                 return new HealthResult
                 {
-                    Id = "goversion", Group = GroupNetwork, Title = "Generals Online is up to date", Status = HealthStatus.Passed,
+                    Id = GoVersionId, Group = GroupNetwork, Title = "Generals Online is up to date", Status = HealthStatus.Passed,
                     Detail = string.Format("{0} matches the version Generals Online publishes", GamePaths.GameExe),
                 };
             return new HealthResult
             {
-                Id = "goversion", Group = GroupNetwork, Title = "Generals Online is not the current version", Status = HealthStatus.Warning,
+                Id = GoVersionId, Group = GroupNetwork, Title = "Generals Online is not the current version", Status = HealthStatus.Warning,
                 Detail = "The game updates itself when it starts. If this stays after it has updated, install Generals Online again",
                 Note = string.Format("{0} differs from the version Generals Online publishes: an update came out, or the file was changed.", GamePaths.GameExe),
                 GuideLabel = "Download", GuideTarget = DownloadPage,
