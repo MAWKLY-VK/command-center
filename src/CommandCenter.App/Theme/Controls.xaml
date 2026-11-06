@@ -450,6 +450,30 @@
         <Setter Property="Padding" Value="{StaticResource Pad.Panel}"/>
     </Style>
 
+    <!-- A panel on its own in the middle of the window (the update screen), over the blurred art like the other pages'
+         panels, at a fixed width -->
+    <Style x:Key="DialogStyle" TargetType="Border" BasedOn="{StaticResource PanelStyle}">
+        <Setter Property="Width" Value="560"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- A download's progress: a thin gold line on the raised surface -->
+    <Style x:Key="ProgressStyle" TargetType="ProgressBar">
+        <Setter Property="Height" Value="{StaticResource Space.1}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ProgressBar">
+                    <Grid>
+                        <Border x:Name="PART_Track" Background="{StaticResource Bg.Raised}" CornerRadius="{StaticResource Radius.Small}"/>
+                        <Border x:Name="PART_Indicator" Background="{StaticResource Accent}" CornerRadius="{StaticResource Radius.Small}"
+                                HorizontalAlignment="Left"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- The window's tabs, and its Settings and Help links, which are tabs too: quiet text, the selected one in primary
          text with the gold line under it (gold on edges only) -->
     <Style x:Key="FrameTabStyle" TargetType="RadioButton">

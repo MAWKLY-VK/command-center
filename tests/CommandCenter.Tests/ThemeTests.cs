@@ -170,7 +170,6 @@ namespace CommandCenter.Tests
             @"Pages\Tools\PlayerStrip.cs",                // phase 6
             @"Pages\Tools\ReplaysSection.xaml",           // phase 6
             @"Pages\Tools\ReplaysSection.xaml.cs",        // phase 6
-            @"Pages\UpdateOverlay.xaml",                  // ticket 15 (captured with a test key)
             @"Pages\Views.cs",                            // its status colours serve the pages above
         ];
 

@@ -1,72 +1,59 @@
 <UserControl x:Class="CommandCenter.Pages.UpdateOverlay"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             Visibility="Collapsed">
-    <UserControl.Resources>
-        <Style x:Key="BarStyle" TargetType="ProgressBar">
-            <Setter Property="Height" Value="6"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ProgressBar">
-                        <Grid>
-                            <Border x:Name="PART_Track" Background="#1E1E2E" CornerRadius="3"/>
-                            <Border x:Name="PART_Indicator" Background="#2980FF" CornerRadius="3" HorizontalAlignment="Left"/>
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </UserControl.Resources>
+             xmlns:c="clr-namespace:CommandCenter.Controls"
+             Visibility="Collapsed"
+             FontFamily="{StaticResource Font.Text}">
 
-    <!-- Covers the whole window. The only ways out are installing the update or closing the window. -->
-    <Grid Background="#F001031A">
-        <!-- The window's own close button is underneath, so the overlay brings its own in the same place -->
-        <Button HorizontalAlignment="Right" VerticalAlignment="Top" Width="46" Height="32" Content="✕" Foreground="White"
-                FontSize="14" Background="Transparent" BorderThickness="0" Cursor="Hand"
-                WindowChrome.IsHitTestVisibleInChrome="True" Click="Close_Click" ToolTip="Close">
-            <Button.Template>
-                <ControlTemplate TargetType="Button">
-                    <Border x:Name="border" Background="{TemplateBinding Background}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#C42B1C"/>
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
+    <!-- Covers the whole window: the window hides its page and top bar under it, and the game's art shows around it
+         blurred. The only ways out are installing the update or closing the window. -->
+    <Grid Background="Transparent">
+        <!-- The window's own close button is underneath, so the screen brings its own in the same place: the top bar's
+             height and right margin -->
+        <Grid Height="64" VerticalAlignment="Top">
+            <Button HorizontalAlignment="Right" Margin="0,0,8,0" Style="{StaticResource WindowButtonStyle}" Click="Close_Click"
+                    ToolTip="Close" AutomationProperties.Name="Close">
+                <c:Icon Kind="close" Width="14" Height="14"/>
+            </Button>
+        </Grid>
 
-        <Border Style="{StaticResource ResultBoxStyle}" Width="520" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="24,20,24,20">
+        <Border Style="{StaticResource DialogStyle}">
             <StackPanel>
-                <TextBlock Text="UPDATE REQUIRED" Style="{StaticResource SectionHeaderStyle}" HorizontalAlignment="Left"/>
-                <TextBlock x:Name="Message" Foreground="White" FontSize="13" TextWrapping="Wrap" Margin="0,12,0,0"/>
-                <TextBlock x:Name="Versions" Style="{StaticResource HintStyle}" Margin="0,4,0,0"/>
+                <TextBlock Text="Update required" Style="{StaticResource PageTitleStyle}"/>
+                <TextBlock x:Name="Message" Style="{StaticResource PanelTextStyle}"/>
+                <TextBlock x:Name="Versions" Style="{StaticResource DataTextStyle}" Margin="{StaticResource Gap.Text}"/>
 
-                <StackPanel x:Name="NotesBox" Margin="0,10,0,0">
-                    <TextBlock Style="{StaticResource GroupLabelStyle}" Text="WHAT'S NEW"/>
-                    <TextBlock x:Name="Notes" Foreground="#C0C0D0" FontSize="12" TextWrapping="Wrap"/>
+                <StackPanel x:Name="NotesBox" Margin="{StaticResource Gap.Group}">
+                    <TextBlock Text="What's new" Style="{StaticResource GroupTitleStyle}"/>
+                    <TextBlock x:Name="Notes" Style="{StaticResource PanelTextStyle}"/>
                 </StackPanel>
 
-                <StackPanel x:Name="ProgressBox" Margin="0,16,0,0" Visibility="Collapsed">
+                <StackPanel x:Name="ProgressBox" Margin="{StaticResource Gap.Group}" Visibility="Collapsed">
                     <DockPanel>
-                        <TextBlock x:Name="Percent" DockPanel.Dock="Right" Foreground="White" FontSize="12" FontWeight="Bold"/>
-                        <TextBlock x:Name="Stage" Foreground="#8888AA" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="Percent" DockPanel.Dock="Right" Style="{StaticResource DataTextStyle}"
+                                   Foreground="{StaticResource Text.Primary}" Margin="8,0,0,0"/>
+                        <TextBlock x:Name="Stage" Style="{StaticResource StateTextStyle}" TextTrimming="CharacterEllipsis"/>
                     </DockPanel>
-                    <ProgressBar x:Name="Bar" Style="{StaticResource BarStyle}" Maximum="1" Margin="0,8,0,0"/>
+                    <ProgressBar x:Name="Bar" Style="{StaticResource ProgressStyle}" Maximum="1" Margin="{StaticResource Gap.Text}"/>
                 </StackPanel>
 
-                <TextBlock x:Name="Error" Foreground="#FF6B6B" FontSize="12" TextWrapping="Wrap" Margin="0,14,0,0" Visibility="Collapsed"/>
+                <TextBlock x:Name="Error" Style="{StaticResource PanelTextStyle}" Foreground="{StaticResource Problem}"
+                           Margin="{StaticResource Gap.Group}" Visibility="Collapsed"/>
 
-                <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
-                    <Button x:Name="UpdateNow" Style="{StaticResource GoldButtonStyle}" Content="UPDATE NOW" Click="UpdateNow_Click"
-                            ToolTip="Download, check and install the new version (Enter)"/>
-                    <Button x:Name="DownloadPage" Style="{StaticResource DiagButtonStyle}" Content="DOWNLOAD PAGE" Margin="10,0,0,0"
-                            Visibility="Collapsed" Click="DownloadPage_Click"/>
-                    <Button Style="{StaticResource DiagButtonStyle}" Content="CLOSE" Margin="10,0,0,0" Click="Close_Click"/>
-                </StackPanel>
-                <TextBlock Style="{StaticResource HintStyle}" Margin="0,12,0,0"
+                <WrapPanel Margin="{StaticResource Gap.Actions}">
+                    <Button x:Name="UpdateNow" Style="{StaticResource PrimaryButtonStyle}" Margin="{StaticResource Gap.Button}"
+                            Click="UpdateNow_Click" ToolTip="Download, check and install the new version (Enter)">
+                        <TextBlock x:Name="UpdateNowLabel" Text="Update now" Style="{StaticResource ButtonLabelStyle}"/>
+                    </Button>
+                    <Button x:Name="DownloadPage" Style="{StaticResource QuietButtonStyle}" Margin="{StaticResource Gap.Button}"
+                            Visibility="Collapsed" Click="DownloadPage_Click">
+                        <TextBlock Text="Open download page" Style="{StaticResource ButtonLabelStyle}"/>
+                    </Button>
+                    <Button Style="{StaticResource QuietButtonStyle}" Margin="{StaticResource Gap.Button}" Click="Close_Click">
+                        <TextBlock Text="Close" Style="{StaticResource ButtonLabelStyle}"/>
+                    </Button>
+                </WrapPanel>
+                <TextBlock Style="{StaticResource PanelTextStyle}"
                            Text="Command Center downloads the new version, checks it and restarts by itself."/>
             </StackPanel>
         </Border>

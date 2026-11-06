@@ -43,6 +43,14 @@ namespace CommandCenter
         {
             InitializeComponent();
             _ = AppServices.Sounds.PrepareAsync();
+            // The update screen covers the window: the page and the top bar step aside, and the game's art shows around it
+            // blurred, as behind the other pages
+            UpdateOverlay.Opened += () =>
+            {
+                ContentFrame.Visibility = Visibility.Hidden;
+                TopBar.Visibility = Visibility.Hidden;
+                ShowArtFor(UpdateOverlay);
+            };
             _toastTimer.Tick += (_, _) => HideToast();
             PreviewKeyDown += OnPreviewKeyDown;
             Closing += OnClosing;
@@ -231,6 +239,9 @@ namespace CommandCenter
         // dimmed. The change is a short fade, and none when Windows' animation effects are off.
         private void ShowArtFor(FrameworkElement? page)
         {
+            // The update screen keeps the blurred art, whatever page is under it and whenever the art arrives
+            if (UpdateOverlay.IsOpen)
+                page = UpdateOverlay;
             _onHome = page is null or LauncherPage;
             bool art = HomeArtImage.Source != null;
             var time = _still || !AppServices.Appearance.AnimationsOn ? TimeSpan.Zero : ((Duration)FindResource("Motion.State")).TimeSpan;
@@ -476,9 +487,10 @@ namespace CommandCenter
 
         // ── Screenshots for review (--capture <folder>) ──
         // The window is placed off screen and never activated, so it does not take focus from a running game.
-        // Page ids: home, home:<picture> (mainmenu, usa, china or gla), replays, maps[:installed|library],
-        // hotkeys[:buttons|keys|letters], health[:history], settings[:<section>[:run]] (run also runs the network
-        // diagnostics first), help
+        // Page ids: home, home:<picture> (mainmenu, usa, china or gla), home:<PLAY state> (locate, update, fix or play),
+        // replays, maps[:installed|library], hotkeys[:buttons|keys|letters], health[:history|end],
+        // settings[:<section>[:run][:end]] (run also runs the network diagnostics first, end shows a long section's end),
+        // help, and last update[:progress|error]
 
         public async Task CaptureAsync(string folder, string size, string? pages)
         {
@@ -544,6 +556,12 @@ namespace CommandCenter
                         // home:locate, home:update, home:fix or home:play shows PLAY in that state for review
                         if (id.Length > 1)
                             _home!.PreviewPlay(id[1]);
+                        break;
+                    case "update":
+                        // update, update:progress or update:error shows the update screen in that state for review. It
+                        // covers the window and blocks it, so these ids come last.
+                        ShowHome();
+                        UpdateOverlay.Preview(id.Length > 1 ? id[1] : "");
                         break;
                 }
                 await Task.Delay(900);
