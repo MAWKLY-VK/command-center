@@ -268,6 +268,17 @@
         </Setter>
     </Style>
 
+    <!-- A longer list of chips, such as the window sizes: equal cells, so the chips line up in columns -->
+    <Style x:Key="ChipGridStyle" TargetType="ListBox" BasedOn="{StaticResource ChipListStyle}">
+        <Setter Property="ItemsPanel">
+            <Setter.Value>
+                <ItemsPanelTemplate>
+                    <WrapPanel ItemWidth="140"/>
+                </ItemsPanelTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- A setting that is on or off: a box with a check mark -->
     <Style x:Key="CheckStyle" TargetType="CheckBox">
         <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
@@ -303,6 +314,86 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <!-- A short number the player types, such as a camera height: the data face in a box with a control border, the
+         focus ring over it so the text does not move -->
+    <Style x:Key="FieldStyle" TargetType="TextBox">
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+        <Setter Property="CaretBrush" Value="{StaticResource Text.Primary}"/>
+        <Setter Property="SelectionBrush" Value="{StaticResource Border}"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Data}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="Width" Value="80"/>
+        <Setter Property="MinHeight" Value="{StaticResource Target.Min}"/>
+        <Setter Property="MaxLength" Value="5"/>
+        <Setter Property="Padding" Value="8,0"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Grid>
+                        <Border x:Name="Face" Background="{StaticResource Bg.Window}" BorderBrush="{StaticResource Border}"
+                                BorderThickness="{StaticResource Line.Thin}" CornerRadius="{StaticResource Radius.Small}"/>
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                        <Border x:Name="Ring" BorderBrush="{StaticResource Focus}" BorderThickness="{StaticResource Line.Focus}"
+                                CornerRadius="{StaticResource Radius.Small}" Visibility="Hidden"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="BorderBrush" Value="{StaticResource Text.Primary}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Ring" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- The unit after a number box, in a column of one width, so the boxes line up from section to section -->
+    <Style x:Key="FieldUnitStyle" TargetType="TextBlock" BasedOn="{StaticResource StateTextStyle}">
+        <Setter Property="Width" Value="64"/>
+        <Setter Property="Margin" Value="8,0,0,0"/>
+    </Style>
+
+    <!-- A cell of a small table that mixes numbers and words, such as the recent diagnostics: the text face with
+         figures of one width, so the numbers line up -->
+    <Style x:Key="TableCellStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+    </Style>
+
+    <!-- A group's name inside a panel, such as Internet in the diagnostics: body size, heavier -->
+    <Style x:Key="GroupTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+    </Style>
+
+    <!-- A column's name above a small table, such as In game and In menus above the notification switches -->
+    <Style x:Key="TableHeadStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+        <Setter Property="VerticalAlignment" Value="Bottom"/>
+    </Style>
+
+    <!-- The line under a table's column names, inside the panel's padding -->
+    <Style x:Key="TableRuleStyle" TargetType="Border">
+        <Setter Property="Height" Value="1"/>
+        <Setter Property="Background" Value="{StaticResource Divider}"/>
+        <Setter Property="Margin" Value="0,8,0,4"/>
     </Style>
 
     <!-- A hairline between the groups inside one panel, edge to edge -->

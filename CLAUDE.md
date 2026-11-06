@@ -55,8 +55,9 @@ Always run against an isolated copy of the game and a temporary data folder. Nev
 CommandCenter.exe --game <copy of Desktop\Test_Generals> --user-data <temp folder>
 ```
 
-- `--capture <folder> --size 1100x640 --pages home,tools:maps,options:game` saves page screenshots without showing
-  the window. `tools:health:questions` opens a tab, and `options:network:run` runs the network diagnostics first.
+- `--capture <folder> --size 1100x640 --pages home,maps:installed,settings:game` saves page screenshots without
+  showing the window. `health:history` opens a tab, `settings:network:run` runs the network diagnostics first, and
+  `:end` shows the end of a Settings section taller than the window.
 - `--samples` adds fake health problems so their layouts can be reviewed. Their fixes do nothing.
 - `--update-url <url|file>` and `--go-profile <file>` read the update manifest and GO profile from a local file.
 - Also available: `--library-folder` and `--map-library` (map library source) and `--drawn-backdrop`. An old `--lang` is

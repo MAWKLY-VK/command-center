@@ -236,44 +236,6 @@
     </Style>
 
     <!-- Tools and Options pages -->
-    <Style x:Key="NavTabStyle" TargetType="RadioButton">
-        <Setter Property="Foreground" Value="White"/>
-        <Setter Property="HorizontalAlignment" Value="Stretch"/>
-        <Setter Property="HorizontalContentAlignment" Value="Left"/>
-        <Setter Property="Height" Value="44"/>
-        <Setter Property="Margin" Value="0,1"/>
-        <Setter Property="Padding" Value="16,0,0,0"/>
-        <Setter Property="FontSize" Value="12"/>
-        <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="FontFamily" Value="Segoe UI"/>
-        <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="RadioButton">
-                    <Border x:Name="RootBorder" Background="Transparent" CornerRadius="9" Margin="6,0" Padding="{TemplateBinding Padding}">
-                        <Grid>
-                            <Border x:Name="Mark" Width="3" Height="16" CornerRadius="1.5" Background="#FECD03" HorizontalAlignment="Left"
-                                    Margin="-10,0,0,0" Opacity="0"/>
-                            <ContentPresenter
-                                Content="{TemplateBinding Content}"
-                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                VerticalAlignment="Center"/>
-                        </Grid>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="RootBorder" Property="Background" Value="#0FFFFFFF"/>
-                        </Trigger>
-                        <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="RootBorder" Property="Background" Value="#1FFFFFFF"/>
-                            <Setter TargetName="Mark" Property="Opacity" Value="1"/>
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
     <Style x:Key="BackButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="#0FFFFFFF"/>
         <Setter Property="Foreground" Value="White"/>

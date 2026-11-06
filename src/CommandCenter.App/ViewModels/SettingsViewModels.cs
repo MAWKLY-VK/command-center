@@ -4,15 +4,27 @@ using CommandCenter.Pages;
 
 namespace CommandCenter.ViewModels
 {
-    // Settings, part 1 (ticket 08): the game folder, the launcher and Appearance, with Add-ons in AddonsViewModel. The
-    // services come from AppServices; tests pass stand-ins.
+    // The Settings page: Command Center's own sections (ticket 08: the game folder, the launcher, Appearance and Add-ons),
+    // which apply at once, and Generals Online's (ticket 09), which are read when Settings opens and written when it is
+    // left. The services come from AppServices; tests pass stand-ins.
     public sealed class SettingsViewModel(GameFolderViewModel gameFolder, LauncherViewModel launcher, AppearanceViewModel appearance,
-        AddonsViewModel addons)
+        AddonsViewModel addons, GameSettingsViewModel game, NetworkDiagnosticsViewModel diagnostics, PluginsViewModel plugins) : ISettingsSection
     {
         public GameFolderViewModel GameFolder { get; } = gameFolder;
         public LauncherViewModel Launcher { get; } = launcher;
         public AppearanceViewModel Appearance { get; } = appearance;
         public AddonsViewModel Addons { get; } = addons;
+        public GameSettingsViewModel Game { get; } = game;
+        public NetworkDiagnosticsViewModel Diagnostics { get; } = diagnostics;
+        public PluginsViewModel Plugins { get; } = plugins;
+
+        public void Load()
+        {
+            Game.Load();
+            Plugins.Refresh();
+        }
+
+        public void Commit() => Game.Commit();
     }
 
     // Which Zero Hour is played, where that came from, what is in it, and where the game keeps its data

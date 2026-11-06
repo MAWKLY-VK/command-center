@@ -485,8 +485,11 @@ namespace CommandCenter
                         {
                             await Task.Delay(300);
                             _options!.ShowPart(id[1]);
-                            if (id.Length > 2 && id[2] == "run")
+                            // "run" runs the network diagnostics first; "end" shows the end of a long section
+                            if (id.Skip(2).Contains("run"))
                                 await _options.RunDiagnosticsAsync();
+                            if (id.Skip(2).Contains("end"))
+                                _options.ScrollToEnd();
                         }
                         break;
                     case "help":

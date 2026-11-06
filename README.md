@@ -117,7 +117,7 @@ libraries. Options › Game folder shows which copy is used and lets you pick an
 | `--game <folder>` | Use this game folder |
 | `--library-folder <folder>` | Use a local folder of maps as the map library |
 | `--user-data <folder>` | Use this folder instead of `Documents\Command and Conquer Generals Zero Hour Data` (for testing) |
-| `--capture <folder> --size 1100x640 --pages home,tools:maps,options:game` | Save screenshots of pages without showing the window; `tools:health:questions` opens a tab, `options:network:run` runs the diagnostics first |
+| `--capture <folder> --size 1100x640 --pages home,maps:installed,settings:game` | Save screenshots of pages without showing the window; `health:history` opens a tab, `settings:network:run` runs the diagnostics first, and `:end` shows the end of a long Settings section |
 | `--samples` | Add sample health problems to review the layout (their fixes do nothing) |
 | `--drawn-backdrop` | Show the drawn background that copies without the game's art get |
 | `--update-url <url or file>` | Read the update manifest (`update.json`) from here instead of the latest GitHub release; a local file works for testing |
