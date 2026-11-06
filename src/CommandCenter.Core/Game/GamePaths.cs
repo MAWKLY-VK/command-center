@@ -200,15 +200,5 @@ namespace CommandCenter.Core.Game
                     yield return parts[^1].Replace(@"\\", @"\");
             }
         }
-
-        // Steam's own artwork for Zero Hour (hero image and logo), used only as a backdrop
-        public static string? SteamArt(string name)
-        {
-            string? steam = SteamFolder();
-            if (steam == null)
-                return null;
-            string path = Path.Combine(steam, "appcache", "librarycache", SteamAppId, name);
-            return File.Exists(path) ? path : null;
-        }
     }
 }

@@ -1,0 +1,827 @@
+<!--
+    Command Center's controls in the plan 3-c design, built only from Tokens.xaml. Pages that have moved to the new look
+    use these; GoStyles.xaml keeps the styles of the pages that have not moved yet.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- Bindings: true shows an element, false collapses it -->
+    <BooleanToVisibilityConverter x:Key="Visible"/>
+
+    <Thickness x:Key="Pad.Tab">12,0</Thickness>
+    <Thickness x:Key="Pad.Toast">16,12</Thickness>
+    <Thickness x:Key="Pad.QuietButton">12,0</Thickness>
+    <Thickness x:Key="Pad.Badge">6,0</Thickness>
+    <Thickness x:Key="Pad.Panel">20,16</Thickness>
+    <!-- The window's top bar: its height, and its brand on the left and window buttons on the right; the update screen
+         puts its own close button in the same place -->
+    <sys:Double x:Key="Bar.Height">64</sys:Double>
+    <Thickness x:Key="Pad.Bar">20,0,8,0</Thickness>
+
+    <!-- A page's layout on the 4 px grid: groups are further apart than the things inside them -->
+    <Thickness x:Key="Page.Margin">48,24,48,24</Thickness>
+    <Thickness x:Key="Gap.Intro">0,4,0,24</Thickness>
+    <Thickness x:Key="Gap.Panel">0,0,0,12</Thickness>
+    <Thickness x:Key="Gap.Text">0,8,0,0</Thickness>
+    <Thickness x:Key="Gap.Actions">0,16,0,0</Thickness>
+    <Thickness x:Key="Gap.Button">0,0,8,8</Thickness>
+    <Thickness x:Key="Gap.Group">0,24,0,0</Thickness>
+    <Thickness x:Key="Gap.Stack">0,0,0,8</Thickness>
+    <Thickness x:Key="Pad.ListItem">24,20</Thickness>
+    <GridLength x:Key="Column.Gap">32</GridLength>
+    <GridLength x:Key="Column.Side">360</GridLength>
+
+    <!-- Page text: the page's title, the line under it, a panel's title and its text -->
+    <Style x:Key="PageTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Heading}"/>
+        <Setter Property="FontStretch" Value="{StaticResource Font.Heading.Stretch}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Display}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+    </Style>
+
+    <Style x:Key="PageIntroStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="Margin" Value="{StaticResource Gap.Intro}"/>
+    </Style>
+
+    <Style x:Key="PanelTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Title}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+
+    <Style x:Key="PanelTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="LineHeight" Value="22"/>
+        <Setter Property="Margin" Value="{StaticResource Gap.Text}"/>
+    </Style>
+
+    <!-- A button's label: it takes the button's font and colour -->
+    <Style x:Key="ButtonLabelStyle" TargetType="TextBlock">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- A path, a version or another piece of real data: the data face, small, in the second text colour -->
+    <Style x:Key="DataTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Data}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+    </Style>
+
+    <!-- A line that names a state, next to its icon -->
+    <Style x:Key="StateTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- A short tag beside a title, such as where the game folder came from -->
+    <Style x:Key="TagStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Bg.Raised}"/>
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Small}"/>
+        <Setter Property="Padding" Value="{StaticResource Pad.Badge}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="TagTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+    </Style>
+
+    <!-- Settings' list of sections: quiet text, the selected one in primary text with a gold bar at its left (an edge) -->
+    <Style x:Key="SideTabStyle" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="MinHeight" Value="36"/>
+        <Setter Property="Padding" Value="16,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid x:Name="Face" Background="Transparent">
+                        <Border x:Name="Bar" Width="2" HorizontalAlignment="Left" Background="{StaticResource Accent}" Visibility="Hidden"/>
+                        <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                        <Border x:Name="Ring" BorderBrush="{StaticResource Focus}" BorderThickness="{StaticResource Line.Focus}" Visibility="Hidden"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Bg.Raised}"/>
+                            <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bar" Property="Visibility" Value="Visible"/>
+                            <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Ring" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Two views of one page, such as Health's checks and its fix history: quiet text, the shown one in primary text with
+         a line under it in the text colour (gold stays for the window's tabs and the main action) -->
+    <Style x:Key="PageTabStyle" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="MinHeight" Value="{StaticResource Target.Min}"/>
+        <Setter Property="Padding" Value="{StaticResource Pad.Tab}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid x:Name="Face" Background="Transparent">
+                        <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                        <Border x:Name="Line" Height="2" VerticalAlignment="Bottom" Background="{StaticResource Text.Primary}" Visibility="Hidden"/>
+                        <Border x:Name="Ring" BorderBrush="{StaticResource Focus}" BorderThickness="{StaticResource Line.Focus}" Visibility="Hidden"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Bg.Raised}"/>
+                            <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Line" Property="Visibility" Value="Visible"/>
+                            <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Ring" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- One option of a set: a ring with a dot when chosen, in the text colour (gold stays for the main action) -->
+    <Style x:Key="ChoiceStyle" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="MinHeight" Value="{StaticResource Target.Min}"/>
+        <Setter Property="Margin" Value="0,0,24,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <StackPanel Orientation="Horizontal" Background="Transparent">
+                        <Grid Width="18" Height="18" VerticalAlignment="Center">
+                            <Ellipse x:Name="Ring" Stroke="{StaticResource Border}" StrokeThickness="1.5"/>
+                            <Ellipse x:Name="Dot" Width="8" Height="8" Fill="{StaticResource Text.Primary}" Visibility="Hidden"/>
+                        </Grid>
+                        <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource Text.Primary}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource Text.Primary}"/>
+                            <Setter TargetName="Dot" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource Focus}"/>
+                            <Setter TargetName="Ring" Property="StrokeThickness" Value="2"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A larger option shown as a panel, such as one control bar: its border lights when chosen -->
+    <Style x:Key="ChoiceCardStyle" TargetType="RadioButton">
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Card" Background="{StaticResource Bg.PanelOverArt}" BorderBrush="{StaticResource Divider}"
+                            BorderThickness="{StaticResource Line.Thin}" CornerRadius="{StaticResource Radius.Medium}" Padding="{StaticResource Pad.Panel}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid Width="18" Height="18" VerticalAlignment="Top" Margin="0,2,12,0">
+                                <Ellipse x:Name="Ring" Stroke="{StaticResource Border}" StrokeThickness="1.5"/>
+                                <Ellipse x:Name="Dot" Width="8" Height="8" Fill="{StaticResource Text.Primary}" Visibility="Hidden"/>
+                            </Grid>
+                            <ContentPresenter Grid.Column="1"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Card" Property="BorderBrush" Value="{StaticResource Border}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Card" Property="BorderBrush" Value="{StaticResource Text.Primary}"/>
+                            <Setter TargetName="Ring" Property="Stroke" Value="{StaticResource Text.Primary}"/>
+                            <Setter TargetName="Dot" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Card" Property="BorderBrush" Value="{StaticResource Focus}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A short list to pick one from, shown as chips, such as the control bar sizes -->
+    <Style x:Key="ChipListStyle" TargetType="ListBox">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="ItemsPanel">
+            <Setter.Value>
+                <ItemsPanelTemplate>
+                    <WrapPanel/>
+                </ItemsPanelTemplate>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="ItemContainerStyle">
+            <Setter.Value>
+                <Style TargetType="ListBoxItem">
+                    <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+                    <Setter Property="FontFamily" Value="{StaticResource Font.Data}"/>
+                    <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+                    <Setter Property="Margin" Value="0,0,8,8"/>
+                    <Setter Property="Cursor" Value="Hand"/>
+                    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <Border x:Name="Chip" MinHeight="{StaticResource Target.Min}" Padding="12,0" Background="Transparent"
+                                        BorderBrush="{StaticResource Focus}" BorderThickness="0" CornerRadius="{StaticResource Radius.Small}">
+                                    <ContentPresenter VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Chip" Property="Background" Value="{StaticResource Bg.Raised}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Chip" Property="Background" Value="{StaticResource Text.Primary}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource Bg.Window}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsKeyboardFocused" Value="True">
+                                        <Setter TargetName="Chip" Property="BorderThickness" Value="{StaticResource Line.Focus}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A longer list of chips, such as the window sizes: equal cells, so the chips line up in columns -->
+    <Style x:Key="ChipGridStyle" TargetType="ListBox" BasedOn="{StaticResource ChipListStyle}">
+        <Setter Property="ItemsPanel">
+            <Setter.Value>
+                <ItemsPanelTemplate>
+                    <WrapPanel ItemWidth="140"/>
+                </ItemsPanelTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A setting that is on or off: a box with a check mark -->
+    <Style x:Key="CheckStyle" TargetType="CheckBox">
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="MinHeight" Value="{StaticResource Target.Min}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <StackPanel Orientation="Horizontal" Background="Transparent">
+                        <Border x:Name="Box" Width="18" Height="18" VerticalAlignment="Center" BorderBrush="{StaticResource Border}"
+                                BorderThickness="1.5" CornerRadius="{StaticResource Radius.Small}" Background="Transparent">
+                            <Path x:Name="Mark" Data="M3.5,9 L7.5,13 L14.5,5" Stroke="{StaticResource Bg.Window}" StrokeThickness="2"
+                                  StrokeStartLineCap="Square" StrokeEndLineCap="Square" Visibility="Hidden"/>
+                        </Border>
+                        <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource Text.Primary}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Box" Property="Background" Value="{StaticResource Text.Primary}"/>
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource Text.Primary}"/>
+                            <Setter TargetName="Mark" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{StaticResource Focus}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A short number the player types, such as a camera height: the data face in a box with a control border, the
+         focus ring over it so the text does not move -->
+    <Style x:Key="FieldStyle" TargetType="TextBox">
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+        <Setter Property="CaretBrush" Value="{StaticResource Text.Primary}"/>
+        <Setter Property="SelectionBrush" Value="{StaticResource Border}"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Data}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="Width" Value="80"/>
+        <Setter Property="MinHeight" Value="{StaticResource Target.Min}"/>
+        <Setter Property="MaxLength" Value="5"/>
+        <Setter Property="Padding" Value="8,0"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Grid>
+                        <Border x:Name="Face" Background="{StaticResource Bg.Window}" BorderBrush="{StaticResource Border}"
+                                BorderThickness="{StaticResource Line.Thin}" CornerRadius="{StaticResource Radius.Small}"/>
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                        <Border x:Name="Ring" BorderBrush="{StaticResource Focus}" BorderThickness="{StaticResource Line.Focus}"
+                                CornerRadius="{StaticResource Radius.Small}" Visibility="Hidden"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="BorderBrush" Value="{StaticResource Text.Primary}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Ring" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- The unit after a number box, in a column of one width, so the boxes line up from section to section -->
+    <Style x:Key="FieldUnitStyle" TargetType="TextBlock" BasedOn="{StaticResource StateTextStyle}">
+        <Setter Property="Width" Value="64"/>
+        <Setter Property="Margin" Value="8,0,0,0"/>
+    </Style>
+
+    <!-- A cell of a small table that mixes numbers and words, such as the recent diagnostics: the text face with
+         figures of one width, so the numbers line up -->
+    <Style x:Key="TableCellStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+    </Style>
+
+    <!-- A group's name inside a panel, such as Internet in the diagnostics: body size, heavier -->
+    <Style x:Key="GroupTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+    </Style>
+
+    <!-- A column's name above a small table, such as In game and In menus above the notification switches -->
+    <Style x:Key="TableHeadStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+        <Setter Property="VerticalAlignment" Value="Bottom"/>
+    </Style>
+
+    <!-- The line under a table's column names, inside the panel's padding -->
+    <Style x:Key="TableRuleStyle" TargetType="Border">
+        <Setter Property="Height" Value="1"/>
+        <Setter Property="Background" Value="{StaticResource Divider}"/>
+        <Setter Property="Margin" Value="0,8,0,4"/>
+    </Style>
+
+    <!-- A hairline between the groups inside one panel, edge to edge -->
+    <Style x:Key="PanelDividerStyle" TargetType="Border">
+        <Setter Property="Height" Value="1"/>
+        <Setter Property="Background" Value="{StaticResource Divider}"/>
+        <Setter Property="Margin" Value="-20,20,-20,20"/>
+    </Style>
+
+    <!-- A quiet panel over the art (plan 3-c): the dark panel colour, a light line along the top and a dark one along
+         the bottom, small corners -->
+    <Style x:Key="PanelStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Bg.PanelOverArt}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Panel.Edge}"/>
+        <Setter Property="BorderThickness" Value="0,1,0,1"/>
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Medium}"/>
+        <Setter Property="Padding" Value="{StaticResource Pad.Panel}"/>
+    </Style>
+
+    <!-- A panel on its own in the middle of the window (the update screen), over the blurred art like the other pages'
+         panels, at a fixed width -->
+    <Style x:Key="DialogStyle" TargetType="Border" BasedOn="{StaticResource PanelStyle}">
+        <Setter Property="Width" Value="560"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- A download's progress: a thin gold line on the raised surface -->
+    <Style x:Key="ProgressStyle" TargetType="ProgressBar">
+        <Setter Property="Height" Value="{StaticResource Space.1}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ProgressBar">
+                    <Grid>
+                        <Border x:Name="PART_Track" Background="{StaticResource Bg.Raised}" CornerRadius="{StaticResource Radius.Small}"/>
+                        <Border x:Name="PART_Indicator" Background="{StaticResource Accent}" CornerRadius="{StaticResource Radius.Small}"
+                                HorizontalAlignment="Left"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- The window's tabs, and its Settings and Help links, which are tabs too: quiet text, the selected one in primary
+         text with the gold line under it (gold on edges only) -->
+    <Style x:Key="FrameTabStyle" TargetType="RadioButton">
+        <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+        <Setter Property="GroupName" Value="FrameTabs"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="Padding" Value="{StaticResource Pad.Tab}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid Background="Transparent">
+                        <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                        <Border x:Name="Line" Height="2" VerticalAlignment="Bottom" Margin="{TemplateBinding Padding}"
+                                Background="{StaticResource Accent}" Visibility="Hidden"/>
+                        <Border x:Name="Ring" BorderBrush="{StaticResource Focus}" BorderThickness="{StaticResource Line.Focus}"
+                                CornerRadius="{StaticResource Radius.Small}" Visibility="Hidden"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+                            <Setter TargetName="Line" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Ring" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A tab's label: the text follows the tab's colour -->
+    <Style x:Key="FrameTabLabelStyle" TargetType="TextBlock">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}"/>
+    </Style>
+
+    <!-- Minimize and close, and the small close button of a message -->
+    <Style x:Key="WindowButtonStyle" TargetType="Button">
+        <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+        <Setter Property="Width" Value="44"/>
+        <Setter Property="Height" Value="40"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Face" Background="Transparent" CornerRadius="{StaticResource Radius.Small}"
+                            BorderBrush="{StaticResource Focus}" BorderThickness="0">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Bg.Raised}"/>
+                            <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Bg.Panel}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Face" Property="BorderThickness" Value="{StaticResource Line.Focus}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A secondary action in a message or panel: a thin border, never gold -->
+    <Style x:Key="QuietButtonStyle" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="MinHeight" Value="{StaticResource Target.Min}"/>
+        <Setter Property="Padding" Value="{StaticResource Pad.QuietButton}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Face" Background="Transparent" BorderBrush="{StaticResource Border}"
+                            BorderThickness="{StaticResource Line.Thin}" CornerRadius="{StaticResource Radius.Small}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Bg.Raised}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Bg.Panel}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Face" Property="BorderBrush" Value="{StaticResource Focus}"/>
+                            <Setter TargetName="Face" Property="BorderThickness" Value="{StaticResource Line.Focus}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A page's main action when it is not PLAY: the one gold fill on the screen (plan 3-c). Its focus ring sits outside
+         the gold, apart from it. -->
+    <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource OnAccent}"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="MinHeight" Value="{StaticResource Target.Min}"/>
+        <Setter Property="Padding" Value="{StaticResource Pad.QuietButton}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border x:Name="Ring" Margin="-4" BorderBrush="{StaticResource Focus}" BorderThickness="{StaticResource Line.Focus}"
+                                CornerRadius="{StaticResource Radius.Medium}" Visibility="Hidden"/>
+                        <Border x:Name="Face" Background="{StaticResource Accent}" CornerRadius="{StaticResource Radius.Small}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Accent.Pressed}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Ring" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <!-- Nothing to do yet: no gold, so the screen keeps no gold fill it cannot use -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Bg.Raised}"/>
+                            <Setter Property="Foreground" Value="{StaticResource Text.Muted}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Home's PLAY (ADR 0006): the one heroic size, gold, with the bevel of the main action along its top. Its words
+         follow the state (Play, Fix, Update, Locate game). -->
+    <Style x:Key="PlayButtonStyle" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource OnAccent}"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Heading}"/>
+        <Setter Property="FontStretch" Value="{StaticResource Font.Heading.Stretch}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Play}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="MinHeight" Value="64"/>
+        <Setter Property="MinWidth" Value="240"/>
+        <Setter Property="Padding" Value="32,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border x:Name="Ring" Margin="-4" BorderBrush="{StaticResource Focus}" BorderThickness="{StaticResource Line.Focus}"
+                                CornerRadius="{StaticResource Radius.Medium}" Visibility="Hidden"/>
+                        <Border x:Name="Face" Background="{StaticResource Accent}" CornerRadius="{StaticResource Radius.Small}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <Border x:Name="Bevel" Height="1" VerticalAlignment="Top" Margin="2,1,2,0" Background="{StaticResource Play.Bevel}"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Accent.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Accent.Pressed}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Ring" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <!-- Starting or running: no gold, so the screen keeps no gold fill it cannot use -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Bg.Raised}"/>
+                            <Setter TargetName="Bevel" Property="Visibility" Value="Hidden"/>
+                            <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- PLAY's other half: opens the choice of Live or Test, split from PLAY by a thin dark line -->
+    <Style x:Key="PlaySplitStyle" TargetType="ToggleButton">
+        <Setter Property="Foreground" Value="{StaticResource OnAccent}"/>
+        <Setter Property="Width" Value="48"/>
+        <Setter Property="MinHeight" Value="64"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid>
+                        <Border x:Name="Ring" Margin="-4" BorderBrush="{StaticResource Focus}" BorderThickness="{StaticResource Line.Focus}"
+                                CornerRadius="{StaticResource Radius.Medium}" Visibility="Hidden"/>
+                        <Border x:Name="Face" Background="{StaticResource Accent}" BorderBrush="{StaticResource OnAccent}" BorderThickness="1,0,0,0"
+                                CornerRadius="{StaticResource Radius.Small}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <Border x:Name="Bevel" Height="1" VerticalAlignment="Top" Margin="2,1,2,0" Background="{StaticResource Play.Bevel}"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Accent.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Accent.Pressed}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Accent.Pressed}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Ring" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Bg.Raised}"/>
+                            <Setter TargetName="Face" Property="BorderBrush" Value="{StaticResource Bg.Window}"/>
+                            <Setter TargetName="Bevel" Property="Visibility" Value="Hidden"/>
+                            <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A small choice that opens from a button, such as Live or Test: a raised panel with a control border -->
+    <Style x:Key="MenuPanelStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Bg.Raised}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Border}"/>
+        <Setter Property="BorderThickness" Value="{StaticResource Line.Thin}"/>
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Medium}"/>
+        <Setter Property="Padding" Value="{StaticResource Pad.Toast}"/>
+        <Setter Property="Margin" Value="0,0,0,8"/>
+    </Style>
+
+    <!-- A short action written as a link, such as Play anyway: gold text (gold as light, not a fill) with a line under
+         it on hover -->
+    <Style x:Key="LinkButtonStyle" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="MinHeight" Value="{StaticResource Target.Min}"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid Background="Transparent">
+                        <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                        <Border x:Name="Line" Height="1" VerticalAlignment="Bottom" Margin="0,0,0,6" Background="{StaticResource Accent}" Visibility="Hidden"/>
+                        <Border x:Name="Ring" Margin="-4,0" BorderBrush="{StaticResource Focus}" BorderThickness="{StaticResource Line.Focus}"
+                                CornerRadius="{StaticResource Radius.Small}" Visibility="Hidden"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Line" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource Accent.Pressed}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Ring" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Health's count next to its tab: the state's colour, the number in the data face -->
+    <Style x:Key="CountBadgeStyle" TargetType="Border">
+        <Setter Property="MinWidth" Value="20"/>
+        <Setter Property="Height" Value="20"/>
+        <Setter Property="Padding" Value="{StaticResource Pad.Badge}"/>
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Medium}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Background" Value="{StaticResource Warning}"/>
+    </Style>
+
+    <Style x:Key="CountBadgeTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Data}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Caption}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Bg.Window}"/>
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- The short message after an action: a raised panel with a thin border, the border in the problem colour for an
+         error -->
+    <Style x:Key="ToastStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Bg.Raised}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Border}"/>
+        <Setter Property="BorderThickness" Value="{StaticResource Line.Thin}"/>
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Medium}"/>
+        <Setter Property="Padding" Value="{StaticResource Pad.Toast}"/>
+    </Style>
+
+    <Style x:Key="ToastTextStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+
+    <!-- The one-time notice's Arabic paragraph: right to left, drawn by Segoe UI through the text font's fallback -->
+    <Style x:Key="ToastArabicTextStyle" TargetType="TextBlock" BasedOn="{StaticResource ToastTextStyle}">
+        <Setter Property="FlowDirection" Value="RightToLeft"/>
+        <Setter Property="Margin" Value="0,0,0,8"/>
+    </Style>
+
+    <!-- The program's name at the top left -->
+    <Style x:Key="BrandStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Heading}"/>
+        <Setter Property="FontStretch" Value="{StaticResource Font.Heading.Stretch}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Title}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+</ResourceDictionary>

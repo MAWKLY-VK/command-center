@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CommandCenter.Core.Settings
 {
@@ -18,6 +19,41 @@ namespace CommandCenter.Core.Settings
 
         // Hotkey letters drawn on the unit and building pictures in the game (IconLettersService)
         public bool IconLetters { get; set; }
+
+        // Home's picture: Changing (the next one at each start) or the one Settings pins (HomeArt)
+        [JsonIgnore]
+        public HomeImage HomeImage
+        {
+            get => Named<HomeImage>(HomeImageName) ?? HomeImage.Changing;
+            set => HomeImageName = value.ToString();
+        }
+
+        // The picture Home showed at the last start, which the next start follows; none before the first
+        [JsonIgnore]
+        public HomeImage? LastHomeImage
+        {
+            get => Named<HomeImage>(LastHomeImageName);
+            set => LastHomeImageName = value?.ToString();
+        }
+
+        // Animation effects: following Windows' "Show animations" unless the player sets them (Appearance)
+        [JsonIgnore]
+        public AnimationSetting Animations
+        {
+            get => Named<AnimationSetting>(AnimationsName) ?? AnimationSetting.FollowWindows;
+            set => AnimationsName = value.ToString();
+        }
+
+        // These are stored by name, so a name this version does not know reads as unset instead of losing every setting
+        public string? HomeImageName { get; set; }
+        public string? LastHomeImageName { get; set; }
+        public string? AnimationsName { get; set; }
+
+        // The game's own interface sounds on clicks and launch (ticket 14), off until the player turns them on
+        public bool InterfaceSounds { get; set; }
+
+        private static T? Named<T>(string? name) where T : struct, Enum =>
+            name != null && Enum.GetNames<T>().Contains(name) ? Enum.Parse<T>(name) : null;
 
         private static string FilePath => Path.Combine(GamePaths.AppData, "settings.json");
         private static AppSettings? _current;

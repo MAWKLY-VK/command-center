@@ -33,7 +33,8 @@ dotnet build tools/MapLibraryBuilder/MapLibraryBuilder.csproj -c Release
   services or the imaging code.
 - Before/after screenshots: `tools\Capture-Pages.ps1 -Exe <exe> -Game <game copy> -Out <new folder>`, then
   `dotnet run --file tools/Compare-Captures.cs -- <before> <after>` (exit 0: no unexplained difference). Areas that
-  change between runs are listed in `tools/capture-ignore.txt`.
+  change between runs are listed in `tools/capture-ignore.txt`. For wpf-ui-review's blur test,
+  `dotnet run --file tools/Blur-Captures.cs -- <captures>` writes blurred copies to `<captures>\blur`.
 - Release build: `tools\publish.ps1 -Notes "..."` writes `publish\CommandCenter.exe` (single-file, win-x86) and
   `publish\update.json`. Run it only when the user asks for a release.
 - Signing key (ADR 0007): created on 2026-11-05; the public key and its SHA-256 are in ADR 0007. Never read the
@@ -54,30 +55,49 @@ Always run against an isolated copy of the game and a temporary data folder. Nev
 CommandCenter.exe --game <copy of Desktop\Test_Generals> --user-data <temp folder>
 ```
 
-- `--capture <folder> --size 1100x640 --pages home,tools:maps,options:game` saves page screenshots without showing
-  the window. `tools:health:questions` opens a tab, and `options:network:run` runs the network diagnostics first.
+- `--capture <folder> --size 1100x640 --pages home,maps:installed,settings:game` saves page screenshots without
+  showing the window. `health:history` opens a tab, `settings:network:run` runs the network diagnostics first, and
+  `:end` shows the end of a section taller than the window (`settings:network:end`, `health:end`). `home:fix`,
+  `home:update`, `home:locate` or `home:play` shows PLAY in that state, from the real decision with made-up inputs.
+  `update`, `update:progress` or `update:error` shows the update screen in that state for a made-up next version; it
+  covers and blocks the window, so it comes last.
 - `--samples` adds fake health problems so their layouts can be reviewed. Their fixes do nothing.
 - `--update-url <url|file>` and `--go-profile <file>` read the update manifest and GO profile from a local file.
 - Also available: `--library-folder` and `--map-library` (map library source) and `--drawn-backdrop`. An old `--lang` is
   ignored.
 
-## Architecture (phase 1 layout)
+## Architecture
 
 - `src/CommandCenter.Core` holds the services, with no WPF and no desktop framework, one folder and namespace per area:
   `Content`, `Diagnostics`, `Game`, `Imaging`, `Integrity`, `Net`, `Safety`, `Settings`, `Text` and `Updates`. The
   projects import these namespaces globally. Core's internals are visible to the App and the tests.
 - `src/CommandCenter.App` is the WPF program. Its assembly name stays `CommandCenter`, so the file stays
   `CommandCenter.exe`; `<Version>` in its project file is the program's version. `AppServices` applies the run options
-  at startup. `Imaging/` turns decoded pixels into bitmaps and draws on them, and `Input/` maps keys.
+  at startup and holds the service instances. `Imaging/` turns decoded pixels into bitmaps and draws on them, `Input/`
+  maps keys, `ViewModels/` holds the view models and `Theme/` the design tokens and control styles.
 - `tests/CommandCenter.Tests` (xUnit) references both. `tools/MapLibraryBuilder` builds the online map catalog and is
   not in the solution.
-- There is no MVVM yet. Pages are large code-behind files. `MainWindow` hosts a Frame with Home (`LauncherPage`),
-  Tools and Options. It also provides `Toast(message, undo)` and `CaptureAsync` for `--capture`. The Tools page hosts
-  sections that implement `IToolSection` (Health, Maps, Replays, Hotkeys, Add-ons). `ReadyAsync` and `ShowPart` exist
-  for screenshots.
+- Navigation (P5-D1): `MainWindow` has the tabs Home (`LauncherPage`), Replays, Maps, Hotkeys and Health (sections of
+  `ToolsPage` that implement `IToolSection`), with Settings (`OptionsPage`; Add-ons is one of its sections) and Help
+  (`HelpPage`) at the top right. It draws the game's art behind every page (`HomeArt`: the picture on Home, a blurred
+  copy elsewhere, a drawn background without the art), holds the update screen (`UpdateOverlay`, which hides the page
+  under it) and implements `IShell`: toasts, confirmations, navigation, the folder picker, the update check, stepping
+  aside while the game runs. `CaptureAsync`, `ReadyAsync` and `ShowPart` exist for `--capture`.
+- MVVM (CommunityToolkit.Mvvm, ADR 0004): Home (`HomeViewModel`, `PlayFlow`, `LastMatchViewModel`), Settings
+  (`SettingsViewModel` with a model per section) and Health (`HealthViewModel`) are views of models that reach the
+  services through interfaces (`IGameFolder`, `IAppearance`, `IAddons`, `IHealthChecks`, `IServerStatus`,
+  `IGameLauncher`, `IShell`), so the tests drive them without windows. Help binds the common questions
+  (`CommonQuestions`) directly. Replays, Maps and Hotkeys stay code-behind until phase 6.
 - `AppState` holds data that several pages share (server stats, health results, replays, hotkeys). It loads them in the
-  background and raises change events that pages subscribe to.
-- The services are static classes until their pages move to MVVM (phases 5 and 6):
+  background and raises change events that pages subscribe to; health and the server numbers forward to
+  `AppServices.Health` and `AppServices.Server`.
+- Phase 5's pages reach their services as instances in `AppServices` (`GameFolder`, `Appearance`, `Addons`, `Health`,
+  `Fixes`, `History`, `Server`, `Launcher`, `Sounds`). `PlayDecision` (Core/Game) decides PLAY's state (P5-D2),
+  `MatchGuard` remembers the game's files after the last online match without a mismatch (P5-D3), `HealthReport`,
+  `FixRunner` and `HealthChecks` (Core/Integrity) and `FixHistory` (Core/Safety) make up Health, and `GameSounds` and
+  `WaveFiles` (Core/Game) read the game's interface sounds, which the App plays through winmm's PlaySound from copies
+  that never move in memory.
+- The other services are static classes until their pages move to MVVM in phase 6:
   - `GamePaths` decides the game folder in this order: `--game`, the chosen folder, the working or program folder, then
     the Steam libraries. A folder counts only if it has `WindowZH.big` and `INIZH.big`; otherwise `Game` stays empty.
     It also decides the user data folder (`--user-data`, or `Documents\Command and Conquer Generals Zero Hour Data`).
@@ -115,8 +135,14 @@ CommandCenter.exe --game <copy of Desktop\Test_Generals> --user-data <temp folde
   - The program is in English only; texts are written in English where they are shown. `English` (Core `Text/`) words
     counts and lists. `ArabicGameTextRemoval` takes 0.4.0's Arabic game text out once, at the first start (ADR 0005),
     with a notice in Arabic and English (the only Arabic left) and Undo; Health warns while any is left.
-- Colours are hard-coded in `Pages/Views.cs`, `Theme/GoStyles.xaml` and the code-behind. The token design system
-  replaces them in phase 5.
+- Theme (plan 3-c): `Theme/Tokens.xaml` holds every colour (a `Color.*` and a brush of the same name), the fonts
+  (Barlow, Barlow Condensed and JetBrains Mono, embedded from `Theme/Fonts`), the type sizes, the spacing and the art
+  layers; `Theme/Controls.xaml` holds the control styles built on them. `ThemeTests` checks the contrast pairs, the
+  type scale, the 4 px grid, that each font resolves inside the program, and that no colour is written outside
+  `Theme/` except in the phase 6 files listed in `NotYetMoved`.
+- `Theme/GoStyles.xaml` keeps the old styles the phase 6 pages still use. It also sets every TextBlock without a style
+  to white Segoe UI, and that reaches the text a button makes from a plain string: give button labels a TextBlock with
+  `ButtonLabelStyle` (or another style) so they take the button's colours and font.
 
 ## Rules
 
@@ -165,8 +191,8 @@ Each phase gets its own branch. A user-approved PR is the only way into `main`.
   start on their own (`disable-model-invocation`). Read their `SKILL.md` under `.claude/skills/` and follow it.
 - `setup-matt-pocock-skills` ran on 2026-11-05 (see Agent skills below). The repository is public, so ask the user
   before anything is published to GitHub issues.
-- `wpf-ui-review` does not exist yet. It is written before phase 5, from the plan's 43-item checklist plus the blur
-  and mirror tests.
+- `wpf-ui-review` (`.claude/skills/wpf-ui-review/`) holds the plan's 43-item checklist plus the blur and mirror tests.
+  A fresh agent runs it on the captures of the pages a change touched, and it only reports.
 - Templates for test plans and UX specs are in `docs/templates/`. Third-party skills are pinned in
   `.claude/skills/SOURCES.md`.
 

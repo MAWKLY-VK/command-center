@@ -48,6 +48,7 @@ namespace CommandCenter.Controls
             ["save"] = "M5,3 H16 L21,8 V19 A2,2 0 0 1 19,21 H5 A2,2 0 0 1 3,19 V5 A2,2 0 0 1 5,3 Z M17,21 V13 H7 V21 M7,3 V8 H15",
             ["upload"] = "M21,15 V19 A2,2 0 0 1 19,21 H5 A2,2 0 0 1 3,19 V15 M17,8 L12,3 L7,8 M12,3 V15",
             ["x-circle"] = "M12,2 A10,10 0 1 1 11.99,2 Z M15,9 L9,15 M9,9 L15,15",
+            ["help-circle"] = "M12,2 A10,10 0 1 1 11.99,2 Z M9.1,9 A3,3 0 0 1 14.9,10 C14.9,12 12,13 12,13 V13.5 M12,17 H12.01",
             ["globe"] = "M12,2 A10,10 0 1 1 11.99,2 Z M2,12 H22 M12,2 C14.5,4.7 16,8.2 16,12 C16,15.8 14.5,19.3 12,22 C9.5,19.3 8,15.8 8,12 C8,8.2 9.5,4.7 12,2 Z",
             ["grid"] ="M3,3 H10 V10 H3 Z M14,3 H21 V10 H14 Z M14,14 H21 V21 H14 Z M3,14 H10 V21 H3 Z",
         };
@@ -62,12 +63,20 @@ namespace CommandCenter.Controls
         public static readonly DependencyProperty KindProperty =
             DependencyProperty.Register(nameof(Kind), typeof(string), typeof(Icon), new PropertyMetadata("", (d, _) => ((Icon)d).Build()));
 
+        // The text colour around the icon; with none, the theme's primary text colour
         public static readonly DependencyProperty ForegroundProperty =
-            TextElement.ForegroundProperty.AddOwner(typeof(Icon), new FrameworkPropertyMetadata(Brushes.White,
+            TextElement.ForegroundProperty.AddOwner(typeof(Icon), new FrameworkPropertyMetadata(null,
                 FrameworkPropertyMetadataOptions.Inherits, (d, _) => ((Icon)d).Build()));
 
+        // In grid units; unset (NaN), the theme's Icon.Stroke, which matches the weight of the text beside the icon
         public static readonly DependencyProperty StrokeThicknessProperty =
-            DependencyProperty.Register(nameof(StrokeThickness), typeof(double), typeof(Icon), new PropertyMetadata(1.8, (d, _) => ((Icon)d).Build()));
+            DependencyProperty.Register(nameof(StrokeThickness), typeof(double), typeof(Icon), new PropertyMetadata(double.NaN, (d, _) => ((Icon)d).Build()));
+
+        // Used only where the theme is not loaded (tests, the designer)
+        private const double DefaultStroke = 1.8;
+
+        // Mitre joins on sharp corners are cut back at this length so they never spike
+        private const double MiterLimit = 4;
 
         public string Kind
         {
@@ -93,20 +102,27 @@ namespace CommandCenter.Controls
             SnapsToDevicePixels = true;
         }
 
+        // One family on a 24 grid with a live area of 20 (plan 3-c): square ends and mitre joins, so a dot is a small
+        // square. Filled shapes mark what is selected or active.
         private void Build()
         {
             var canvas = new Canvas { Width = 24, Height = 24 };
-            if (Filled.TryGetValue(Kind, out var fill))
-                canvas.Children.Add(new Path { Data = Geometry.Parse(fill), Fill = Foreground, Stroke = Foreground, StrokeThickness = 1.5, StrokeLineJoin = PenLineJoin.Round });
-            else if (Shapes.TryGetValue(Kind, out var shape))
+            // A bound name can be null (an item with no action); that draws nothing
+            string kind = Kind ?? "";
+            var brush = Foreground ?? TryFindResource("Text.Primary") as Brush;
+            double thickness = !double.IsNaN(StrokeThickness) ? StrokeThickness : TryFindResource("Icon.Stroke") is double themed ? themed : DefaultStroke;
+            if (Filled.TryGetValue(kind, out var fill))
+                canvas.Children.Add(new Path { Data = Geometry.Parse(fill), Fill = brush, Stroke = brush, StrokeThickness = thickness, StrokeLineJoin = PenLineJoin.Miter, StrokeMiterLimit = MiterLimit });
+            else if (Shapes.TryGetValue(kind, out var shape))
                 canvas.Children.Add(new Path
                 {
                     Data = Geometry.Parse(shape),
-                    Stroke = Foreground,
-                    StrokeThickness = StrokeThickness,
-                    StrokeStartLineCap = PenLineCap.Round,
-                    StrokeEndLineCap = PenLineCap.Round,
-                    StrokeLineJoin = PenLineJoin.Round,
+                    Stroke = brush,
+                    StrokeThickness = thickness,
+                    StrokeStartLineCap = PenLineCap.Square,
+                    StrokeEndLineCap = PenLineCap.Square,
+                    StrokeLineJoin = PenLineJoin.Miter,
+                    StrokeMiterLimit = MiterLimit,
                 });
             Child = canvas;
         }

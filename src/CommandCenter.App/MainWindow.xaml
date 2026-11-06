@@ -11,8 +11,8 @@
     WindowStyle="None"
     ResizeMode="CanResize"
     WindowStartupLocation="CenterScreen"
-    Background="#050814"
-    FontFamily="Segoe UI"
+    Background="{StaticResource Bg.Window}"
+    FontFamily="{StaticResource Font.Text}"
     UseLayoutRounding="True">
 
     <shell:WindowChrome.WindowChrome>
@@ -23,181 +23,111 @@
             UseAeroCaptionButtons="False"/>
     </shell:WindowChrome.WindowChrome>
 
-    <Window.Resources>
-        <Style x:Key="FrameTab" TargetType="RadioButton" BasedOn="{StaticResource TopTabStyle}">
-            <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
-            <Setter Property="GroupName" Value="MainTabs"/>
-        </Style>
-    </Window.Resources>
-
     <Grid x:Name="Root" ClipToBounds="True">
 
-        <!-- Backdrop: the game's art from Steam, or a drawn background; dimmed and blurred behind the tool pages -->
-        <Grid x:Name="Backdrop" IsHitTestVisible="False">
-            <Image x:Name="HeroArt" Stretch="UniformToFill" RenderTransformOrigin="0.5,0.42" RenderOptions.BitmapScalingMode="HighQuality">
-                <Image.RenderTransform>
-                    <ScaleTransform x:Name="HeroScale" ScaleX="1.03" ScaleY="1.03"/>
-                </Image.RenderTransform>
-                <Image.Effect>
-                    <BlurEffect x:Name="HeroBlur" Radius="0" RenderingBias="Performance"/>
-                </Image.Effect>
-            </Image>
+        <!-- The art (plan 3-c): the game's picture on Home, tinted once, and its blurred, darkened copy behind the other
+             pages. A copy without the art gets the drawn background. Nothing here is blurred live. -->
+        <Grid x:Name="Backdrop" IsHitTestVisible="False" Background="{StaticResource Bg.Window}">
             <Grid x:Name="DrawnBackdrop" Visibility="Collapsed">
-                <Rectangle Fill="#070B1C"/>
-                <Rectangle>
-                    <Rectangle.Fill>
-                        <RadialGradientBrush Center="0.74,0.48" GradientOrigin="0.74,0.48" RadiusX="0.5" RadiusY="0.85">
-                            <GradientStop Color="#55B3121B" Offset="0"/>
-                            <GradientStop Color="#00B3121B" Offset="1"/>
-                        </RadialGradientBrush>
-                    </Rectangle.Fill>
-                </Rectangle>
-                <Rectangle>
-                    <Rectangle.Fill>
-                        <RadialGradientBrush Center="0.1,1" GradientOrigin="0.1,1" RadiusX="0.6" RadiusY="0.7">
-                            <GradientStop Color="#1FFECD03" Offset="0"/>
-                            <GradientStop Color="#00FECD03" Offset="1"/>
-                        </RadialGradientBrush>
-                    </Rectangle.Fill>
-                </Rectangle>
-                <Image Source="/Assets/logo.png" Width="520" Height="520" HorizontalAlignment="Right" VerticalAlignment="Center"
-                       Margin="0,40,60,0" Opacity="0.14"/>
+                <Rectangle Fill="{StaticResource Art.DrawnLight}"/>
+                <Rectangle Fill="{StaticResource Art.DrawnGlow}"/>
+                <Image Source="/Assets/logo.png" Width="440" Height="440" HorizontalAlignment="Right" VerticalAlignment="Top"
+                       Margin="0,104,96,0" Opacity="0.14"/>
             </Grid>
-            <!-- Text side and bottom darkened so words stay readable over the art -->
-            <Rectangle>
-                <Rectangle.Fill>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                        <GradientStop Color="#F0050814" Offset="0"/>
-                        <GradientStop Color="#99050814" Offset="0.38"/>
-                        <GradientStop Color="#2E050814" Offset="0.66"/>
-                        <GradientStop Color="#9E050814" Offset="1"/>
-                    </LinearGradientBrush>
-                </Rectangle.Fill>
-            </Rectangle>
-            <Rectangle>
-                <Rectangle.Fill>
-                    <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
-                        <GradientStop Color="#050814" Offset="0.02"/>
-                        <GradientStop Color="#00050814" Offset="0.52"/>
-                    </LinearGradientBrush>
-                </Rectangle.Fill>
-            </Rectangle>
-            <Rectangle x:Name="ToolScrim" Fill="#E6050814" Opacity="0"/>
+            <Image x:Name="PagesArt" Stretch="UniformToFill" Opacity="0" HorizontalAlignment="Center" VerticalAlignment="Center"
+                   RenderOptions.BitmapScalingMode="HighQuality"/>
+            <Image x:Name="HomeArtImage" Stretch="UniformToFill" Opacity="0" HorizontalAlignment="Center" VerticalAlignment="Center"
+                   RenderTransformOrigin="0.5,0.5"
+                   RenderOptions.BitmapScalingMode="HighQuality">
+                <Image.RenderTransform>
+                    <ScaleTransform/>
+                </Image.RenderTransform>
+            </Image>
+            <!-- Home: the text side and the bottom stay readable over the art or the drawn background -->
+            <Grid x:Name="HomeScrims" Opacity="0">
+                <Rectangle Fill="{StaticResource Art.ScrimLeft}"/>
+                <Rectangle Fill="{StaticResource Art.ScrimBottom}"/>
+            </Grid>
+            <!-- The other pages over the drawn background, dimmed the way the art's copy is darkened -->
+            <Rectangle x:Name="PagesScrim" Fill="{StaticResource Bg.PanelOverArt}" Opacity="0"/>
+            <Rectangle Fill="{StaticResource Art.Vignette}"/>
+            <Rectangle x:Name="Grain" Opacity="{StaticResource Art.Grain}"/>
         </Grid>
 
         <!-- Pages -->
         <Frame x:Name="ContentFrame" Margin="0,64,0,0" Background="Transparent" NavigationUIVisibility="Hidden"
                Navigated="ContentFrame_Navigated" Focusable="False"/>
 
-        <!-- Top bar: brand, sections, players online, options and the window buttons -->
-        <Grid x:Name="TopBar" Height="64" VerticalAlignment="Top">
-            <Grid.Background>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                    <GradientStop Color="#D1050814" Offset="0"/>
-                    <GradientStop Color="#00050814" Offset="1"/>
-                </LinearGradientBrush>
-            </Grid.Background>
-            <DockPanel Margin="20,0,8,0" LastChildFill="False">
-                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
-                    <Image Source="/Assets/logo.png" Width="38" Height="38" RenderOptions.BitmapScalingMode="HighQuality"/>
-                    <TextBlock VerticalAlignment="Center" Margin="10,0,0,0" FontFamily="Bahnschrift"
-                               FontWeight="Bold" FontStretch="Condensed" FontSize="18">
-                        <Run Text="COMMAND "/><Run Text="CENTER" Foreground="#FECD03"/>
-                    </TextBlock>
+        <!-- Top bar (P5-D1): the name, the five tabs, then Settings and Help and the window buttons -->
+        <Grid x:Name="TopBar" Height="{StaticResource Bar.Height}" VerticalAlignment="Top" Background="{StaticResource Art.ScrimTop}">
+            <DockPanel Margin="{StaticResource Pad.Bar}" LastChildFill="False">
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,24,0">
+                    <Image Source="/Assets/logo.png" Width="32" Height="32" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <TextBlock Text="Command Center" Style="{StaticResource BrandStyle}" Margin="10,0,0,0"/>
                 </StackPanel>
 
-                <StackPanel x:Name="Tabs" DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
-                    <RadioButton x:Name="TabHome" Style="{StaticResource FrameTab}" Checked="Tab_Checked" Tag="home">
-                        <StackPanel Orientation="Horizontal">
-                            <c:Icon Kind="home" Width="17" Height="17" Margin="0,0,7,0"/>
-                            <TextBlock Text="HOME" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
-                        </StackPanel>
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+                    <RadioButton x:Name="TabHome" Style="{StaticResource FrameTabStyle}" Checked="Tab_Checked" Tag="home">
+                        <TextBlock Text="Home" Style="{StaticResource FrameTabLabelStyle}"/>
                     </RadioButton>
-                    <RadioButton x:Name="TabHealth" Style="{StaticResource FrameTab}" Checked="Tab_Checked" Tag="health">
+                    <RadioButton x:Name="TabReplays" Style="{StaticResource FrameTabStyle}" Checked="Tab_Checked" Tag="replays">
+                        <TextBlock Text="Replays" Style="{StaticResource FrameTabLabelStyle}"/>
+                    </RadioButton>
+                    <RadioButton x:Name="TabMaps" Style="{StaticResource FrameTabStyle}" Checked="Tab_Checked" Tag="maps">
+                        <TextBlock Text="Maps" Style="{StaticResource FrameTabLabelStyle}"/>
+                    </RadioButton>
+                    <RadioButton x:Name="TabHotkeys" Style="{StaticResource FrameTabStyle}" Checked="Tab_Checked" Tag="hotkeys">
+                        <TextBlock Text="Hotkeys" Style="{StaticResource FrameTabLabelStyle}"/>
+                    </RadioButton>
+                    <RadioButton x:Name="TabHealth" Style="{StaticResource FrameTabStyle}" Checked="Tab_Checked" Tag="health">
                         <StackPanel Orientation="Horizontal">
-                            <c:Icon Kind="shield" Width="17" Height="17" Margin="0,0,7,0"/>
-                            <TextBlock Text="HEALTH" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
-                            <Border x:Name="HealthBadge" MinWidth="18" Height="18" CornerRadius="9" Padding="5,0" Margin="7,0,0,0" Background="#FFB020"
-                                    Visibility="Collapsed" VerticalAlignment="Center">
-                                <TextBlock x:Name="HealthBadgeText" Foreground="#1A1300" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"/>
+                            <TextBlock Text="Health" Style="{StaticResource FrameTabLabelStyle}"/>
+                            <Border x:Name="HealthBadge" Style="{StaticResource CountBadgeStyle}" Margin="8,0,0,0" Visibility="Collapsed">
+                                <TextBlock x:Name="HealthBadgeText" Style="{StaticResource CountBadgeTextStyle}"/>
                             </Border>
                         </StackPanel>
                     </RadioButton>
-                    <RadioButton x:Name="TabMaps" Style="{StaticResource FrameTab}" Checked="Tab_Checked" Tag="maps">
-                        <StackPanel Orientation="Horizontal">
-                            <c:Icon Kind="map" Width="17" Height="17" Margin="0,0,7,0"/>
-                            <TextBlock Text="MAPS" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </RadioButton>
-                    <RadioButton x:Name="TabReplays" Style="{StaticResource FrameTab}" Checked="Tab_Checked" Tag="replays">
-                        <StackPanel Orientation="Horizontal">
-                            <c:Icon Kind="film" Width="17" Height="17" Margin="0,0,7,0"/>
-                            <TextBlock Text="REPLAYS" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </RadioButton>
-                    <RadioButton x:Name="TabHotkeys" Style="{StaticResource FrameTab}" Checked="Tab_Checked" Tag="hotkeys">
-                        <StackPanel Orientation="Horizontal">
-                            <c:Icon Kind="keyboard" Width="17" Height="17" Margin="0,0,7,0"/>
-                            <TextBlock Text="HOTKEYS" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </RadioButton>
-                    <RadioButton x:Name="TabAddons" Style="{StaticResource FrameTab}" Checked="Tab_Checked" Tag="addons">
-                        <StackPanel Orientation="Horizontal">
-                            <c:Icon Kind="layers" Width="17" Height="17" Margin="0,0,7,0"/>
-                            <TextBlock Text="ADD-ONS" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </RadioButton>
                 </StackPanel>
 
-                <Button DockPanel.Dock="Right" Style="{StaticResource ChromeButtonStyle}" shell:WindowChrome.IsHitTestVisibleInChrome="True"
-                        Click="Close_Click" ToolTip="Close" AutomationProperties.Name="Close">
-                    <c:Icon Kind="close" Width="15" Height="15"/>
+                <Button DockPanel.Dock="Right" Style="{StaticResource WindowButtonStyle}" Click="Close_Click" ToolTip="Close"
+                        AutomationProperties.Name="Close">
+                    <c:Icon Kind="close" Width="14" Height="14"/>
                 </Button>
-                <Button DockPanel.Dock="Right" Style="{StaticResource ChromeButtonStyle}" shell:WindowChrome.IsHitTestVisibleInChrome="True"
-                        Click="Minimize_Click" ToolTip="Minimize" AutomationProperties.Name="Minimize">
-                    <c:Icon Kind="minus" Width="15" Height="15"/>
+                <Button DockPanel.Dock="Right" Style="{StaticResource WindowButtonStyle}" Click="Minimize_Click" ToolTip="Minimize"
+                        AutomationProperties.Name="Minimize">
+                    <c:Icon Kind="minus" Width="14" Height="14"/>
                 </Button>
-                <Button x:Name="OptionsButton" DockPanel.Dock="Right" Style="{StaticResource IconButtonStyle}" Margin="0,0,6,0"
-                        shell:WindowChrome.IsHitTestVisibleInChrome="True" Click="Options_Click" ToolTip="OPTIONS"
-                        AutomationProperties.Name="OPTIONS">
-                    <c:Icon Kind="sliders" Width="17" Height="17"/>
-                </Button>
-                <Border x:Name="OnlinePill" DockPanel.Dock="Right" Style="{StaticResource ChipStyle}" Height="32" CornerRadius="16" Margin="0,0,10,0" ToolTip="online now"
-                        VerticalAlignment="Center" Visibility="Collapsed">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Grid Width="10" Height="10" Margin="0,0,8,0">
-                            <Ellipse x:Name="PulseRing" Fill="#52D273" RenderTransformOrigin="0.5,0.5">
-                                <Ellipse.RenderTransform>
-                                    <ScaleTransform/>
-                                </Ellipse.RenderTransform>
-                            </Ellipse>
-                            <Ellipse Width="8" Height="8" Fill="#52D273"/>
-                        </Grid>
-                        <TextBlock x:Name="OnlineCount" FontFamily="Bahnschrift" FontWeight="Bold" FontStretch="Condensed"
-                                   FontSize="16" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="OnlineLabel" Text="online" Foreground="#D5D9EA" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                <RadioButton x:Name="TabHelp" DockPanel.Dock="Right" Style="{StaticResource FrameTabStyle}" Checked="Tab_Checked"
+                             Tag="help" Margin="0,0,12,0">
+                    <StackPanel Orientation="Horizontal">
+                        <c:Icon Kind="info" Width="16" Height="16" Margin="0,0,8,0"/>
+                        <TextBlock Text="Help" Style="{StaticResource FrameTabLabelStyle}"/>
                     </StackPanel>
-                </Border>
+                </RadioButton>
+                <RadioButton x:Name="TabSettings" DockPanel.Dock="Right" Style="{StaticResource FrameTabStyle}" Checked="Tab_Checked"
+                             Tag="settings">
+                    <StackPanel Orientation="Horizontal">
+                        <c:Icon Kind="sliders" Width="16" Height="16" Margin="0,0,8,0"/>
+                        <TextBlock Text="Settings" Style="{StaticResource FrameTabLabelStyle}"/>
+                    </StackPanel>
+                </RadioButton>
             </DockPanel>
         </Grid>
 
         <!-- Short message after an action, with Undo when the action can be taken back -->
-        <Border x:Name="ToastBox" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,22"
-                Background="#F00E142C" BorderBrush="#737AB4FF" BorderThickness="1" CornerRadius="14" Padding="16,10" Visibility="Collapsed"
-                MaxWidth="680">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="30" ShadowDepth="10" Opacity="0.55" Color="Black"/>
-            </Border.Effect>
+        <Border x:Name="ToastBox" Style="{StaticResource ToastStyle}" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                Margin="0,0,0,24" MaxWidth="680" Visibility="Collapsed">
             <StackPanel Orientation="Horizontal">
+                <c:Icon x:Name="ToastIcon" Kind="alert" Width="18" Height="18" Margin="0,0,12,0" VerticalAlignment="Center"
+                        Foreground="{StaticResource Problem}" Visibility="Collapsed"/>
                 <StackPanel VerticalAlignment="Center" MaxWidth="480">
                     <!-- Only the one-time English-only notice has an Arabic paragraph -->
-                    <TextBlock x:Name="ToastArabic" Style="{StaticResource ToastArabicStyle}" Visibility="Collapsed"/>
-                    <TextBlock x:Name="ToastText" Foreground="White" FontSize="13" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="ToastArabic" Style="{StaticResource ToastArabicTextStyle}" Visibility="Collapsed"/>
+                    <TextBlock x:Name="ToastText" Style="{StaticResource ToastTextStyle}"/>
                 </StackPanel>
-                <Button x:Name="ToastAction" Style="{StaticResource SmallButtonStyle}" Margin="14,0,0,0" Content="UNDO"
+                <Button x:Name="ToastAction" Style="{StaticResource QuietButtonStyle}" Margin="16,0,0,0" Content="UNDO"
                         Click="ToastAction_Click" Visibility="Collapsed"/>
-                <Button Style="{StaticResource ChromeButtonStyle}" Width="28" Height="28" Margin="6,0,0,0" Click="ToastClose_Click"
+                <Button Style="{StaticResource WindowButtonStyle}" Width="32" Height="32" Margin="8,0,0,0" Click="ToastClose_Click"
                         AutomationProperties.Name="Close">
                     <c:Icon Kind="close" Width="13" Height="13"/>
                 </Button>

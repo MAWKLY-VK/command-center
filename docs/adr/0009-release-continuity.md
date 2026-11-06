@@ -11,9 +11,16 @@ Each version reads and migrates the data of the versions before it.
 
 Every release goes out first as a pre-release. It is tested with `--update-url`, updating from 0.4.0 and from the
 previous release. The replaced program is kept as `.old.exe` until the new one has started successfully, so it can
-be rolled back. 0.5.0 carries the smallest change that makes the next updates safe.
+be rolled back. ~~0.5.0 carries the smallest change that makes the next updates safe.~~ (Replaced on 2026-11-06, see
+Release order.)
 
 Decided with the user on 2026-11-04 (plan sections 6 and 10).
+
+## Release order
+
+Changed with the user on 2026-11-06: no version is released before the complete one. The design phases (5 and 6) come
+before the installer and the release (phase 4), so the first release after 0.4.0 carries the new design together with
+all of phase 3's protections, and reaches every player in one forced update.
 
 ## Rollback
 

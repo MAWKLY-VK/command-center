@@ -19,27 +19,13 @@ namespace CommandCenter.Pages
             return brush;
         }
 
-        // Status colours used across the Tools pages (same as the Options page diagnostics)
+        // Status colours used across the pages that have not moved to the theme yet (as Settings' diagnostics)
         public static readonly SolidColorBrush Passed = Brush("#52D273");
         public static readonly SolidColorBrush Warning = Brush("#FFB020");
         public static readonly SolidColorBrush Problem = Brush("#FF6B6B");
         public static readonly SolidColorBrush Hint = Brush("#A7AECB");
         public static readonly SolidColorBrush Blue = Brush("#2980FF");
         public static readonly SolidColorBrush Gold = Brush("#FECD03");
-
-        public static SolidColorBrush StatusBrush(HealthStatus status) => status switch
-        {
-            HealthStatus.Problem => Problem,
-            HealthStatus.Warning => Warning,
-            _ => Passed,
-        };
-
-        public static string StatusWord(HealthStatus status) => status switch
-        {
-            HealthStatus.Problem => "Problem",
-            HealthStatus.Warning => "Warning",
-            _ => "Passed",
-        };
 
         public static Brush PlayerBrush(int color) =>
             color >= 0 && color < ReplayService.Colors.Length ? Brush(ReplayService.Colors[color]) : Hint;
@@ -60,9 +46,12 @@ namespace CommandCenter.Pages
             return image;
         }
 
-        public static string Ago(DateTime when)
+        public static string Ago(DateTime when) => Ago(when, DateTime.Now);
+
+        // As above, against a given time, so view models can be tested with their own clock
+        public static string Ago(DateTime when, DateTime now)
         {
-            var span = DateTime.Now - when;
+            var span = now - when;
             if (span.TotalMinutes < 1) return "just now";
             if (span.TotalMinutes < 60) return string.Format("{0} min ago", (int)span.TotalMinutes);
             if (span.TotalHours < 24) return string.Format("{0} h ago", (int)span.TotalHours);
@@ -99,22 +88,17 @@ namespace CommandCenter.Pages
             catch { }
         }
 
-        // The player picks the Zero Hour folder; it is remembered and the checks run again. Nothing in it is changed.
-        public static bool ChooseGameFolder(Window? owner)
+        // The player picks the Zero Hour folder; it is remembered, and whatever depends on the game hears of it
+        // (AppServices). Nothing in it is changed.
+        public static bool ChooseGameFolder()
         {
-            var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Choose the Zero Hour folder" };
-            if (GamePaths.ZeroHourFound)
-                dialog.InitialDirectory = GamePaths.Game;
-            if (dialog.ShowDialog(owner) != true)
+            if (Main.ChooseFolder("Choose the Zero Hour folder", GamePaths.ZeroHourFound ? GamePaths.Game : null) is not { } folder)
                 return false;
-            if (!GamePaths.UseGameFolder(dialog.FolderName))
+            if (!AppServices.GameFolder.Choose(folder))
             {
-                MessageBox.Show("That folder does not hold Zero Hour. Choose the folder with WindowZH.big and INIZH.big in it.", "Command Center",
-                    MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK);
+                Main.Warn("That folder does not hold Zero Hour. Choose the folder with WindowZH.big and INIZH.big in it.");
                 return false;
             }
-            AppState.ForgetHotkeys();
-            _ = AppState.RefreshHealthAsync();
             return true;
         }
 
@@ -154,35 +138,6 @@ namespace CommandCenter.Pages
             {
                 Main.Toast(string.Format("Could not copy: {0}", ex.Message), isError: true);
             }
-        }
-
-        // Runs a health fix, then offers Undo on the change it made
-        public static void ApplyFix(HealthResult result)
-        {
-            if (result.Id.StartsWith("sample:"))
-            {
-                Main.Toast("This is a sample problem; nothing was changed.");
-                return;
-            }
-            int before = BackupService.Load().Count;
-            try
-            {
-                OperationLog.Record("fix", result.Id, result.Title, result.Fix!);
-            }
-            catch (Exception ex)
-            {
-                Main.Toast($"{result.Title}: {ex.Message}", isError: true);
-                return;
-            }
-            var made = BackupService.Load().Skip(before).ToList();
-            Main.Toast(string.Format("Fixed: {0}", result.Title), made.Count == 0 ? null : () =>
-            {
-                foreach (var entry in Enumerable.Reverse(made))
-                    BackupService.Undo(entry);
-                _ = AppState.RefreshHealthAsync();
-                Main.Toast("Change undone");
-            });
-            _ = AppState.RefreshHealthAsync();
         }
     }
 }

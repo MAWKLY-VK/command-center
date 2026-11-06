@@ -1,159 +1,118 @@
 <UserControl x:Class="CommandCenter.Pages.Tools.AddonsSection"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <UserControl.Resources>
-        <!-- One control bar to choose: flat box, blue when chosen like the sidebar tabs -->
-        <Style x:Key="BarChoiceStyle" TargetType="RadioButton">
-            <Setter Property="GroupName" Value="ControlBar"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="Card" Background="#B30A0E20" BorderBrush="#1AFFFFFF" BorderThickness="1" CornerRadius="14" Padding="16,14,16,14">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid Width="14" Height="14" VerticalAlignment="Top" Margin="0,2,10,0">
-                                    <Ellipse x:Name="Ring" Stroke="#8088A8" StrokeThickness="1.5"/>
-                                    <Ellipse x:Name="Mark" Width="7" Height="7" Fill="#2980FF" Visibility="Collapsed"/>
-                                </Grid>
-                                <ContentPresenter Grid.Column="1"/>
-                            </Grid>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Card" Property="BorderBrush" Value="#40FFFFFF"/>
-                            </Trigger>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Card" Property="BorderBrush" Value="#2980FF"/>
-                                <Setter TargetName="Card" Property="Background" Value="#38224A8C"/>
-                                <Setter TargetName="Ring" Property="Stroke" Value="#2980FF"/>
-                                <Setter TargetName="Mark" Property="Visibility" Value="Visible"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:CommandCenter.Controls"
+             FontFamily="{StaticResource Font.Text}">
 
-        <Style x:Key="ChoiceTitle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="White"/>
-        </Style>
-        <Style x:Key="ChoiceText" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="11.5"/>
-            <Setter Property="Foreground" Value="#A7AECB"/>
-            <Setter Property="TextWrapping" Value="Wrap"/>
-            <Setter Property="Margin" Value="0,3,0,0"/>
-        </Style>
-        <Style x:Key="InstalledMark" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="10"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="Foreground" Value="#7BE39A"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="8,0,0,0"/>
-            <Setter Property="Visibility" Value="Collapsed"/>
-        </Style>
-    </UserControl.Resources>
+    <!-- Add-ons in Settings (ticket 08): the control bar, bound to AddonsViewModel; the before/after picture is the view's
+         own -->
+    <StackPanel x:Name="BarsPanel" SizeChanged="BarsPanel_SizeChanged">
+        <TextBlock Text="Add-ons" Style="{StaticResource PageTitleStyle}"/>
+        <TextBlock Text="The control bar: the game's own, or Control Bar Pro by TheSuperHackers in five sizes." Style="{StaticResource PageIntroStyle}"/>
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <DockPanel Grid.Row="0" LastChildFill="False">
-            <TextBlock Text="ADD-ONS" Style="{StaticResource SectionHeaderStyle}" DockPanel.Dock="Left"/>
+        <!-- The labels sit above the picture, clear of the game's own text in the screenshots -->
+        <DockPanel Width="{Binding ActualWidth, ElementName=CompareBox}" HorizontalAlignment="Left" Margin="0,0,0,8">
+            <Border x:Name="AfterTag" DockPanel.Dock="Right" Style="{StaticResource TagStyle}">
+                <TextBlock Text="Control Bar Pro" Style="{StaticResource TagTextStyle}"/>
+            </Border>
+            <Border Style="{StaticResource TagStyle}" HorizontalAlignment="Left">
+                <TextBlock Text="Original" Style="{StaticResource TagTextStyle}"/>
+            </Border>
         </DockPanel>
-
-        <TextBlock Grid.Row="1" Text="CONTROL BAR" Style="{StaticResource GroupLabelStyle}" Margin="0,12,0,8"/>
-
-        <!-- Control bar -->
-        <ScrollViewer x:Name="BarsView" Grid.Row="2" VerticalScrollBarVisibility="Auto" Focusable="False">
-            <StackPanel x:Name="BarsPanel" Margin="0,0,8,0" SizeChanged="BarsPanel_SizeChanged">
-                <Border BorderBrush="#26FFFFFF" BorderThickness="1" CornerRadius="13" HorizontalAlignment="Center">
-                    <Grid x:Name="CompareBox" ClipToBounds="True" Cursor="SizeWE" Background="Black"
-                          Height="120" MouseLeftButtonDown="Compare_Down" MouseMove="Compare_Move" MouseLeftButtonUp="Compare_Up"
-                          LostMouseCapture="Compare_LostCapture" SizeChanged="Compare_SizeChanged">
-                        <Image x:Name="Before" Stretch="Fill"/>
-                        <Image x:Name="After" Stretch="Fill"/>
-                        <Rectangle x:Name="Divider" Width="2" HorizontalAlignment="Left" Fill="White"/>
-                        <Border x:Name="Handle" Width="14" Height="34" CornerRadius="7" HorizontalAlignment="Left" VerticalAlignment="Center" Background="White"
-                                BorderBrush="#2980FF" BorderThickness="2"/>
-                        <Border HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" Padding="8,3" CornerRadius="6" Background="#D9050814">
-                            <TextBlock x:Name="BeforeLabel" FontSize="10" FontWeight="Bold"/>
-                        </Border>
-                        <Border x:Name="AfterTag" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8" Padding="8,3" CornerRadius="6" Background="#D9050814">
-                            <TextBlock FontSize="10" FontWeight="Bold" Foreground="#5BA4FF" Text="CONTROL BAR PRO"/>
-                        </Border>
-                    </Grid>
-                </Border>
-                <TextBlock x:Name="CompareNote" Foreground="#A7AECB" FontSize="11.5" TextWrapping="Wrap" Margin="0,6,0,12"/>
-
-                <!-- Bar archives that are not offered here, added by hand -->
-                <Border x:Name="OtherNotice" BorderBrush="#59FFB020" BorderThickness="1" Background="#1FFFB020" CornerRadius="12" Padding="14,10" Margin="0,0,0,10"
-                        Visibility="Collapsed">
-                    <DockPanel>
-                        <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Fill="#FFB020" VerticalAlignment="Top" Margin="0,5,10,0"/>
-                        <StackPanel>
-                            <TextBlock x:Name="OtherTitle" Text="Another control bar is installed" FontSize="12" FontWeight="SemiBold"/>
-                            <TextBlock x:Name="OtherDetail" FontSize="11.5" Foreground="#BCC2D8" TextWrapping="Wrap" Margin="0,2,0,0"/>
-                        </StackPanel>
-                    </DockPanel>
-                </Border>
-
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="10"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <RadioButton x:Name="ChoiceOriginal" Grid.Column="0" Style="{StaticResource BarChoiceStyle}" Checked="Choice_Checked">
-                        <StackPanel>
-                            <DockPanel>
-                                <TextBlock x:Name="OriginalInstalled" DockPanel.Dock="Right" Text="INSTALLED" Style="{StaticResource InstalledMark}"/>
-                                <TextBlock Text="Original" Style="{StaticResource ChoiceTitle}" TextTrimming="CharacterEllipsis"/>
-                            </DockPanel>
-                            <TextBlock Style="{StaticResource ChoiceText}" Text="The game's own control bar"/>
-                        </StackPanel>
-                    </RadioButton>
-                    <RadioButton x:Name="ChoicePro" Grid.Column="2" Style="{StaticResource BarChoiceStyle}" Checked="Choice_Checked">
-                        <StackPanel>
-                            <DockPanel>
-                                <TextBlock x:Name="ProInstalled" DockPanel.Dock="Right" Text="INSTALLED" Style="{StaticResource InstalledMark}"/>
-                                <TextBlock Text="Control Bar Pro" Style="{StaticResource ChoiceTitle}" TextTrimming="CharacterEllipsis"/>
-                            </DockPanel>
-                            <TextBlock Text="Larger, cleaner bar by TheSuperHackers · v1.2" Style="{StaticResource ChoiceText}"/>
-                            <ComboBox x:Name="Resolution" Height="32" FontSize="12.5" Margin="0,10,0,0" HorizontalAlignment="Left" MinWidth="130"
-                                      SelectionChanged="Resolution_Changed" ToolTip="Pick the size that matches your game resolution"/>
-                        </StackPanel>
-                    </RadioButton>
-                </Grid>
-
-                <TextBlock Text="SAFETY" Style="{StaticResource GroupLabelStyle}" Margin="0,18,0,6"/>
-                <StackPanel x:Name="SafetyList" Margin="0,0,0,4"/>
-            </StackPanel>
-        </ScrollViewer>
-
-        <!-- Control bar: what Apply will do -->
-        <Border Grid.Row="3" Margin="0,10,0,0" CornerRadius="16" Background="#DB0E142C" BorderBrush="#1FFFFFFF" BorderThickness="1"
-                Padding="18,10,10,10">
-        <DockPanel x:Name="BarsFooter">
-            <Button x:Name="ApplyButton" DockPanel.Dock="Right" Content="APPLY" Style="{StaticResource GoldButtonStyle}" Height="40" Margin="10,0,0,0"
-                    MinWidth="100" Click="Apply_Click"/>
-            <Button x:Name="DiscardButton" DockPanel.Dock="Right" Content="DISCARD" Style="{StaticResource SmallButtonStyle}" Height="40" Margin="10,0,0,0"
-                    Visibility="Collapsed" Click="Discard_Click"/>
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock x:Name="ChangeText" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
-                <TextBlock x:Name="ChangeDetail" FontSize="11.5" Foreground="#A7AECB" TextWrapping="Wrap" Margin="0,2,0,0"/>
-            </StackPanel>
-        </DockPanel>
+        <Border BorderBrush="{StaticResource Divider}" BorderThickness="{StaticResource Line.Thin}" CornerRadius="{StaticResource Radius.Medium}"
+                HorizontalAlignment="Left">
+            <Grid x:Name="CompareBox" ClipToBounds="True" Height="120" MouseLeftButtonDown="Compare_Down" MouseMove="Compare_Move"
+                  MouseLeftButtonUp="Compare_Up" LostMouseCapture="Compare_LostCapture" SizeChanged="Compare_SizeChanged">
+                <Image x:Name="Before" Stretch="Fill"/>
+                <Image x:Name="After" Stretch="Fill"/>
+                <Rectangle x:Name="Divider" Width="2" HorizontalAlignment="Left" Fill="{StaticResource Text.Primary}"/>
+                <Border x:Name="Handle" Width="12" Height="32" CornerRadius="{StaticResource Radius.Small}" HorizontalAlignment="Left"
+                        VerticalAlignment="Center" Background="{StaticResource Text.Primary}"/>
+            </Grid>
         </Border>
-    </Grid>
+        <TextBlock Text="{Binding CompareNote}" Style="{StaticResource PanelTextStyle}"/>
+
+        <!-- A bar Command Center did not install: added by hand, or by the Generals Online launcher -->
+        <Border Style="{StaticResource PanelStyle}" Margin="{StaticResource Gap.Group}" Visibility="{Binding ShowOtherNotice, Converter={StaticResource Visible}}">
+            <DockPanel>
+                <c:Icon DockPanel.Dock="Left" Kind="info" Width="18" Height="18"
+                        VerticalAlignment="Top" Margin="0,2,12,0" Foreground="{StaticResource Warning}"/>
+                <StackPanel>
+                    <TextBlock Text="{Binding OtherTitle}" Style="{StaticResource PanelTitleStyle}"/>
+                    <TextBlock Text="{Binding OtherDetail}" Style="{StaticResource PanelTextStyle}"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Grid Margin="{StaticResource Gap.Group}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <RadioButton Grid.Column="0" GroupName="ControlBar" Style="{StaticResource ChoiceCardStyle}" VerticalAlignment="Top" IsChecked="{Binding OriginalChosen}"
+                         IsEnabled="{Binding CanChoose}">
+                <StackPanel>
+                    <DockPanel>
+                        <Border DockPanel.Dock="Right" Style="{StaticResource TagStyle}" Visibility="{Binding OriginalInstalled, Converter={StaticResource Visible}}">
+                            <TextBlock Text="Installed" Style="{StaticResource TagTextStyle}"/>
+                        </Border>
+                        <TextBlock Text="Original" Style="{StaticResource PanelTitleStyle}"/>
+                    </DockPanel>
+                    <TextBlock Text="The game's own control bar" Style="{StaticResource PanelTextStyle}"/>
+                </StackPanel>
+            </RadioButton>
+            <RadioButton Grid.Column="2" GroupName="ControlBar" Style="{StaticResource ChoiceCardStyle}" VerticalAlignment="Top" IsChecked="{Binding ProChosen}"
+                         IsEnabled="{Binding CanChoose}">
+                <StackPanel>
+                    <DockPanel>
+                        <Border DockPanel.Dock="Right" Style="{StaticResource TagStyle}" Visibility="{Binding ProInstalled, Converter={StaticResource Visible}}">
+                            <TextBlock Text="Installed" Style="{StaticResource TagTextStyle}"/>
+                        </Border>
+                        <TextBlock Text="Control Bar Pro" Style="{StaticResource PanelTitleStyle}"/>
+                    </DockPanel>
+                    <TextBlock Text="Larger and cleaner, version 1.2. Pick the size of your game's resolution." Style="{StaticResource PanelTextStyle}"/>
+                    <ListBox Style="{StaticResource ChipListStyle}" Margin="{StaticResource Gap.Actions}" ItemsSource="{Binding Resolutions}"
+                             SelectedValuePath="Value" SelectedValue="{Binding ChosenResolution}" IsEnabled="{Binding CanChoose}">
+                        <!-- An explicit label, so the chip's own colour reaches the text -->
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Label}" Style="{StaticResource ButtonLabelStyle}"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </RadioButton>
+        </Grid>
+
+        <!-- What Apply will do -->
+        <Border Style="{StaticResource PanelStyle}" Margin="{StaticResource Gap.Group}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}" Margin="12,0,0,0" VerticalAlignment="Center"
+                        Command="{Binding ApplyCommand}" IsEnabled="{Binding CanApply}">
+                    <TextBlock Text="Apply" Style="{StaticResource ButtonLabelStyle}"/>
+                </Button>
+                <Button DockPanel.Dock="Right" Style="{StaticResource QuietButtonStyle}" Margin="12,0,0,0" VerticalAlignment="Center"
+                        Command="{Binding DiscardCommand}" Visibility="{Binding CanDiscard, Converter={StaticResource Visible}}">
+                    <TextBlock Text="Discard" Style="{StaticResource ButtonLabelStyle}"/>
+                </Button>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding ChangeText}" Style="{StaticResource PanelTitleStyle}" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="{Binding ChangeDetail}" Style="{StaticResource PanelTextStyle}"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Why it is safe -->
+        <Border Style="{StaticResource PanelStyle}" Margin="{StaticResource Gap.Group}">
+            <StackPanel>
+                <TextBlock Text="Safety" Style="{StaticResource PanelTitleStyle}"/>
+                <TextBlock Style="{StaticResource PanelTextStyle}" Text="Checked with SHA-256 before anything is installed."/>
+                <TextBlock Style="{StaticResource PanelTextStyle}" Text="Only the .big archives are copied; scripts in the package are skipped."/>
+                <TextBlock Style="{StaticResource PanelTextStyle}" Text="It changes the interface only, so it never causes a mismatch."/>
+                <TextBlock Style="{StaticResource PanelTextStyle}" Text="Your previous bar is kept; Undo puts it back."/>
+                <TextBlock Style="{StaticResource PanelTextStyle}" Text="Source: TheSuperHackers/GeneralsControlBar on GitHub (MIT licence)."/>
+            </StackPanel>
+        </Border>
+    </StackPanel>
 </UserControl>

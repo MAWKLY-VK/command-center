@@ -31,10 +31,18 @@
     <Resource Include="Assets\**\*.jpg" />
     <Resource Include="Assets\app.ico" />
     <Resource Include="Assets\logo.png" />
+    <!-- Barlow, Barlow Condensed and JetBrains Mono (OFL), with their licences, so every PC shows the same type -->
+    <Resource Include="Theme\Fonts\*.ttf" />
+    <Resource Include="Theme\Fonts\*-OFL.txt" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CommandCenter.Core\CommandCenter.Core.csproj" />
+  </ItemGroup>
+
+  <!-- View models for the pages that move to MVVM in phases 5 and 6 (docs/adr/0004) -->
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
   </ItemGroup>
 
   <ItemGroup>

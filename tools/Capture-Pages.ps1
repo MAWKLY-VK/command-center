@@ -4,13 +4,14 @@ Takes --capture screenshots of every page and tab of one Command Center build, s
 tools/Compare-Captures.cs.
 
 .DESCRIPTION
-Each run uses a fresh temporary data folder (always at the same path, emptied before and deleted after), the drawn backdrop (so Steam's art is never read) and
-the repository's go-profile.json (so the GO profile does not come from the network). The game folder must be an
-isolated copy of the test game: the real Steam installation is refused, and the copy is fingerprinted before and after
-so that any change to it is reported.
+Each run uses a fresh temporary data folder (always at the same path, emptied before and deleted after), the game
+copy's own art (Home's picture in turn, then each one by name) and the repository's go-profile.json (so the GO profile
+does not come from the network). The game folder must be an isolated copy of the test game: the real Steam
+installation is refused, and the copy is fingerprinted before and after so that any change to it is reported.
 
-Output: <Out>\pages\NN-<page>.png for every page and tab, and <Out>\samples\NN-<page>.png with the made-up health
-problems (--samples), plus <Out>\capture.json describing the run and <Out>\ignore.txt (a copy of
+Output: <Out>\pages\NN-<page>.png for every page and tab, <Out>\samples\NN-<page>.png with the made-up health
+problems (--samples), <Out>\drawn\NN-<page>.png with the drawn background of a copy without the art
+(--drawn-backdrop), plus <Out>\capture.json describing the run and <Out>\ignore.txt (a copy of
 tools/capture-ignore.txt, the areas that change between runs of the same build).
 
 .EXAMPLE
@@ -29,19 +30,21 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 
-# Every page and tab. options:network:run is left out because it runs live network diagnostics.
+# Every page and tab, and Home with each of its pictures. settings:network:run is left out because it runs live
+# network diagnostics.
 $pages = @(
-    'home',
-    'tools:health', 'tools:health:history', 'tools:health:questions',
-    'tools:maps:installed', 'tools:maps:library',
-    'tools:replays',
-    'tools:hotkeys:buttons', 'tools:hotkeys:keys', 'tools:hotkeys:letters',
-    'tools:addons',
-    'options:game', 'options:camera', 'options:chat', 'options:input', 'options:graphics',
-    'options:social', 'options:network', 'options:datapacks', 'options:plugins', 'options:launcher'
+    'home', 'home:usa', 'home:china', 'home:gla',
+    'replays',
+    'maps:installed', 'maps:library',
+    'hotkeys:buttons', 'hotkeys:keys', 'hotkeys:letters',
+    'health', 'health:history',
+    'settings:game', 'settings:appearance', 'settings:camera', 'settings:chat', 'settings:input', 'settings:graphics',
+    'settings:social', 'settings:network', 'settings:datapacks', 'settings:plugins', 'settings:addons', 'settings:launcher',
+    'help'
 )
-# The pages that show the made-up health problems
-$samplePages = @('home', 'tools:health')
+# The pages that show the made-up health problems, and those shown again over the drawn background
+$samplePages = @('home', 'health')
+$drawnPages = @('home', 'health')
 
 $Exe = (Resolve-Path -LiteralPath $Exe).Path
 $Game = (Resolve-Path -LiteralPath $Game).Path
@@ -78,7 +81,7 @@ function Copy-Template([string] $template, [string] $data) {
     }
 }
 
-function Invoke-Capture([string] $folder, [string[]] $pageList, [switch] $Samples) {
+function Invoke-Capture([string] $folder, [string[]] $pageList, [switch] $Samples, [switch] $Drawn) {
     # Always the same path, emptied first: pages show the data folder's path, so a random name would differ per run
     $data = Join-Path ([IO.Path]::GetTempPath()) 'cc-capture-data'
     if (Test-Path -LiteralPath $data) { [IO.Directory]::Delete($data, $true) }
@@ -88,8 +91,9 @@ function Invoke-Capture([string] $folder, [string[]] $pageList, [switch] $Sample
         $info = [System.Diagnostics.ProcessStartInfo]::new($Exe)
         $info.UseShellExecute = $false
         $arguments = @('--game', $Game, '--user-data', $data, '--capture', $folder, '--size', $Size,
-            '--pages', ($pageList -join ','), '--drawn-backdrop', '--go-profile', $GoProfile)
+            '--pages', ($pageList -join ','), '--go-profile', $GoProfile)
         if ($Samples) { $arguments += '--samples' }
+        if ($Drawn) { $arguments += '--drawn-backdrop' }
         foreach ($argument in $arguments) { $info.ArgumentList.Add($argument) }
         $process = [System.Diagnostics.Process]::Start($info)
         if (-not $process.WaitForExit($TimeoutSeconds * 1000)) {
@@ -108,6 +112,7 @@ function Invoke-Capture([string] $folder, [string[]] $pageList, [switch] $Sample
 $before = Get-Fingerprint $Game
 Invoke-Capture (Join-Path $Out 'pages') $pages
 Invoke-Capture (Join-Path $Out 'samples') $samplePages -Samples
+Invoke-Capture (Join-Path $Out 'drawn') $drawnPages -Drawn
 $after = Get-Fingerprint $Game
 
 $changed = @(Compare-Object $before $after | ForEach-Object { $_.InputObject.Split('|')[0] } | Sort-Object -Unique)

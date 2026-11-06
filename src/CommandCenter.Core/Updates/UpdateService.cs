@@ -11,6 +11,9 @@ namespace CommandCenter.Core.Updates
 {
     public sealed record UpdateInfo(Version Version, string VersionText, string Url, string Sha256, string Notes);
 
+    // What one update check found: an update, or why the check could not run, or neither (this is the newest version)
+    public sealed record UpdateCheck(UpdateInfo? Update, string? Failure);
+
     // The new version could not start, so the previous one was put back and this copy keeps running (P3-D1)
     public sealed class PreviousVersionRestoredException(string message, Exception inner) : Exception(message, inner);
 
@@ -59,7 +62,11 @@ namespace CommandCenter.Core.Updates
 
         // Reads the manifest from a web address or a local file. Offline, missing or broken manifests mean "no update",
         // so the program keeps working. A manifest that breaks a rule is refused, and the operation log says why.
-        public static async Task<UpdateInfo?> CheckAsync(string source)
+        public static async Task<UpdateInfo?> CheckAsync(string source) => (await CheckNowAsync(source)).Update;
+
+        // The check with its outcome: the update offered, or why the check could not run (Failure, in plain words), or
+        // neither when this is the newest version. Settings shows the failure instead of "latest version" (ticket 08).
+        public static async Task<UpdateCheck> CheckNowAsync(string source)
         {
             byte[] manifest;
             try
@@ -70,13 +77,14 @@ namespace CommandCenter.Core.Updates
             }
             catch
             {
-                return null;
+                return new UpdateCheck(null, "The update information could not be read. Check the internet connection.");
             }
             if (Read(manifest, out var update) is { } refusal)
+            {
                 OperationLog.Failed("check update", source, refusal);
-            if (update != null && update.Version == _failedVersion)
-                return null;
-            return update;
+                return new UpdateCheck(null, "The update information was refused: " + refusal);
+            }
+            return new UpdateCheck(update != null && update.Version == _failedVersion ? null : update, null);
         }
 
         // The update a manifest offers. Returns the reason when it breaks a rule; update is null then, and also when it

@@ -1,12 +1,9 @@
-using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Media.Animation;
 using CommandCenter.Pages.Tools;
 
 namespace CommandCenter.Pages
 {
-    // Hosts the tool sections (Health, Maps, Replays, Hotkeys, Add-ons); the window's top tabs pick one
+    // Hosts the sections Replays, Maps, Hotkeys and Health; the window's tabs pick one
     public partial class ToolsPage : Page
     {
         private readonly Dictionary<string, UserControl> _sections = new();
@@ -23,7 +20,7 @@ namespace CommandCenter.Pages
 
         public void Select(string section) => Show(section switch
         {
-            "maps" or "replays" or "hotkeys" or "addons" => section,
+            "maps" or "replays" or "hotkeys" => section,
             _ => "health",
         });
 
@@ -41,6 +38,21 @@ namespace CommandCenter.Pages
 
         public Task ReadyAsync() => SectionHost.Content is IToolSection section ? section.ReadyAsync() : Task.CompletedTask;
 
+        // For --capture: the end of a long section (Health only so far)
+        public void ScrollToEnd()
+        {
+            if (SectionHost.Content is HealthSection health)
+                health.ScrollToEnd();
+        }
+
+        // Health's checks again, with its own button showing that they run
+        public void RunHealthChecks()
+        {
+            Show("health");
+            if (SectionHost.Content is HealthSection health)
+                _ = health.RunChecksAsync();
+        }
+
         private void Show(string id)
         {
             if (id == Current)
@@ -52,26 +64,14 @@ namespace CommandCenter.Pages
                     "maps" => new MapsSection(),
                     "replays" => new ReplaysSection(),
                     "hotkeys" => new HotkeysSection(),
-                    "addons" => new AddonsSection(),
                     _ => new HealthSection(),
                 };
                 _sections[id] = section;
             }
-            bool switching = Current.Length > 0;
             Current = id;
             SectionHost.Content = section;
             if (section is IToolSection tool)
                 tool.OnShown();
-
-            // A section switched from another one fades in on its own (the page itself is already shown)
-            if (switching && !App.HasArg("--capture"))
-            {
-                var move = new TranslateTransform(0, 10);
-                section.RenderTransform = move;
-                move.BeginAnimation(TranslateTransform.YProperty,
-                    new DoubleAnimation(0, TimeSpan.FromMilliseconds(380)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
-                section.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(300)));
-            }
         }
     }
 }

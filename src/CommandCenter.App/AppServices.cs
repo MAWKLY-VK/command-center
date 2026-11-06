@@ -1,3 +1,5 @@
+using System.Windows;
+
 namespace CommandCenter
 {
     // The hand-written composition root (ADR 0004): the one place where the services get what they need from the App at
@@ -5,6 +7,36 @@ namespace CommandCenter
     // from then on, the ViewModels get them from here.
     internal static class AppServices
     {
+        // The instance forms the view models use (ticket 08); pages that have not moved keep the static services
+        public static IGameFolder GameFolder { get; } = new CommandCenter.Core.Game.GameFolder();
+        public static IAppearance Appearance { get; } = new CommandCenter.Core.Settings.Appearance(() => SystemParameters.ClientAreaAnimation);
+        public static IAddons Addons { get; } = new CommandCenter.Core.Content.Addons();
+
+        // Health (ticket 10): the one owner of the checks' results, the fixes, and the history of changes. A fix or an
+        // Undo can change the game's text table, which the hotkey editor reads, so both forget the hotkeys after.
+        public static IHealthChecks Health { get; } = new HealthChecks(RunHealthChecksAsync, () => DateTime.Now);
+        public static FixRunner Fixes { get; } = new(AppState.ForgetHotkeys);
+        public static FixHistory History { get; } = new(AppState.ForgetHotkeys);
+
+        // Home (ticket 13): the server numbers, and starting and watching the game
+        public static IServerStatus Server { get; } = new ServerStatus(GoApi.GetStatsAsync);
+        public static IGameLauncher Launcher { get; } = new WindowsGameLauncher();
+
+        // The game's interface sounds (ticket 14), only while Appearance's setting is on and a game was found
+        public static InterfaceSoundPlayer Sounds { get; } = new(() => Appearance.InterfaceSounds && GamePaths.Game.Length > 0,
+            () => GameSounds.Read(new GameFiles(GamePaths.Game)), Speaker.Play);
+
+        // Every check: the local ones off the UI thread, then the network ones; --samples puts its made-up problems first
+        private static async Task<IReadOnlyList<HealthResult>> RunHealthChecksAsync()
+        {
+            var local = await Task.Run(HealthService.Run);
+            var network = await HealthService.RunNetworkAsync();
+            var all = local.Concat(network).ToList();
+            if (AppState.Samples)
+                all.InsertRange(0, AppState.SampleIssues());
+            return all;
+        }
+
         // First thing at startup, before anything reads a service. args are the command line as the program got it.
         public static void Configure(IReadOnlyList<string> args)
         {
@@ -12,6 +44,16 @@ namespace CommandCenter
             MapLibraryClient.SourceOverride = Value(args, "--map-library");
             MapLibraryClient.LibraryFolder = Value(args, "--library-folder");
             AppState.Samples = Has(args, "--samples");
+
+            // Another game folder: its hotkeys are read again, and the checks and the match guard run for it (Home's
+            // picture follows in MainWindow)
+            GameFolder.Changed += () =>
+            {
+                AppState.ForgetHotkeys();
+                Sounds.Forget();
+                _ = AppState.RefreshHealthAsync();
+                _ = AppState.RefreshMatchGuardAsync();
+            };
 #if TEST_KEYS
             // Test builds only (built with -p:TestKeys=true and never published): the signed files may also come from the
             // test key in this file, so the update path can be tried without the maintainer's key

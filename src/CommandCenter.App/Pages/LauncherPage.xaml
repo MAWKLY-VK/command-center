@@ -5,328 +5,160 @@
     xmlns:c="clr-namespace:CommandCenter.Controls"
     Background="Transparent">
 
-    <Page.Resources>
-        <!-- PLAY: solid gold with a soft glow -->
-        <Style x:Key="HeroPlayStyle" TargetType="Button">
-            <Setter Property="Foreground" Value="#1A1300"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Width" Value="270"/>
-            <Setter Property="Height" Value="66"/>
-            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
-            <Setter Property="RenderTransform">
-                <Setter.Value>
-                    <TranslateTransform/>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Back" CornerRadius="14" Background="#FECD03">
-                            <Border.Effect>
-                                <DropShadowEffect x:Name="Glow" Color="#FECD03" BlurRadius="30" ShadowDepth="6" Direction="270" Opacity="0.45"/>
-                            </Border.Effect>
-                            <ContentPresenter/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Back" Property="Background" Value="#FFD83A"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Back" Property="Background" Value="#E6B800"/>
-                            </Trigger>
-                            <EventTrigger RoutedEvent="MouseEnter">
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" To="-2" Duration="0:0:0.18"/>
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </EventTrigger>
-                            <EventTrigger RoutedEvent="MouseLeave">
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" To="0" Duration="0:0:0.18"/>
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </EventTrigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+    <!-- Home, the Briefing stage (ADR 0006): over the game's art, the title, PLAY, the line that says why and the data
+         line at the bottom left; the last match and the game's health at the bottom right -->
+    <Grid Margin="{StaticResource Page.Margin}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="{StaticResource Column.Gap}"/>
+            <ColumnDefinition Width="{StaticResource Column.Side}"/>
+        </Grid.ColumnDefinitions>
 
-        <Style x:Key="ChannelTab" TargetType="RadioButton" BasedOn="{StaticResource SubTabStyle}">
-            <Setter Property="GroupName" Value="Channel"/>
-            <Setter Property="Height" Value="34"/>
-            <Setter Property="Margin" Value="0"/>
-            <Setter Property="FontFamily" Value="Bahnschrift"/>
-            <Setter Property="FontStretch" Value="Condensed"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontSize" Value="15"/>
-        </Style>
+        <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Left" MaxWidth="640">
+            <TextBlock Text="Generals Online Zero Hour" Style="{StaticResource PageTitleStyle}"/>
 
-        <Style x:Key="TileTitle" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-        </Style>
-        <Style x:Key="TileSub" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Foreground" Value="#A7AECB"/>
-            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
-        </Style>
-        <Style x:Key="Numeral" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
-            <Setter Property="FontFamily" Value="Bahnschrift"/>
-            <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="FontStretch" Value="Condensed"/>
-        </Style>
-    </Page.Resources>
-
-    <Grid Margin="40,6,40,26">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <Grid Grid.Row="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="300"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- Title, game details, PLAY and the health line -->
-            <StackPanel x:Name="HeroBlock" VerticalAlignment="Bottom" Margin="0,0,28,4">
-                <TextBlock Text="C&amp;C GENERALS · ZERO HOUR" Foreground="#FECD03" FontFamily="Bahnschrift"
-                           FontWeight="SemiBold" FontSize="15"/>
-                <TextBlock Text="Ready for battle" FontSize="46" FontWeight="Bold" Margin="0,2,0,12">
-                    <TextBlock.Effect>
-                        <DropShadowEffect BlurRadius="28" ShadowDepth="0" Opacity="0.65" Color="Black"/>
-                    </TextBlock.Effect>
-                </TextBlock>
-
-                <WrapPanel>
-                    <Border Style="{StaticResource ChipStyle}" Margin="0,0,8,8">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <c:Icon Kind="server" Width="14" Height="14" Foreground="#7AB4FF" Margin="0,0,7,0"/>
-                            <TextBlock x:Name="VersionText" FontSize="12" Foreground="#D5D9EA" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Border>
-                    <Border x:Name="AntiCheatChip" Style="{StaticResource ChipStyle}" Margin="0,0,8,8">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <c:Icon Kind="shield" Width="14" Height="14" Foreground="#52D273" Margin="0,0,7,0"/>
-                            <TextBlock x:Name="AntiCheatText" FontSize="12" Foreground="#D5D9EA" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Border>
-                    <Button x:Name="SourceChip" Click="SourceChip_Click" Cursor="Hand" Margin="0,0,8,8">
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="Back" Style="{StaticResource ChipStyle}" Margin="0">
-                                    <ContentPresenter VerticalAlignment="Center"/>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Back" Property="BorderBrush" Value="#59FFFFFF"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
+            <!-- PLAY, split: its words follow the state; its other half chooses Live or Test. The soft glow behind it is
+                 the one glow on the screen. -->
+            <Grid HorizontalAlignment="Left" Margin="{StaticResource Gap.Actions}">
+                <Ellipse Fill="{StaticResource Play.Glow}" Margin="-64,-48" IsHitTestVisible="False"/>
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource PlayButtonStyle}" Command="{Binding PlayCommand}" IsEnabled="{Binding CanPlay}"
+                            AutomationProperties.Name="{Binding PlayLabel}">
                         <StackPanel Orientation="Horizontal">
-                            <c:Icon Kind="drive" Width="14" Height="14" Foreground="#FECD03" Margin="0,0,7,0"/>
-                            <TextBlock x:Name="SourceText" FontSize="12" Foreground="#D5D9EA" VerticalAlignment="Center"/>
+                            <c:Icon Kind="{Binding PlayIcon}" Width="24" Height="24" Margin="0,0,12,0"/>
+                            <TextBlock Text="{Binding PlayLabel}" Style="{StaticResource ButtonLabelStyle}"/>
                         </StackPanel>
                     </Button>
-                </WrapPanel>
-
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,14">
-                    <Button x:Name="PlayButton" Style="{StaticResource HeroPlayStyle}" Click="BtnPlay_Click" AutomationProperties.Name="PLAY">
-                        <Grid ClipToBounds="True">
-                            <Rectangle x:Name="Sheen" Width="60" HorizontalAlignment="Left" Margin="0,-10" Opacity="0.45" IsHitTestVisible="False">
-                                <Rectangle.Fill>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                        <GradientStop Color="#00FFFFFF" Offset="0"/>
-                                        <GradientStop Color="#CCFFFFFF" Offset="0.5"/>
-                                        <GradientStop Color="#00FFFFFF" Offset="1"/>
-                                    </LinearGradientBrush>
-                                </Rectangle.Fill>
-                                <Rectangle.RenderTransform>
-                                    <TransformGroup>
-                                        <SkewTransform AngleX="-18"/>
-                                        <TranslateTransform x:Name="SheenMove" X="-90"/>
-                                    </TransformGroup>
-                                </Rectangle.RenderTransform>
-                            </Rectangle>
-                            <StackPanel x:Name="PlayIdle" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <c:Icon Kind="play" Width="24" Height="24" Foreground="#1A1300" Margin="0,0,14,0"/>
-                                <TextBlock x:Name="PlayText" Text="PLAY" FontSize="24" FontWeight="Bold" Foreground="#1A1300" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <StackPanel x:Name="PlayBusy" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
-                                <Path x:Name="Spinner" Width="22" Height="22" Stretch="Uniform" Stroke="#1A1300" StrokeThickness="2.6" StrokeStartLineCap="Round"
-                                      StrokeEndLineCap="Round" Data="M21,12 A9,9 0 1 1 14.78,3.44" RenderTransformOrigin="0.5,0.5" Margin="0,0,12,0">
-                                    <Path.RenderTransform>
-                                        <RotateTransform/>
-                                    </Path.RenderTransform>
-                                </Path>
-                                <TextBlock x:Name="PlayBusyText" FontSize="18" FontWeight="Bold" Foreground="#1A1300" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Grid>
-                    </Button>
-
-                    <Border x:Name="ClientSelectorPanel" Style="{StaticResource GlassCardStyle}" CornerRadius="12" Padding="4" Margin="12,0,0,0"
-                            VerticalAlignment="Center" Visibility="Collapsed">
-                        <StackPanel Orientation="Horizontal">
-                            <RadioButton x:Name="rbLiveClient" Content="LIVE" Style="{StaticResource ChannelTab}" Checked="ClientSelector_Changed"/>
-                            <RadioButton x:Name="rbTestEnv" Content="TEST" Style="{StaticResource ChannelTab}" Checked="ClientSelector_Changed"/>
-                        </StackPanel>
-                    </Border>
+                    <ToggleButton x:Name="ChannelToggle" Style="{StaticResource PlaySplitStyle}" IsEnabled="{Binding CanPlay}"
+                                  Visibility="{Binding ShowChannels, Converter={StaticResource Visible}}" AutomationProperties.Name="Choose Live or Test">
+                        <c:Icon Kind="chevron" Width="20" Height="20" RenderTransformOrigin="0.5,0.5">
+                            <c:Icon.RenderTransform>
+                                <RotateTransform Angle="-90"/>
+                            </c:Icon.RenderTransform>
+                        </c:Icon>
+                    </ToggleButton>
                 </StackPanel>
+                <Popup IsOpen="{Binding IsChecked, ElementName=ChannelToggle}" PlacementTarget="{Binding ElementName=ChannelToggle}" Placement="Top"
+                       StaysOpen="False" AllowsTransparency="True">
+                    <Border Style="{StaticResource MenuPanelStyle}">
+                        <StackPanel>
+                            <RadioButton GroupName="Channel" Style="{StaticResource ChoiceStyle}" IsChecked="{Binding IsLive}">
+                                <TextBlock Text="Live" Style="{StaticResource ButtonLabelStyle}"/>
+                            </RadioButton>
+                            <RadioButton GroupName="Channel" Style="{StaticResource ChoiceStyle}" IsChecked="{Binding IsTest}">
+                                <TextBlock Text="Test" Style="{StaticResource ButtonLabelStyle}"/>
+                            </RadioButton>
+                        </StackPanel>
+                    </Border>
+                </Popup>
+            </Grid>
 
-                <Button x:Name="HealthChip" Click="HealthChip_Click" Cursor="Hand" HorizontalAlignment="Left" Visibility="Collapsed">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="Back" CornerRadius="10" Height="38" Padding="14,0" Background="{TemplateBinding Background}"
-                                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1">
-                                <ContentPresenter VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Back" Property="Opacity" Value="0.85"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
-                    <StackPanel Orientation="Horizontal">
-                        <c:Icon x:Name="HealthIcon" Kind="alert" Width="16" Height="16" Margin="0,0,10,0"/>
-                        <TextBlock x:Name="HealthText" FontSize="13" VerticalAlignment="Center"/>
-                        <TextBlock x:Name="HealthReview" Text="REVIEW" FontSize="13" FontWeight="Bold" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
+            <!-- Why PLAY says what it says, in plain words, and what else the player can do here -->
+            <TextBlock Text="{Binding Status}" Style="{StaticResource StateTextStyle}" TextWrapping="Wrap" Margin="{StaticResource Gap.Actions}"/>
+            <StackPanel Orientation="Horizontal">
+                <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding PlayAnywayCommand}" Margin="0,0,24,0"
+                        Visibility="{Binding ShowPlayAnyway, Converter={StaticResource Visible}}">
+                    <TextBlock Text="Play anyway" Style="{StaticResource ButtonLabelStyle}"/>
+                </Button>
+                <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding GetGameCommand}" Margin="0,0,24,0"
+                        Visibility="{Binding ShowGetGame, Converter={StaticResource Visible}}">
+                    <TextBlock Text="Get the game" Style="{StaticResource ButtonLabelStyle}"/>
                 </Button>
             </StackPanel>
 
-            <!-- Servers and the last match -->
-            <StackPanel Grid.Column="1" VerticalAlignment="Bottom" Margin="0,0,0,4">
-                <Border x:Name="ServerCard" Style="{StaticResource GlassCardStyle}" Padding="18,14">
-                    <StackPanel>
-                        <DockPanel>
-                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Ellipse x:Name="ServerDot" Width="7" Height="7" Fill="#52D273" Margin="0,0,6,0"/>
-                                <TextBlock x:Name="ServerState" FontSize="11" Foreground="#7BE39A" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <c:Icon Kind="activity" Width="16" Height="16" Foreground="#7AB4FF" Margin="0,0,8,0"/>
-                            <TextBlock Text="Servers" FontSize="13" FontWeight="SemiBold" Foreground="#D5D9EA" VerticalAlignment="Center"/>
-                        </DockPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                            <TextBlock x:Name="PlayersText" Style="{StaticResource Numeral}" FontSize="48" Text="—"/>
-                            <TextBlock Text="online now" FontSize="13" Foreground="#A7AECB" VerticalAlignment="Bottom" Margin="8,0,0,9"/>
-                        </StackPanel>
-                        <Grid Margin="0,10,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="8"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Border CornerRadius="10" Background="#0DFFFFFF" Padding="10,7">
-                                <StackPanel Orientation="Horizontal">
-                                    <c:Icon Kind="users" Width="16" Height="16" Foreground="#A7AECB" Margin="0,0,8,0"/>
-                                    <StackPanel>
-                                        <TextBlock x:Name="LobbiesText" Style="{StaticResource Numeral}" FontSize="18" HorizontalAlignment="Left"/>
-                                        <TextBlock Text="Lobbies" FontSize="11" Foreground="#A7AECB"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-                            <Border Grid.Column="2" CornerRadius="10" Background="#0DFFFFFF" Padding="10,7">
-                                <StackPanel Orientation="Horizontal">
-                                    <c:Icon Kind="signal" Width="16" Height="16" Foreground="#A7AECB" Margin="0,0,8,0"/>
-                                    <StackPanel>
-                                        <TextBlock x:Name="PingText" Style="{StaticResource Numeral}" FontSize="18" HorizontalAlignment="Left"/>
-                                        <TextBlock Text="Ping" FontSize="11" Foreground="#A7AECB"/>
-                                    </StackPanel>
-                                </StackPanel>
-                            </Border>
-                        </Grid>
-                    </StackPanel>
-                </Border>
+            <!-- The match guard (P5-D3): the files that changed since the last good online match -->
+            <DockPanel Visibility="{Binding ShowGuard, Converter={StaticResource Visible}}">
+                <Button DockPanel.Dock="Right" Style="{StaticResource LinkButtonStyle}" Command="{Binding ReviewGuardCommand}" Margin="16,0,0,0" VerticalAlignment="Top">
+                    <TextBlock Text="Review" Style="{StaticResource ButtonLabelStyle}"/>
+                </Button>
+                <c:Icon DockPanel.Dock="Left" Kind="alert" Width="16" Height="16" Margin="0,8,8,0" VerticalAlignment="Top" Foreground="{StaticResource Warning}"/>
+                <TextBlock Text="{Binding GuardText}" Style="{StaticResource StateTextStyle}" TextWrapping="Wrap" VerticalAlignment="Top" Margin="0,6,0,0"/>
+            </DockPanel>
 
-                <Border x:Name="LastMatchCard" Style="{StaticResource GlassCardStyle}" Padding="12" Margin="0,12,0,0" Visibility="Collapsed">
-                    <DockPanel>
-                        <Border DockPanel.Dock="Left" Width="64" Height="64" CornerRadius="10" Margin="0,0,12,0">
-                            <Border.Background>
-                                <ImageBrush x:Name="LastMatchMap" Stretch="UniformToFill"/>
-                            </Border.Background>
-                        </Border>
-                        <Button DockPanel.Dock="Right" Style="{StaticResource IconButtonStyle}" Width="38" Height="38" Click="WatchLast_Click"
-                                ToolTip="Watch" AutomationProperties.Name="Watch" VerticalAlignment="Center" Margin="8,0,0,0">
-                            <c:Icon Kind="play" Width="14" Height="14"/>
-                        </Button>
-                        <StackPanel VerticalAlignment="Center">
-                            <DockPanel>
-                                <Border x:Name="LastResultChip" DockPanel.Dock="Right" CornerRadius="8" Padding="8,1" Visibility="Collapsed">
-                                    <TextBlock x:Name="LastResult" FontSize="11" FontWeight="Bold"/>
-                                </Border>
-                                <c:Icon Kind="trophy" Width="13" Height="13" Foreground="#A7AECB" Margin="0,0,6,0"/>
-                                <TextBlock Text="Last match" FontSize="11" Foreground="#A7AECB" VerticalAlignment="Center"/>
-                            </DockPanel>
-                            <TextBlock x:Name="LastMatchName" FontSize="14" FontWeight="Bold" Margin="0,3,0,2"
-                                       TextTrimming="CharacterEllipsis"/>
-                            <TextBlock x:Name="LastMatchInfo" FontSize="11" Foreground="#A7AECB" TextTrimming="CharacterEllipsis"/>
-                        </StackPanel>
-                    </DockPanel>
-                </Border>
+            <!-- Real data only: the client's version, the channel, players online and the ping; a group of its own -->
+            <StackPanel Orientation="Horizontal" Margin="{StaticResource Gap.Group}">
+                <TextBlock Text="{Binding VersionText}" Style="{StaticResource DataTextStyle}"/>
+                <TextBlock Text="{Binding ChannelText}" Style="{StaticResource DataTextStyle}" Margin="24,0,0,0"
+                           Visibility="{Binding ShowChannels, Converter={StaticResource Visible}}"/>
+                <TextBlock Text="{Binding PlayersText}" Style="{StaticResource DataTextStyle}" Margin="24,0,0,0"
+                           Visibility="{Binding HasPlayers, Converter={StaticResource Visible}}"/>
+                <TextBlock Text="{Binding PingText}" Style="{StaticResource DataTextStyle}" Margin="24,0,0,0"
+                           Visibility="{Binding HasPing, Converter={StaticResource Visible}}"/>
             </StackPanel>
-        </Grid>
+        </StackPanel>
 
-        <!-- Quick ways into the tools -->
-        <Grid x:Name="Tiles" Grid.Row="1" Height="76" Margin="0,18,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="12"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="12"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="12"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <Button Grid.Column="0" Style="{StaticResource CardButtonStyle}" Padding="14,0" Tag="maps" Click="Tile_Click">
-                <DockPanel>
-                    <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="12" Background="#292980FF" Margin="0,0,12,0">
-                        <c:Icon Kind="map" Width="20" Height="20" Foreground="#7AB4FF"/>
-                    </Border>
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Map library" Style="{StaticResource TileTitle}"/>
-                        <TextBlock x:Name="MapsTileText" Style="{StaticResource TileSub}"/>
+        <!-- The two quiet panels: the last match, and the game's health -->
+        <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
+            <Border Style="{StaticResource PanelStyle}" DataContext="{Binding LastMatch}">
+                <StackPanel>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource QuietButtonStyle}" Margin="16,0,0,0" VerticalAlignment="Center"
+                                Command="{Binding WatchCommand}" Visibility="{Binding HasMatch, Converter={StaticResource Visible}}">
+                            <StackPanel Orientation="Horizontal">
+                                <c:Icon Kind="film" Width="16" Height="16" Margin="0,0,8,0"/>
+                                <TextBlock Text="Watch" Style="{StaticResource ButtonLabelStyle}"/>
+                            </StackPanel>
+                        </Button>
+                        <TextBlock Text="Last match" Style="{StaticResource PanelTitleStyle}" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <Grid Margin="{StaticResource Gap.Actions}" Visibility="{Binding HasMatch, Converter={StaticResource Visible}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Width="64" Height="64" Margin="0,0,12,0" VerticalAlignment="Top" Background="{StaticResource Bg.Raised}"
+                                CornerRadius="{StaticResource Radius.Small}" ClipToBounds="True" Visibility="{Binding HasPreview, Converter={StaticResource Visible}}">
+                            <Image Source="{Binding Preview}" Stretch="UniformToFill"/>
+                        </Border>
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Text="{Binding Map}" Style="{StaticResource GroupTitleStyle}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding Info}" Style="{StaticResource PanelTextStyle}" Margin="0,4,0,0"/>
+                            <Border Style="{StaticResource TagStyle}" HorizontalAlignment="Left" Margin="{StaticResource Gap.Text}"
+                                    Visibility="{Binding HasResult, Converter={StaticResource Visible}}">
+                                <TextBlock Text="{Binding Result}" Style="{StaticResource TagTextStyle}"/>
+                            </Border>
+                        </StackPanel>
+                    </Grid>
+                    <StackPanel Visibility="{Binding NoMatch, Converter={StaticResource Visible}}">
+                        <TextBlock Text="No replays yet." Style="{StaticResource StateTextStyle}" Margin="{StaticResource Gap.Text}"/>
+                        <TextBlock Text="Your last match shows here after a game." Style="{StaticResource PanelTextStyle}" Margin="0,4,0,0"/>
                     </StackPanel>
-                </DockPanel>
-            </Button>
-            <Button Grid.Column="2" Style="{StaticResource CardButtonStyle}" Padding="14,0" Tag="replays" Click="Tile_Click">
-                <DockPanel>
-                    <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="12" Background="#29B07AFF" Margin="0,0,12,0">
-                        <c:Icon Kind="film" Width="20" Height="20" Foreground="#C3A0FF"/>
-                    </Border>
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Replays" Style="{StaticResource TileTitle}"/>
-                        <TextBlock x:Name="ReplaysTileText" Style="{StaticResource TileSub}"/>
-                    </StackPanel>
-                </DockPanel>
-            </Button>
-            <Button Grid.Column="4" Style="{StaticResource CardButtonStyle}" Padding="14,0" Tag="hotkeys" Click="Tile_Click">
-                <DockPanel>
-                    <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="12" Background="#2652D273" Margin="0,0,12,0">
-                        <c:Icon Kind="keyboard" Width="20" Height="20" Foreground="#7BE39A"/>
-                    </Border>
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Hotkeys" Style="{StaticResource TileTitle}"/>
-                        <TextBlock Text="Every army, every button" Style="{StaticResource TileSub}"/>
-                    </StackPanel>
-                </DockPanel>
-            </Button>
-            <Button Grid.Column="6" Style="{StaticResource CardButtonStyle}" Padding="14,0" Tag="addons" Click="Tile_Click">
-                <DockPanel>
-                    <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="12" Background="#24FECD03" Margin="0,0,12,0">
-                        <c:Icon Kind="layers" Width="20" Height="20" Foreground="#FECD03"/>
-                    </Border>
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="Control bar" Style="{StaticResource TileTitle}"/>
-                        <TextBlock x:Name="BarTileText" Style="{StaticResource TileSub}"/>
-                    </StackPanel>
-                </DockPanel>
-            </Button>
-        </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource PanelStyle}" Margin="{StaticResource Gap.Group}">
+                <StackPanel>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource QuietButtonStyle}" Margin="16,0,0,0" VerticalAlignment="Center"
+                                Command="{Binding ReviewHealthCommand}" Visibility="{Binding HealthHasIssues, Converter={StaticResource Visible}}">
+                            <TextBlock Text="Review" Style="{StaticResource ButtonLabelStyle}"/>
+                        </Button>
+                        <TextBlock Text="Health" Style="{StaticResource PanelTitleStyle}" VerticalAlignment="Center"/>
+                    </DockPanel>
+                    <DockPanel Margin="{StaticResource Gap.Actions}">
+                        <c:Icon DockPanel.Dock="Left" Kind="{Binding HealthSign}" Width="16" Height="16" Margin="0,2,8,0" VerticalAlignment="Top">
+                            <!-- The state's colour beside its sign and its words -->
+                            <c:Icon.Style>
+                                <Style TargetType="c:Icon">
+                                    <Setter Property="Foreground" Value="{StaticResource Warning}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HealthIsClear}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource Success}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding HealthIsProblem}" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource Problem}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding HealthReady}" Value="False">
+                                            <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </c:Icon.Style>
+                        </c:Icon>
+                        <TextBlock Text="{Binding HealthText}" Style="{StaticResource StateTextStyle}" TextWrapping="Wrap"/>
+                    </DockPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
     </Grid>
 </Page>

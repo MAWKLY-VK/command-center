@@ -6,39 +6,76 @@
     Background="Transparent">
 
     <Page.Resources>
-        <!-- The shared sidebar tab, a little shorter so all sections fit -->
-        <Style x:Key="NavTabStyle" TargetType="RadioButton" BasedOn="{StaticResource NavTabStyle}">
-            <Setter Property="Height" Value="38"/>
-            <Setter Property="FontSize" Value="12"/>
-        </Style>
+        <!-- One measured row of the diagnostics: its name, its level as an icon and a word, and what was measured -->
+        <DataTemplate x:Key="DiagnosticRowTemplate">
+            <Grid Margin="0,4,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="DiagnosticName"/>
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="DiagnosticLevel"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding Name}" Style="{StaticResource StateTextStyle}" Foreground="{StaticResource Text.Secondary}" VerticalAlignment="Top" Margin="0,0,24,0"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,0,24,0">
+                    <c:Icon x:Name="LevelIcon" Kind="clock" Width="16" Height="16" Margin="0,0,8,0" Foreground="{StaticResource Text.Secondary}"/>
+                    <TextBlock x:Name="LevelWord" Text="{Binding LevelText}" Style="{StaticResource StateTextStyle}"/>
+                </StackPanel>
+                <TextBlock Grid.Column="2" Text="{Binding Text}" Style="{StaticResource StateTextStyle}" TextWrapping="Wrap" VerticalAlignment="Top"/>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Level}" Value="Good">
+                    <Setter TargetName="LevelIcon" Property="Kind" Value="check-circle"/>
+                    <Setter TargetName="LevelIcon" Property="Foreground" Value="{StaticResource Success}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Level}" Value="Fair">
+                    <Setter TargetName="LevelIcon" Property="Kind" Value="alert"/>
+                    <Setter TargetName="LevelIcon" Property="Foreground" Value="{StaticResource Warning}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Level}" Value="Bad">
+                    <Setter TargetName="LevelIcon" Property="Kind" Value="x-circle"/>
+                    <Setter TargetName="LevelIcon" Property="Foreground" Value="{StaticResource Problem}"/>
+                    <Setter TargetName="LevelWord" Property="Foreground" Value="{StaticResource Problem}"/>
+                    <Setter TargetName="LevelWord" Property="FontWeight" Value="SemiBold"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Level}" Value="Unknown">
+                    <Setter TargetName="LevelIcon" Property="Kind" Value="help-circle"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Level}" Value="Info">
+                    <Setter TargetName="LevelIcon" Property="Visibility" Value="Collapsed"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
 
+        <!-- One line of a plugin's settings file: a file's name as a heading, then its values in the data face -->
+        <DataTemplate x:Key="PluginLineTemplate">
+            <Grid>
+                <TextBlock x:Name="Value" Text="{Binding Shown}" Style="{StaticResource DataTextStyle}" TextWrapping="Wrap" TextTrimming="None" Margin="0,4,0,0"/>
+                <TextBlock x:Name="Heading" Text="{Binding Text}" Style="{StaticResource GroupTitleStyle}" TextWrapping="Wrap" Margin="0,16,0,0" Visibility="Collapsed"/>
+                <TextBlock x:Name="Note" Text="{Binding Text}" Style="{StaticResource StateTextStyle}" TextWrapping="Wrap" Margin="0,4,0,0" Visibility="Collapsed"/>
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsHeading}" Value="True">
+                    <Setter TargetName="Value" Property="Visibility" Value="Collapsed"/>
+                    <Setter TargetName="Heading" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsNote}" Value="True">
+                    <Setter TargetName="Value" Property="Visibility" Value="Collapsed"/>
+                    <Setter TargetName="Note" Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
 
-        <!-- Numeric TextBox style -->
-        <Style x:Key="NumericBoxStyle" TargetType="TextBox">
-            <Setter Property="Background" Value="#D90D1328"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#33FFFFFF"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="Width" Value="120"/>
-            <Setter Property="Height" Value="32"/>
-            <Setter Property="CaretBrush" Value="White"/>
-            <Setter Property="SelectionBrush" Value="#2980FF"/>
-        </Style>
+        <!-- One choice of a set, as a ring and its label -->
+        <DataTemplate x:Key="HttpChoiceTemplate">
+            <RadioButton GroupName="HttpVersion" Style="{StaticResource ChoiceStyle}" IsChecked="{Binding Selected}">
+                <TextBlock Text="{Binding Label}" Style="{StaticResource ButtonLabelStyle}"/>
+            </RadioButton>
+        </DataTemplate>
 
-        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock" BasedOn="{StaticResource SectionHeaderStyle}">
-            <Setter Property="Margin" Value="0,0,0,16"/>
-        </Style>
-
-        <!-- Field label style -->
-        <Style x:Key="FieldLabelStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="MinWidth" Value="220"/>
-        </Style>
+        <DataTemplate x:Key="PluginChoiceTemplate">
+            <RadioButton GroupName="AntiCheat" Style="{StaticResource ChoiceStyle}" IsChecked="{Binding Selected}">
+                <TextBlock Text="{Binding Label}" Style="{StaticResource ButtonLabelStyle}"/>
+            </RadioButton>
+        </DataTemplate>
     </Page.Resources>
 
     <Grid>
@@ -47,8 +84,8 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Sidebar -->
-        <Border Grid.Column="0" Style="{StaticResource GlassCardStyle}" Margin="40,14,0,22" Padding="0,6">
+        <!-- The sections, Command Center's own first, then Generals Online's -->
+        <Border Grid.Column="0" Style="{StaticResource PanelStyle}" Margin="40,24,0,24" Padding="0,8">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
@@ -56,446 +93,632 @@
             </Grid.RowDefinitions>
 
             <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Focusable="False">
-            <StackPanel Margin="0,8,0,0">
-                <RadioButton x:Name="rbGame" Content="GAME FOLDER" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" IsChecked="True"
-                             Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbCamera" Content="CAMERA" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbChat" Content="CHAT" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbInput" Content="INPUT" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbGraphics" Content="GRAPHICS" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbSocial" Content="SOCIAL" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbNetwork" Content="NETWORK" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbDataPacks" Content="DATA PACKS" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbPlugins" Content="PLUGINS" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbLauncher" Content="LAUNCHER" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
+            <StackPanel>
+                <RadioButton x:Name="rbGame" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" IsChecked="True" Checked="Tab_Checked">
+                    <TextBlock Text="Game folder" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbAppearance" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Appearance" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbAddons" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Add-ons" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbCamera" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Camera" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbChat" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Chat" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbInput" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Input" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbGraphics" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Graphics" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbSocial" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Social" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbNetwork" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Network" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbDataPacks" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Data packs" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbPlugins" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Plugins" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbLauncher" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Launcher" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
             </StackPanel>
             </ScrollViewer>
 
-            <Button Grid.Row="1" x:Name="btnBack"
-                    Content="SAVE &amp; GO BACK"
-                    Style="{StaticResource BackButtonStyle}"
-                    Click="BtnBack_Click"/>
+            <Button Grid.Row="1" x:Name="btnBack" Style="{StaticResource QuietButtonStyle}" Margin="16,8,16,8" Click="BtnBack_Click">
+                <TextBlock Text="Save and go back" Style="{StaticResource ButtonLabelStyle}"/>
+            </Button>
         </Grid>
         </Border>
 
         <!-- Content area -->
-        <ScrollViewer Grid.Column="1" Padding="28,14,40,22" VerticalScrollBarVisibility="Auto"
+        <ScrollViewer x:Name="SectionScroller" Grid.Column="1" Padding="28,14,40,22" VerticalScrollBarVisibility="Auto"
                       Background="Transparent">
 
             <!-- All panels overlap in the same cell — only one visible at a time -->
             <Grid>
-                <!-- GAME FOLDER: which Zero Hour this launcher plays, and where the game keeps its data -->
-                <StackPanel x:Name="PanelGame" Visibility="Visible">
-                    <TextBlock Text="GAME FOLDER" Style="{StaticResource SectionHeaderStyle}"/>
-                    <Border Style="{StaticResource GlassCardStyle}" Padding="18,16" MaxWidth="760" HorizontalAlignment="Stretch">
+                <!-- Game folder: which Zero Hour is played, where that came from, and where the game keeps its data -->
+                <Grid x:Name="PanelGame" Visibility="Visible" DataContext="{Binding GameFolder}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="760"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Game folder" Style="{StaticResource PageTitleStyle}"/>
+                    <TextBlock Text="{Binding Note}" Style="{StaticResource PageIntroStyle}"/>
+                    <Border Style="{StaticResource PanelStyle}">
                         <StackPanel>
                             <DockPanel>
-                                <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="12" Background="#24FECD03" Margin="0,0,14,0">
-                                    <c:Icon Kind="folder" Width="20" Height="20" Foreground="#FECD03"/>
-                                </Border>
-                                <Button DockPanel.Dock="Right" Style="{StaticResource DiagButtonStyle}" Height="38" Margin="16,0,0,0"
-                                        VerticalAlignment="Center" Click="ChangeFolder_Click">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource QuietButtonStyle}" Margin="16,0,0,0" VerticalAlignment="Center"
+                                        Command="{Binding ChangeFolderCommand}">
                                     <StackPanel Orientation="Horizontal">
-                                        <c:Icon Kind="folder" Width="15" Height="15" Margin="0,0,8,0"/>
-                                        <TextBlock Text="CHANGE FOLDER" VerticalAlignment="Center"/>
+                                        <c:Icon Kind="folder" Width="16" Height="16" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Change folder" Style="{StaticResource ButtonLabelStyle}"/>
                                     </StackPanel>
                                 </Button>
-                                <StackPanel VerticalAlignment="Center">
+                                <StackPanel>
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="Game folder" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/>
-                                        <Border x:Name="SourceBadge" Height="22" CornerRadius="7" Padding="9,0" Margin="10,0,0,0" VerticalAlignment="Center">
-                                            <TextBlock x:Name="SourceBadgeText" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Zero Hour" Style="{StaticResource PanelTitleStyle}"/>
+                                        <Border Style="{StaticResource TagStyle}" Margin="12,0,0,0">
+                                            <TextBlock Text="{Binding Source}" Style="{StaticResource TagTextStyle}"/>
                                         </Border>
                                     </StackPanel>
-                                    <TextBlock x:Name="txtGameFolder" FontSize="13" Foreground="#D5D9EA"
-                                               Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding Folder}" Style="{StaticResource DataTextStyle}" TextWrapping="Wrap" TextTrimming="None" Margin="{StaticResource Gap.Text}"/>
                                 </StackPanel>
                             </DockPanel>
-                            <WrapPanel x:Name="GameChips" Margin="56,12,0,0"/>
-                            <TextBlock x:Name="txtGameNote" Style="{StaticResource HintStyle}" Margin="56,6,0,0" TextWrapping="Wrap"/>
+                            <ItemsControl ItemsSource="{Binding Found}" Margin="{StaticResource Gap.Actions}" Focusable="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,24,0">
+                                            <c:Icon Kind="check-circle" Width="16" Height="16" Margin="0,0,8,0" Foreground="{StaticResource Success}"/>
+                                            <TextBlock Text="{Binding}" Style="{StaticResource StateTextStyle}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ItemsControl ItemsSource="{Binding Missing}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="{StaticResource Gap.Text}">
+                                            <c:Icon Kind="alert" Width="16" Height="16" Margin="0,0,8,0" Foreground="{StaticResource Problem}"/>
+                                            <TextBlock Text="{Binding}" Style="{StaticResource StateTextStyle}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <Border Style="{StaticResource PanelDividerStyle}"/>
+
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource QuietButtonStyle}" Margin="16,0,0,0" VerticalAlignment="Center"
+                                        Command="{Binding OpenDataFolderCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <c:Icon Kind="external" Width="16" Height="16" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Open folder" Style="{StaticResource ButtonLabelStyle}"/>
+                                    </StackPanel>
+                                </Button>
+                                <StackPanel>
+                                    <TextBlock Text="Settings, maps and replays" Style="{StaticResource PanelTitleStyle}"/>
+                                    <TextBlock Text="{Binding DataFolder}" Style="{StaticResource DataTextStyle}" TextWrapping="Wrap" TextTrimming="None" Margin="{StaticResource Gap.Text}"/>
+                                    <TextBlock Text="Where the game itself keeps them, also when an installer moved them." Style="{StaticResource PanelTextStyle}"/>
+                                </StackPanel>
+                            </DockPanel>
                         </StackPanel>
                     </Border>
+                </StackPanel>
+                </Grid>
 
-                    <Border Style="{StaticResource GlassCardStyle}" Padding="18,14" Margin="0,12,0,0" MaxWidth="760" HorizontalAlignment="Stretch">
-                        <DockPanel>
-                            <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="12" Background="#242980FF" Margin="0,0,14,0">
-                                <c:Icon Kind="drive" Width="20" Height="20" Foreground="#7AB4FF"/>
-                            </Border>
-                            <Button DockPanel.Dock="Right" Style="{StaticResource IconButtonStyle}" Width="38" Height="38" Margin="16,0,0,0"
-                                    VerticalAlignment="Center" Click="OpenData_Click" ToolTip="OPEN FOLDER" AutomationProperties.Name="OPEN FOLDER">
-                                <c:Icon Kind="external" Width="16" Height="16"/>
-                            </Button>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="Settings, maps and replays" FontSize="15" FontWeight="Bold"/>
-                                <TextBlock x:Name="txtDataFolder" FontSize="13" Foreground="#D5D9EA"
-                                           Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Text="Where the game itself keeps them, also when an installer moved them." Style="{StaticResource HintStyle}"
-                                           Margin="0,3,0,0" TextWrapping="Wrap"/>
+                <!-- Camera: how high and how fast the camera moves (settings.json) -->
+                <Grid x:Name="PanelCamera" Visibility="Collapsed" DataContext="{Binding Game}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="760"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Camera" Style="{StaticResource PageTitleStyle}"/>
+                    <TextBlock Text="How high and how fast the camera moves in Generals Online." Style="{StaticResource PageIntroStyle}"/>
+                    <Border Style="{StaticResource PanelStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel VerticalAlignment="Center" Margin="0,0,24,0">
+                                <TextBlock Text="Maximum height" Style="{StaticResource StateTextStyle}"/>
+                                <TextBlock Text="Applies only when you are the lobby host." Style="{StaticResource PanelTextStyle}" Margin="0,4,0,0"/>
                             </StackPanel>
+                            <TextBox Grid.Column="1" Style="{StaticResource FieldStyle}" c:Digits.Only="True" AutomationProperties.Name="Maximum camera height"
+                                     Text="{Binding MaxCameraHeight, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Grid.Row="1" Text="Minimum height" Style="{StaticResource StateTextStyle}" Margin="{StaticResource Gap.Actions}"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" Style="{StaticResource FieldStyle}" Margin="{StaticResource Gap.Actions}" c:Digits.Only="True"
+                                     AutomationProperties.Name="Minimum camera height" Text="{Binding MinCameraHeight, UpdateSourceTrigger=PropertyChanged}"/>
+
+                            <TextBlock Grid.Row="2" Text="Movement speed" Style="{StaticResource StateTextStyle}" Margin="{StaticResource Gap.Actions}"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource FieldStyle}" Margin="{StaticResource Gap.Actions}" c:Digits.Only="True"
+                                     AutomationProperties.Name="Camera movement speed in percent" Text="{Binding CameraSpeed, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Grid.Row="2" Grid.Column="2" Text="%" Style="{StaticResource FieldUnitStyle}" Margin="8,16,0,0"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+                </Grid>
+
+                <!-- Chat: how long messages stay on screen (settings.json) -->
+                <Grid x:Name="PanelChat" Visibility="Collapsed" DataContext="{Binding Game}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="760"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Chat" Style="{StaticResource PageTitleStyle}"/>
+                    <TextBlock Text="How long chat messages stay on screen in Generals Online." Style="{StaticResource PageIntroStyle}"/>
+                    <Border Style="{StaticResource PanelStyle}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" Text="seconds" Style="{StaticResource FieldUnitStyle}"/>
+                            <TextBox DockPanel.Dock="Right" Style="{StaticResource FieldStyle}" c:Digits.Only="True" AutomationProperties.Name="Seconds before chat messages fade"
+                                     Text="{Binding ChatDuration, UpdateSourceTrigger=PropertyChanged}"/>
+                            <TextBlock Text="Messages fade after" Style="{StaticResource StateTextStyle}"/>
                         </DockPanel>
                     </Border>
                 </StackPanel>
+                </Grid>
 
-                <!-- CAMERA -->
-                <StackPanel x:Name="PanelCamera" Visibility="Collapsed">
-                    <TextBlock Text="CAMERA" Style="{StaticResource SectionHeaderStyle}"/>
-                    <Grid Margin="0,0,0,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="36"/>
-                            <RowDefinition Height="36"/>
-                            <RowDefinition Height="36"/>
-                        </Grid.RowDefinitions>
+                <!-- Input: cursor lock and edge scrolling, in fullscreen and in a window (Options.ini) -->
+                <Grid x:Name="PanelInput" Visibility="Collapsed" DataContext="{Binding Game}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="760"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Input" Style="{StaticResource PageTitleStyle}"/>
+                    <TextBlock Text="How the mouse works in the game, in fullscreen and in a window." Style="{StaticResource PageIntroStyle}"/>
+                    <Border Style="{StaticResource PanelStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto" MinWidth="128"/>
+                                <ColumnDefinition Width="Auto" MinWidth="128"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Column="1" Text="Fullscreen" Style="{StaticResource TableHeadStyle}"/>
+                            <TextBlock Grid.Column="2" Text="In a window" Style="{StaticResource TableHeadStyle}"/>
+                            <Border Grid.Row="1" Grid.ColumnSpan="3" Style="{StaticResource TableRuleStyle}"/>
 
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Maximum Camera Height *"
-                                   Style="{StaticResource FieldLabelStyle}"/>
-                        <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtMaxCameraHeight"
-                                 Style="{StaticResource NumericBoxStyle}" Text="310"
-                                 PreviewTextInput="NumericOnly_PreviewTextInput"/>
-                        <TextBlock Grid.Row="0" Grid.Column="2"
-                                   Text="* Only applies when you are the lobby host"
-                                   Foreground="#888888" FontSize="11"
-                                   VerticalAlignment="Center" Margin="12,0,0,0"/>
+                            <TextBlock Grid.Row="2" Text="Cursor lock" Style="{StaticResource StateTextStyle}"/>
+                            <CheckBox Grid.Row="2" Grid.Column="1" Style="{StaticResource CheckStyle}" MinWidth="32" HorizontalAlignment="Left"
+                                      AutomationProperties.Name="Cursor lock in fullscreen" IsChecked="{Binding CursorLockFullscreen}"/>
+                            <CheckBox Grid.Row="2" Grid.Column="2" Style="{StaticResource CheckStyle}" MinWidth="32" HorizontalAlignment="Left"
+                                      AutomationProperties.Name="Cursor lock in a window" IsChecked="{Binding CursorLockWindowed}"/>
+                            <TextBlock Grid.Row="3" Text="Keeps the cursor inside the game." Style="{StaticResource PanelTextStyle}" Margin="0,0,24,0"/>
 
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Minimum Camera Height"
-                                   Style="{StaticResource FieldLabelStyle}"/>
-                        <TextBox Grid.Row="1" Grid.Column="1" x:Name="txtMinCameraHeight"
-                                 Style="{StaticResource NumericBoxStyle}" Text="210"
-                                 PreviewTextInput="NumericOnly_PreviewTextInput"/>
-
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Camera Movement Speed (%)"
-                                   Style="{StaticResource FieldLabelStyle}"/>
-                        <TextBox Grid.Row="2" Grid.Column="1" x:Name="txtCameraMovementSpeed"
-                                 Style="{StaticResource NumericBoxStyle}" Text="100"
-                                 PreviewTextInput="NumericOnly_PreviewTextInput"/>
-                    </Grid>
+                            <TextBlock Grid.Row="4" Text="Edge scrolling" Style="{StaticResource StateTextStyle}" Margin="{StaticResource Gap.Actions}"/>
+                            <CheckBox Grid.Row="4" Grid.Column="1" Style="{StaticResource CheckStyle}" MinWidth="32" HorizontalAlignment="Left" Margin="{StaticResource Gap.Actions}"
+                                      AutomationProperties.Name="Edge scrolling in fullscreen" IsChecked="{Binding EdgeScrollFullscreen}"/>
+                            <CheckBox Grid.Row="4" Grid.Column="2" Style="{StaticResource CheckStyle}" MinWidth="32" HorizontalAlignment="Left" Margin="{StaticResource Gap.Actions}"
+                                      AutomationProperties.Name="Edge scrolling in a window" IsChecked="{Binding EdgeScrollWindowed}"/>
+                            <TextBlock Grid.Row="5" Text="Moves the view when the cursor reaches an edge of the screen." Style="{StaticResource PanelTextStyle}" Margin="0,0,24,0"/>
+                        </Grid>
+                    </Border>
                 </StackPanel>
+                </Grid>
 
-                <!-- CHAT -->
-                <StackPanel x:Name="PanelChat" Visibility="Collapsed">
-                    <TextBlock Text="CHAT" Style="{StaticResource SectionHeaderStyle}"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <TextBlock Text="Fade Out Duration (Seconds)"
-                                   Style="{StaticResource FieldLabelStyle}"/>
-                        <TextBox x:Name="txtChatDuration"
-                                 Style="{StaticResource NumericBoxStyle}" Text="30"
-                                 PreviewTextInput="NumericOnly_PreviewTextInput"/>
-                    </StackPanel>
-                </StackPanel>
-
-                <!-- INPUT -->
-                <StackPanel x:Name="PanelInput" Visibility="Collapsed">
-                    <TextBlock Text="INPUT" Style="{StaticResource SectionHeaderStyle}"/>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="36"/>
-                            <RowDefinition Height="36"/>
-                        </Grid.RowDefinitions>
-                        <CheckBox Grid.Row="0" Grid.Column="0" x:Name="chkCursorLockWindowed"
-                                  Content="Cursor Lock (Windowed)"/>
-                        <CheckBox Grid.Row="0" Grid.Column="1" x:Name="chkCursorLockFullscreen"
-                                  Content="Cursor Lock (Fullscreen)"/>
-                        <CheckBox Grid.Row="1" Grid.Column="0" x:Name="chkEdgeScrollingWindowed"
-                                  Content="Edge Scrolling (Windowed)"/>
-                        <CheckBox Grid.Row="1" Grid.Column="1" x:Name="chkEdgeScrollingFullscreen"
-                                  Content="Edge Scrolling (Fullscreen)"/>
-                    </Grid>
-                </StackPanel>
-
-                <!-- GRAPHICS -->
-                <StackPanel x:Name="PanelGraphics" Visibility="Collapsed" Margin="0,0,0,0">
-                    <TextBlock Text="GRAPHICS" Style="{StaticResource SectionHeaderStyle}"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <CheckBox x:Name="chkLimitFramerate" Content="Limit Framerate"
-                                  Checked="ChkLimitFramerate_Changed"
-                                  Unchecked="ChkLimitFramerate_Changed"
-                                  VerticalAlignment="Center" Margin="0,0,16,0"/>
-                        <TextBox x:Name="txtFPSLimit"
-                                 Style="{StaticResource NumericBoxStyle}" Text="60"
-                                 IsEnabled="False"
-                                 PreviewTextInput="NumericOnly_PreviewTextInput"/>
-                        <TextBlock Text="FPS" Foreground="White" VerticalAlignment="Center" Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <CheckBox x:Name="chkStatsOverlay" Content="Show Statistics Overlay"/>
-                    <CheckBox x:Name="chkWindowed" Content="Windowed" Margin="0,8,0,4"
-                              Checked="ChkWindowed_Changed"
-                              Unchecked="ChkWindowed_Changed"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                        <TextBlock Text="Windowed Resolution" Style="{StaticResource FieldLabelStyle}"/>
-                        <ComboBox x:Name="cmbWindowedResolution" Width="160" IsEnabled="False"
-                                  Background="#0F1426" Foreground="White" BorderBrush="#2E3550"/>
-                    </StackPanel>
-                </StackPanel>
-
-                <!-- SOCIAL -->
-                <StackPanel x:Name="PanelSocial" Visibility="Collapsed">
-                    <TextBlock Text="NOTIFICATIONS" Style="{StaticResource SectionHeaderStyle}"/>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="36"/>
-                            <RowDefinition Height="36"/>
-                            <RowDefinition Height="36"/>
-                            <RowDefinition Height="36"/>
-                        </Grid.RowDefinitions>
-
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="In-Game"
-                                   Foreground="#888888" FontSize="11" Margin="0,0,0,6"/>
-                        <TextBlock Grid.Row="0" Grid.Column="1" Text="In Menus"
-                                   Foreground="#888888" FontSize="11" Margin="0,0,0,6"/>
-
-                        <CheckBox Grid.Row="1" Grid.Column="0" x:Name="chkFriendOnlineInGame"
-                                  Content="Friend Comes Online (In-Game)"/>
-                        <CheckBox Grid.Row="1" Grid.Column="1" x:Name="chkFriendOnlineInMenus"
-                                  Content="Friend Comes Online (In Menus)"/>
-                        <CheckBox Grid.Row="2" Grid.Column="0" x:Name="chkFriendOfflineInGame"
-                                  Content="Friend Goes Offline (In-Game)"/>
-                        <CheckBox Grid.Row="2" Grid.Column="1" x:Name="chkFriendOfflineInMenus"
-                                  Content="Friend Goes Offline (In Menus)"/>
-                        <CheckBox Grid.Row="3" Grid.Column="0" x:Name="chkFriendRequestInGame"
-                                  Content="Incoming Friend Request (In-Game)"/>
-                        <CheckBox Grid.Row="3" Grid.Column="1" x:Name="chkFriendRequestInMenus"
-                                  Content="Incoming Friend Request (In Menus)"/>
-                        <CheckBox Grid.Row="4" Grid.Column="0" x:Name="chkFriendAcceptedInGame"
-                                  Content="Outgoing Request Accepted (In-Game)"/>
-                        <CheckBox Grid.Row="4" Grid.Column="1" x:Name="chkFriendAcceptedInMenus"
-                                  Content="Outgoing Request Accepted (In Menus)"/>
-                    </Grid>
-                </StackPanel>
-
-                <!-- NETWORK -->
-                <StackPanel x:Name="PanelNetwork" Visibility="Collapsed">
-                    <TextBlock Text="NETWORK" Style="{StaticResource SectionHeaderStyle}"/>
-                    <TextBlock
-                        Text="⚠ These are advanced options that you should not change unless you know what you are doing."
-                        Foreground="#FF6060" FontWeight="Bold" FontSize="12"
-                        TextWrapping="Wrap" Margin="0,0,0,16"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <TextBlock Text="HTTP Version" Style="{StaticResource FieldLabelStyle}" MinWidth="100"/>
-                        <ComboBox x:Name="cmbHTTPVersion" Width="200" SelectedIndex="0"
-                                  Background="#0F1426" Foreground="White" BorderBrush="#2E3550">
-                            <ComboBoxItem Content="Automatic"/>
-                            <ComboBoxItem Content="1.0"/>
-                            <ComboBoxItem Content="1.1"/>
-                            <ComboBoxItem Content="2.0"/>
-                            <ComboBoxItem Content="3.0"/>
-                        </ComboBox>
-                    </StackPanel>
-                    <CheckBox x:Name="chkAlternativeEndpoint" Content="Use Alternative Endpoints"/>
-
-                    <!-- ── DIAGNOSTICS ──────────────────────────────────────── -->
-                    <Rectangle Height="1" Fill="#252550" Margin="0,16,0,16"/>
-                    <TextBlock Text="DIAGNOSTICS" Style="{StaticResource SectionHeaderStyle}" Margin="0,0,0,12"/>
-
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <Button x:Name="btnRunDiagnostics"
-                                Content="▶  RUN DIAGNOSTICS"
-                                Style="{StaticResource DiagButtonStyle}"
-                                Margin="0,0,10,0"
-                                Click="BtnRunDiagnostics_Click"/>
-                        <Button x:Name="btnCopyDiag"
-                                Content="⎘  COPY"
-                                Style="{StaticResource DiagButtonStyle}"
-                                IsEnabled="False"
-                                Click="BtnCopyDiag_Click"/>
-                    </StackPanel>
-
-                    <!-- Results panel — hidden until first run -->
-                    <Border x:Name="panelDiagResults" Visibility="Collapsed"
-                            Background="#07091C" BorderBrush="#1FFFFFFF" BorderThickness="1"
-                            Padding="14,12,14,14" Margin="0,0,0,10">
+                <!-- Graphics: frame rate and the overlay (settings.json), window mode and size (launcher.json) -->
+                <Grid x:Name="PanelGraphics" Visibility="Collapsed" DataContext="{Binding Game}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="760"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Graphics" Style="{StaticResource PageTitleStyle}"/>
+                    <TextBlock Text="Frame rate, the statistics overlay and window mode for Generals Online." Style="{StaticResource PageIntroStyle}"/>
+                    <Border Style="{StaticResource PanelStyle}">
                         <StackPanel>
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Text="FPS" Style="{StaticResource FieldUnitStyle}"/>
+                                <TextBox DockPanel.Dock="Right" Style="{StaticResource FieldStyle}" c:Digits.Only="True" AutomationProperties.Name="Frame rate limit"
+                                         Text="{Binding FpsLimit, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding LimitFramerate}"/>
+                                <CheckBox Style="{StaticResource CheckStyle}" HorizontalAlignment="Left" IsChecked="{Binding LimitFramerate}">
+                                    <TextBlock Text="Limit the frame rate" Style="{StaticResource ButtonLabelStyle}"/>
+                                </CheckBox>
+                            </DockPanel>
+                            <CheckBox Style="{StaticResource CheckStyle}" HorizontalAlignment="Left" Margin="{StaticResource Gap.Text}" IsChecked="{Binding StatsOverlay}">
+                                <TextBlock Text="Show the statistics overlay" Style="{StaticResource ButtonLabelStyle}"/>
+                            </CheckBox>
 
-                            <!-- Internet baseline -->
-                            <TextBlock Text="INTERNET" Foreground="#40FFFFFF" FontSize="10"
-                                       FontWeight="Bold" FontFamily="Segoe UI" Margin="0,0,0,6"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <Ellipse x:Name="dotGeo" Width="8" Height="8" Fill="#40FFFFFF"
-                                         VerticalAlignment="Center" Margin="0,0,9,0"/>
-                                <TextBlock Text="Your Country" Foreground="#A7AECB"
-                                           FontSize="12" VerticalAlignment="Center" MinWidth="210"/>
-                                <TextBlock x:Name="valGeo" Text="—" Foreground="#606080"
-                                           FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
-                                <Ellipse x:Name="dotCF" Width="8" Height="8" Fill="#40FFFFFF"
-                                         VerticalAlignment="Center" Margin="0,0,9,0"/>
-                                <TextBlock Text="Cloudflare" Foreground="#A7AECB"
-                                           FontSize="12" VerticalAlignment="Center" MinWidth="210"/>
-                                <TextBlock x:Name="valCF" Text="—" Foreground="#606080"
-                                           FontSize="12" VerticalAlignment="Center"/>
-                            </StackPanel>
+                            <Border Style="{StaticResource PanelDividerStyle}"/>
 
-                            <!-- Game server -->
-                            <TextBlock Text="GAME SERVER" Foreground="#40FFFFFF" FontSize="10"
-                                       FontWeight="Bold" FontFamily="Segoe UI" Margin="0,10,0,6"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <Ellipse x:Name="dotDns" Width="8" Height="8" Fill="#40FFFFFF"
-                                         VerticalAlignment="Center" Margin="0,0,9,0"/>
-                                <TextBlock Text="DNS Resolution" Foreground="#A7AECB"
-                                           FontSize="12" VerticalAlignment="Center" MinWidth="210"/>
-                                <TextBlock x:Name="valDns" Text="—" Foreground="#606080"
-                                           FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                            <CheckBox Style="{StaticResource CheckStyle}" HorizontalAlignment="Left" IsChecked="{Binding Windowed}">
+                                <TextBlock Text="Play in a window" Style="{StaticResource ButtonLabelStyle}"/>
+                            </CheckBox>
+                            <StackPanel Visibility="{Binding Windowed, Converter={StaticResource Visible}}">
+                                <TextBlock Text="Window size" Style="{StaticResource StateTextStyle}" Margin="{StaticResource Gap.Actions}"/>
+                                <ListBox Style="{StaticResource ChipGridStyle}" Margin="{StaticResource Gap.Text}" ItemsSource="{Binding Resolutions}"
+                                         SelectedValuePath="Value" SelectedValue="{Binding Resolution}" AutomationProperties.Name="Window size">
+                                    <!-- An explicit label, so the chip's own colour reaches the text -->
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Label}" Style="{StaticResource ButtonLabelStyle}"/>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <Ellipse x:Name="dotPing" Width="8" Height="8" Fill="#40FFFFFF"
-                                         VerticalAlignment="Center" Margin="0,0,9,0"/>
-                                <TextBlock Text="Server Ping  (ICMP)" Foreground="#A7AECB"
-                                           FontSize="12" VerticalAlignment="Center" MinWidth="210"/>
-                                <TextBlock x:Name="valPing" Text="—" Foreground="#606080"
-                                           FontSize="12" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <Ellipse x:Name="dotProto" Width="8" Height="8" Fill="#40FFFFFF"
-                                         VerticalAlignment="Center" Margin="0,0,9,0"/>
-                                <TextBlock Text="Protocol" Foreground="#A7AECB"
-                                           FontSize="12" VerticalAlignment="Center" MinWidth="210"/>
-                                <TextBlock x:Name="valProto" Text="—" Foreground="#606080"
-                                           FontSize="12" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <Ellipse x:Name="dotHttp" Width="8" Height="8" Fill="#40FFFFFF"
-                                         VerticalAlignment="Center" Margin="0,0,9,0"/>
-                                <TextBlock Text="HTTP Latency" Foreground="#A7AECB"
-                                           FontSize="12" VerticalAlignment="Center" MinWidth="210"/>
-                                <TextBlock x:Name="valHttp" Text="—" Foreground="#606080"
-                                           FontSize="12" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
-                                <Ellipse x:Name="dotServer" Width="8" Height="8" Fill="#40FFFFFF"
-                                         VerticalAlignment="Center" Margin="0,0,9,0"/>
-                                <TextBlock Text="Server Status" Foreground="#A7AECB"
-                                           FontSize="12" VerticalAlignment="Center" MinWidth="210"/>
-                                <TextBlock x:Name="valServer" Text="—" Foreground="#606080"
-                                           FontSize="12" VerticalAlignment="Center"/>
-                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                </Grid>
 
-                            <!-- Connectivity -->
-                            <TextBlock Text="CONNECTIVITY" Foreground="#40FFFFFF" FontSize="10"
-                                       FontWeight="Bold" FontFamily="Segoe UI" Margin="0,10,0,6"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <Ellipse x:Name="dotCdn" Width="8" Height="8" Fill="#40FFFFFF"
-                                         VerticalAlignment="Center" Margin="0,0,9,0"/>
-                                <TextBlock Text="CDN  cdn.playgenerals.online" Foreground="#A7AECB"
-                                           FontSize="12" VerticalAlignment="Center" MinWidth="210"/>
-                                <TextBlock x:Name="valCdn" Text="—" Foreground="#606080"
-                                           FontSize="12" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <Ellipse x:Name="dotStun" Width="8" Height="8" Fill="#40FFFFFF"
-                                         VerticalAlignment="Center" Margin="0,0,9,0"/>
-                                <TextBlock Text="STUN  stun.playgenerals.online" Foreground="#A7AECB"
-                                           FontSize="12" VerticalAlignment="Center" MinWidth="210"/>
-                                <TextBlock x:Name="valStun" Text="—" Foreground="#606080"
-                                           FontSize="12" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <Ellipse x:Name="dotTurn" Width="8" Height="8" Fill="#40FFFFFF"
-                                         VerticalAlignment="Center" Margin="0,0,9,0"/>
-                                <TextBlock Text="TURN  turn.playgenerals.online" Foreground="#A7AECB"
-                                           FontSize="12" VerticalAlignment="Center" MinWidth="210"/>
-                                <TextBlock x:Name="valTurn" Text="—" Foreground="#606080"
-                                           FontSize="12" VerticalAlignment="Center"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
-                                <Ellipse x:Name="dotNat" Width="8" Height="8" Fill="#40FFFFFF"
-                                         VerticalAlignment="Center" Margin="0,0,9,0"/>
-                                <TextBlock Text="NAT Type" Foreground="#A7AECB"
-                                           FontSize="12" VerticalAlignment="Center" MinWidth="210"/>
-                                <TextBlock x:Name="valNat" Text="—" Foreground="#606080"
-                                           FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"/>
-                            </StackPanel>
+                <!-- Social: each friend notification, in a match and in the menus (settings.json) -->
+                <Grid x:Name="PanelSocial" Visibility="Collapsed" DataContext="{Binding Game}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="760"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Social" Style="{StaticResource PageTitleStyle}"/>
+                    <TextBlock Text="Which friend notifications Generals Online shows, in a match and in its menus." Style="{StaticResource PageIntroStyle}"/>
+                    <Border Style="{StaticResource PanelStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto" MinWidth="128"/>
+                                <ColumnDefinition Width="Auto" MinWidth="128"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Column="1" Text="In a match" Style="{StaticResource TableHeadStyle}"/>
+                            <TextBlock Grid.Column="2" Text="In menus" Style="{StaticResource TableHeadStyle}"/>
+                            <Border Grid.Row="1" Grid.ColumnSpan="3" Style="{StaticResource TableRuleStyle}"/>
 
+                            <TextBlock Grid.Row="2" Text="A friend comes online" Style="{StaticResource StateTextStyle}"/>
+                            <CheckBox Grid.Row="2" Grid.Column="1" Style="{StaticResource CheckStyle}" MinWidth="32" HorizontalAlignment="Left"
+                                      AutomationProperties.Name="A friend comes online, in a match" IsChecked="{Binding FriendOnlineInGame}"/>
+                            <CheckBox Grid.Row="2" Grid.Column="2" Style="{StaticResource CheckStyle}" MinWidth="32" HorizontalAlignment="Left"
+                                      AutomationProperties.Name="A friend comes online, in menus" IsChecked="{Binding FriendOnlineInMenus}"/>
+
+                            <TextBlock Grid.Row="3" Text="A friend goes offline" Style="{StaticResource StateTextStyle}" Margin="0,4,0,0"/>
+                            <CheckBox Grid.Row="3" Grid.Column="1" Style="{StaticResource CheckStyle}" MinWidth="32" HorizontalAlignment="Left" Margin="0,4,0,0"
+                                      AutomationProperties.Name="A friend goes offline, in a match" IsChecked="{Binding FriendOfflineInGame}"/>
+                            <CheckBox Grid.Row="3" Grid.Column="2" Style="{StaticResource CheckStyle}" MinWidth="32" HorizontalAlignment="Left" Margin="0,4,0,0"
+                                      AutomationProperties.Name="A friend goes offline, in menus" IsChecked="{Binding FriendOfflineInMenus}"/>
+
+                            <TextBlock Grid.Row="4" Text="Someone sends you a friend request" Style="{StaticResource StateTextStyle}" Margin="0,4,0,0"/>
+                            <CheckBox Grid.Row="4" Grid.Column="1" Style="{StaticResource CheckStyle}" MinWidth="32" HorizontalAlignment="Left" Margin="0,4,0,0"
+                                      AutomationProperties.Name="A friend request arrives, in a match" IsChecked="{Binding RequestInGame}"/>
+                            <CheckBox Grid.Row="4" Grid.Column="2" Style="{StaticResource CheckStyle}" MinWidth="32" HorizontalAlignment="Left" Margin="0,4,0,0"
+                                      AutomationProperties.Name="A friend request arrives, in menus" IsChecked="{Binding RequestInMenus}"/>
+
+                            <TextBlock Grid.Row="5" Text="Someone accepts your friend request" Style="{StaticResource StateTextStyle}" Margin="0,4,0,0"/>
+                            <CheckBox Grid.Row="5" Grid.Column="1" Style="{StaticResource CheckStyle}" MinWidth="32" HorizontalAlignment="Left" Margin="0,4,0,0"
+                                      AutomationProperties.Name="Your friend request is accepted, in a match" IsChecked="{Binding AcceptedInGame}"/>
+                            <CheckBox Grid.Row="5" Grid.Column="2" Style="{StaticResource CheckStyle}" MinWidth="32" HorizontalAlignment="Left" Margin="0,4,0,0"
+                                      AutomationProperties.Name="Your friend request is accepted, in menus" IsChecked="{Binding AcceptedInMenus}"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+                </Grid>
+
+                <!-- Network: the connection options (settings.json) and the diagnostics, on the direct route the game uses -->
+                <Grid x:Name="PanelNetwork" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="760"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Network" Style="{StaticResource PageTitleStyle}"/>
+                    <TextBlock Text="Connection options for Generals Online, and a check of your connection to its servers." Style="{StaticResource PageIntroStyle}"/>
+                    <Border Style="{StaticResource PanelStyle}" DataContext="{Binding Game}">
+                        <StackPanel>
+                            <DockPanel>
+                                <c:Icon DockPanel.Dock="Left" Kind="alert" Width="16" Height="16" Margin="0,2,8,0" VerticalAlignment="Top" Foreground="{StaticResource Warning}"/>
+                                <TextBlock Text="Advanced options: change them only if you know what they do." Style="{StaticResource StateTextStyle}" TextWrapping="Wrap"/>
+                            </DockPanel>
+                            <TextBlock Text="HTTP version" Style="{StaticResource StateTextStyle}" Margin="{StaticResource Gap.Actions}"/>
+                            <ItemsControl ItemsSource="{Binding HttpVersions}" ItemTemplate="{StaticResource HttpChoiceTemplate}" Margin="{StaticResource Gap.Text}" Focusable="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                            <CheckBox Style="{StaticResource CheckStyle}" HorizontalAlignment="Left" Margin="{StaticResource Gap.Actions}" IsChecked="{Binding AlternativeEndpoint}">
+                                <TextBlock Text="Use alternative endpoints" Style="{StaticResource ButtonLabelStyle}"/>
+                            </CheckBox>
                         </StackPanel>
                     </Border>
 
-                    <!-- Run log — last 10 results -->
-                    <TextBlock Text="LOG" Foreground="#40FFFFFF" FontSize="10"
-                               FontWeight="Bold" FontFamily="Segoe UI" Margin="0,0,0,6"/>
-                    <Border Background="#07091C" BorderBrush="#1FFFFFFF" BorderThickness="1"
-                            Padding="10,8" MaxHeight="130">
-                        <ScrollViewer x:Name="diagLogScroller" VerticalScrollBarVisibility="Auto">
-                            <StackPanel x:Name="diagLog"/>
-                        </ScrollViewer>
-                    </Border>
+                    <Border Style="{StaticResource PanelStyle}" Margin="{StaticResource Gap.Group}" DataContext="{Binding Diagnostics}">
+                        <StackPanel>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource QuietButtonStyle}" Margin="12,0,0,0" VerticalAlignment="Center"
+                                        Command="{Binding CopyCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <c:Icon Kind="copy" Width="16" Height="16" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Copy report" Style="{StaticResource ButtonLabelStyle}"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource QuietButtonStyle}" Margin="16,0,0,0" VerticalAlignment="Center"
+                                        Command="{Binding RunCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <c:Icon Kind="activity" Width="16" Height="16" Margin="0,0,8,0"/>
+                                        <TextBlock Text="{Binding RunLabel}" Style="{StaticResource ButtonLabelStyle}"/>
+                                    </StackPanel>
+                                </Button>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Diagnostics" Style="{StaticResource PanelTitleStyle}"/>
+                                    <TextBlock Text="Checks your connection to Generals Online's servers the way the game connects. The copied report hides your addresses." Style="{StaticResource PanelTextStyle}"/>
+                                </StackPanel>
+                            </DockPanel>
 
-                </StackPanel>
+                            <TextBlock Text="No results yet. Run diagnostics to measure your connection." Style="{StaticResource PanelTextStyle}" Margin="{StaticResource Gap.Actions}"
+                                       Visibility="{Binding NotRunYet, Converter={StaticResource Visible}}"/>
 
-                <!-- DATA PACKS -->
-                <StackPanel x:Name="PanelDataPacks" Visibility="Collapsed">
-                    <TextBlock Text="DATA PACKS" Style="{StaticResource SectionHeaderStyle}"/>
-                    <TextBlock Text="We recommend enabling this if you are playing the unmodified game, or DISABLING it if you are playing with a modification."
-                               Foreground="#E0A030" FontSize="12" TextWrapping="Wrap"
-                               Margin="0,0,0,8"/>
-                    <CheckBox x:Name="chkUseCommunityDataPatch" Content="Use Community Data Patch"/>
-                </StackPanel>
+                            <DockPanel Margin="{StaticResource Gap.Actions}" Visibility="{Binding HasFailure, Converter={StaticResource Visible}}">
+                                <c:Icon DockPanel.Dock="Left" Kind="x-circle" Width="16" Height="16" Margin="0,2,8,0" VerticalAlignment="Top" Foreground="{StaticResource Problem}"/>
+                                <TextBlock Text="{Binding Failure}" Style="{StaticResource StateTextStyle}" TextWrapping="Wrap"/>
+                            </DockPanel>
 
-                <!-- PLUGINS -->
-                <StackPanel x:Name="PanelPlugins" Visibility="Collapsed">
-                    <TextBlock Text="PLUGINS" Style="{StaticResource SectionHeaderStyle}"/>
-                    
-                    <!-- ANTICHEAT -->
-                    <TextBlock Text="ANTICHEAT" Foreground="#A7AECB" FontSize="12" FontWeight="Bold" 
-                               Margin="0,0,0,8"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="Plugin" Style="{StaticResource FieldLabelStyle}"/>
-                        <ComboBox x:Name="cmbAnticheatPlugin" Width="250"
-                                  Background="#0F1426" Foreground="White" BorderBrush="#2E3550"
-                                  SelectionChanged="CmbAnticheatPlugin_SelectionChanged"/>
-                    </StackPanel>
-                    <TextBlock Text="The game loads the anti-cheat chosen here when it starts. If it does not start with one, choose the other."
-                               Foreground="#A7AECB" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,16"/>
-                    
-                    <!-- Configuration Details -->
-                    <TextBlock Text="CONFIGURATION" Foreground="#A7AECB" FontSize="12" FontWeight="Bold" 
-                               Margin="0,0,0,8"/>
-                    <Border Background="#07091C" BorderBrush="#1FFFFFFF" BorderThickness="1"
-                            Padding="14,12" MaxHeight="400" Margin="0,0,0,0">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <StackPanel x:Name="configDetailsPanel">
-                                <TextBlock Text="(No plugin selected)" Foreground="#A0A0C0" FontSize="11"/>
+                            <!-- The rows by group; one name column for all of them -->
+                            <ItemsControl ItemsSource="{Binding Groups}" Grid.IsSharedSizeScope="True" Focusable="False"
+                                          Visibility="{Binding HasRows, Converter={StaticResource Visible}}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="{StaticResource Gap.Actions}">
+                                            <TextBlock Text="{Binding Name}" Style="{StaticResource GroupTitleStyle}"/>
+                                            <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource DiagnosticRowTemplate}" Focusable="False"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <DockPanel Margin="{StaticResource Gap.Actions}" Visibility="{Binding HasProblems, Converter={StaticResource Visible}}">
+                                <c:Icon DockPanel.Dock="Left" Kind="info" Width="16" Height="16" Margin="0,2,8,0" VerticalAlignment="Top"/>
+                                <TextBlock Text="If matches lag or players cannot connect to you, copy the report and paste it in the Generals Online Discord." Style="{StaticResource StateTextStyle}" TextWrapping="Wrap"/>
+                            </DockPanel>
+
+                            <!-- Earlier runs, the values worth comparing, newest first -->
+                            <StackPanel Grid.IsSharedSizeScope="True" Visibility="{Binding HasHistory, Converter={StaticResource Visible}}">
+                                <Border Style="{StaticResource PanelDividerStyle}"/>
+                                <TextBlock Text="Recent runs" Style="{StaticResource PanelTitleStyle}"/>
+                                <TextBlock Text="The last ten since Command Center started, newest first." Style="{StaticResource PanelTextStyle}"/>
+                                <Grid Margin="{StaticResource Gap.Actions}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="RunTime"/>
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="RunInternet"/>
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="RunPing"/>
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="RunLoss"/>
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="RunHttp"/>
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="RunNat"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Time" Style="{StaticResource TableHeadStyle}" Margin="0,0,24,0"/>
+                                    <TextBlock Grid.Column="1" Text="Internet" Style="{StaticResource TableHeadStyle}" Margin="0,0,24,0"/>
+                                    <TextBlock Grid.Column="2" Text="Ping" Style="{StaticResource TableHeadStyle}" Margin="0,0,24,0"/>
+                                    <TextBlock Grid.Column="3" Text="Loss" Style="{StaticResource TableHeadStyle}" Margin="0,0,24,0"/>
+                                    <TextBlock Grid.Column="4" Text="HTTP" Style="{StaticResource TableHeadStyle}" Margin="0,0,24,0"/>
+                                    <TextBlock Grid.Column="5" Text="NAT" Style="{StaticResource TableHeadStyle}" Margin="0,0,24,0"/>
+                                    <TextBlock Grid.Column="6" Text="Server" Style="{StaticResource TableHeadStyle}"/>
+                                </Grid>
+                                <Border Style="{StaticResource TableRuleStyle}"/>
+                                <ItemsControl ItemsSource="{Binding History}" Focusable="False">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,4,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="RunTime"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="RunInternet"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="RunPing"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="RunLoss"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="RunHttp"/>
+                                                    <ColumnDefinition Width="Auto" SharedSizeGroup="RunNat"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Time}" Style="{StaticResource TableCellStyle}" Margin="0,0,24,0"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Internet}" Style="{StaticResource TableCellStyle}" Margin="0,0,24,0"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding Ping}" Style="{StaticResource TableCellStyle}" Margin="0,0,24,0"/>
+                                                <TextBlock Grid.Column="3" Text="{Binding Loss}" Style="{StaticResource TableCellStyle}" Margin="0,0,24,0"/>
+                                                <TextBlock Grid.Column="4" Text="{Binding Http}" Style="{StaticResource TableCellStyle}" Margin="0,0,24,0"/>
+                                                <TextBlock Grid.Column="5" Text="{Binding Nat}" Style="{StaticResource TableCellStyle}" Margin="0,0,24,0"/>
+                                                <TextBlock Grid.Column="6" Text="{Binding Server}" Style="{StaticResource TableCellStyle}"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
-                        </ScrollViewer>
+                        </StackPanel>
                     </Border>
                 </StackPanel>
+                </Grid>
 
-                <!-- LAUNCHER: Command Center's own preferences -->
-                <StackPanel x:Name="PanelLauncher" Visibility="Collapsed">
-                    <TextBlock Text="LAUNCHER" Style="{StaticResource SectionHeaderStyle}"/>
-
-                    <TextBlock Text="UPDATES" Foreground="#A7AECB" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                        <TextBlock x:Name="txtVersion" Style="{StaticResource FieldLabelStyle}"/>
-                        <Button x:Name="btnCheckUpdates" Content="CHECK FOR UPDATES" Style="{StaticResource DiagButtonStyle}" Click="BtnCheckUpdates_Click"/>
-                        <TextBlock x:Name="txtUpdateStatus" Foreground="#A7AECB" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"/>
-                    </StackPanel>
-
-                    <TextBlock Text="ABOUT" Foreground="#A7AECB" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"/>
-                    <TextBlock Foreground="#A0A0C0" FontSize="12" TextWrapping="Wrap" MaxWidth="560" HorizontalAlignment="Left"
-                               Text="Command Center is free software under the GNU General Public License, version 3. It is based on the Generals Online Launcher by the GeneralsOnline Development Team, also under GPL-3.0. It is not made by or affiliated with Generals Online or Electronic Arts."/>
+                <!-- Data packs: the community data patch (settings.json) -->
+                <Grid x:Name="PanelDataPacks" Visibility="Collapsed" DataContext="{Binding Game}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="760"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Data packs" Style="{StaticResource PageTitleStyle}"/>
+                    <TextBlock Text="Game data that Generals Online can load with Zero Hour." Style="{StaticResource PageIntroStyle}"/>
+                    <Border Style="{StaticResource PanelStyle}">
+                        <StackPanel>
+                            <CheckBox Style="{StaticResource CheckStyle}" HorizontalAlignment="Left" IsChecked="{Binding CommunityPatch}">
+                                <TextBlock Text="Use the community data patch" Style="{StaticResource ButtonLabelStyle}"/>
+                            </CheckBox>
+                            <TextBlock Text="Recommended for the unmodified game. Turn it off when you play a mod." Style="{StaticResource PanelTextStyle}" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
+                </Grid>
+
+                <!-- Plugins: the anti-cheat Generals Online loads (settings.json), and what its files hold -->
+                <Grid x:Name="PanelPlugins" Visibility="Collapsed" DataContext="{Binding Plugins}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="760"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Plugins" Style="{StaticResource PageTitleStyle}"/>
+                    <TextBlock Text="The anti-cheat that Generals Online loads when the game starts." Style="{StaticResource PageIntroStyle}"/>
+                    <Border Style="{StaticResource PanelStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Anti-cheat" Style="{StaticResource PanelTitleStyle}"/>
+                            <StackPanel Visibility="{Binding HasPlugins, Converter={StaticResource Visible}}">
+                                <TextBlock Text="If the game does not start with the one chosen here, choose another." Style="{StaticResource PanelTextStyle}"/>
+                                <ItemsControl ItemsSource="{Binding Plugins}" ItemTemplate="{StaticResource PluginChoiceTemplate}" Margin="{StaticResource Gap.Text}" Focusable="False"/>
+                                <DockPanel Margin="{StaticResource Gap.Text}" Visibility="{Binding NoneChosen, Converter={StaticResource Visible}}">
+                                    <c:Icon DockPanel.Dock="Left" Kind="info" Width="16" Height="16" Margin="0,2,8,0" VerticalAlignment="Top"/>
+                                    <TextBlock Text="None is chosen yet, so Generals Online picks one itself. Choose one to decide." Style="{StaticResource StateTextStyle}" TextWrapping="Wrap"/>
+                                </DockPanel>
+                            </StackPanel>
+                            <DockPanel Margin="{StaticResource Gap.Text}" Visibility="{Binding IsEmpty, Converter={StaticResource Visible}}">
+                                <c:Icon DockPanel.Dock="Left" Kind="alert" Width="16" Height="16" Margin="0,2,8,0" VerticalAlignment="Top" Foreground="{StaticResource Warning}"/>
+                                <TextBlock Text="{Binding EmptyText}" Style="{StaticResource StateTextStyle}" TextWrapping="Wrap"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource PanelStyle}" Margin="{StaticResource Gap.Group}" Visibility="{Binding ShowDetails, Converter={StaticResource Visible}}">
+                        <StackPanel>
+                            <TextBlock Text="Its settings files" Style="{StaticResource PanelTitleStyle}"/>
+                            <TextBlock Text="What the chosen plugin's files hold. Command Center only reads them." Style="{StaticResource PanelTextStyle}"/>
+                            <ItemsControl ItemsSource="{Binding Details}" ItemTemplate="{StaticResource PluginLineTemplate}" Focusable="False"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                </Grid>
+                <!-- Appearance: Home's picture, animation effects and interface sounds -->
+                <Grid x:Name="PanelAppearance" Visibility="Collapsed" DataContext="{Binding Appearance}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="760"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Appearance" Style="{StaticResource PageTitleStyle}"/>
+                    <TextBlock Text="How Command Center looks and sounds. The game itself is not changed." Style="{StaticResource PageIntroStyle}"/>
+                    <Border Style="{StaticResource PanelStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Home picture" Style="{StaticResource PanelTitleStyle}"/>
+                            <TextBlock Text="From your own game: the battle scene of the main menu, or a faction's loading screen." Style="{StaticResource PanelTextStyle}"/>
+                            <ItemsControl ItemsSource="{Binding Pictures}" Margin="{StaticResource Gap.Actions}" Focusable="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <RadioButton GroupName="HomePicture" Style="{StaticResource ChoiceStyle}" IsChecked="{Binding Selected}">
+                                            <TextBlock Text="{Binding Label}" Style="{StaticResource ButtonLabelStyle}"/>
+                                        </RadioButton>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <Border Style="{StaticResource PanelDividerStyle}"/>
+
+                            <TextBlock Text="Animation effects" Style="{StaticResource PanelTitleStyle}"/>
+                            <TextBlock Text="The slow zoom of the Home picture and the short fades between pages. Following Windows uses its &quot;Show animations&quot; setting." Style="{StaticResource PanelTextStyle}"/>
+                            <ItemsControl ItemsSource="{Binding Animations}" Margin="{StaticResource Gap.Actions}" Focusable="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <RadioButton GroupName="Animations" Style="{StaticResource ChoiceStyle}" IsChecked="{Binding Selected}">
+                                            <TextBlock Text="{Binding Label}" Style="{StaticResource ButtonLabelStyle}"/>
+                                        </RadioButton>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <Border Style="{StaticResource PanelDividerStyle}"/>
+
+                            <CheckBox Style="{StaticResource CheckStyle}" IsChecked="{Binding InterfaceSounds}">
+                                <TextBlock Text="Interface sounds" Style="{StaticResource ButtonLabelStyle}"/>
+                            </CheckBox>
+                            <TextBlock Text="The game's own click and launch sounds, read from your game." Style="{StaticResource PanelTextStyle}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                </Grid>
+
+                <!-- Add-ons: Control Bar Pro, moved here from its own tab (P5-D1) -->
+                <Grid x:Name="PanelAddonsHost" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="760"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ContentControl x:Name="PanelAddons" Focusable="False"/>
+                </Grid>
+
+                <!-- Launcher: Command Center's own version, the update check, and where it comes from -->
+                <Grid x:Name="PanelLauncher" Visibility="Collapsed" DataContext="{Binding Launcher}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="760"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Launcher" Style="{StaticResource PageTitleStyle}"/>
+                    <TextBlock Text="Command Center updates itself when it starts; you can also check now." Style="{StaticResource PageIntroStyle}"/>
+                    <Border Style="{StaticResource PanelStyle}">
+                        <StackPanel>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource QuietButtonStyle}" Margin="16,0,0,0" VerticalAlignment="Center"
+                                        Command="{Binding CheckForUpdatesCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <c:Icon Kind="refresh" Width="16" Height="16" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Check for updates" Style="{StaticResource ButtonLabelStyle}"/>
+                                    </StackPanel>
+                                </Button>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Version}" Style="{StaticResource PanelTitleStyle}"/>
+                                    <TextBlock Text="{Binding UpdateStatus}" Style="{StaticResource PanelTextStyle}" Visibility="{Binding ShowUpdateStatus, Converter={StaticResource Visible}}"/>
+                                </StackPanel>
+                            </DockPanel>
+
+                            <Border Style="{StaticResource PanelDividerStyle}"/>
+
+                            <TextBlock Text="About" Style="{StaticResource PanelTitleStyle}"/>
+                            <TextBlock Style="{StaticResource PanelTextStyle}"
+                                       Text="Command Center is free software under the GNU General Public License, version 3. It is based on the Generals Online Launcher by the GeneralsOnline Development Team, also under GPL-3.0. It is not made by or affiliated with Generals Online or Electronic Arts."/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                </Grid>
             </Grid>
         </ScrollViewer>
     </Grid>

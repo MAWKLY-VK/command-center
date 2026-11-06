@@ -22,11 +22,15 @@ namespace CommandCenter.Pages
         // Set once the new program has started and this one is closing
         public bool Restarting { get; private set; }
 
+        // The window hides what is under the screen when it opens
+        public event Action? Opened;
+
         public void Open(UpdateInfo update)
         {
             _update = update;
+            ShowReady();
             Message.Text = string.Format("Version {0} is ready. This version stops working until you update.", update.VersionText);
-            Versions.Text = string.Format("Installed {0} · New {1}", UpdateService.Current.ToString(3), update.Version.ToString(3));
+            Versions.Text = string.Format("Installed {0}, new {1}", UpdateService.Current.ToString(3), update.Version.ToString(3));
             Notes.Text = update.Notes;
             NotesBox.Visibility = update.Notes.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
@@ -40,6 +44,7 @@ namespace CommandCenter.Pages
                 }
             }
             Visibility = Visibility.Visible;
+            Opened?.Invoke();
             Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => Keyboard.Focus(UpdateNow));
         }
 
@@ -58,10 +63,7 @@ namespace CommandCenter.Pages
             if (_update == null || _busy)
                 return;
             _busy = true;
-            UpdateNow.IsEnabled = false;
-            Error.Visibility = Visibility.Collapsed;
-            DownloadPage.Visibility = Visibility.Collapsed;
-            ProgressBox.Visibility = Visibility.Visible;
+            ShowWorking();
             try
             {
                 if (!_installed)
@@ -69,7 +71,7 @@ namespace CommandCenter.Pages
                     ShowProgress((0, -1));
                     bool asAdministrator = UpdateService.FolderNeedsAdministrator();
                     string file = await UpdateService.DownloadAsync(_update, new Progress<(long Done, long Total)>(ShowProgress));
-                    Stage.Text = asAdministrator ? "Installing · Windows asks for permission" : "Installing";
+                    Stage.Text = asAdministrator ? "Installing. Allow it when Windows asks for permission." : "Installing";
                     await UpdateService.InstallAsync(file, _update, asAdministrator);
                     _installed = true;
                 }
@@ -80,7 +82,7 @@ namespace CommandCenter.Pages
                 }
                 catch (PreviousVersionRestoredException)
                 {
-                    // This version runs again in its place, so TRY AGAIN downloads and installs again
+                    // This version runs again in its place, so Try again downloads and installs again
                     _installed = false;
                     throw;
                 }
@@ -89,18 +91,59 @@ namespace CommandCenter.Pages
             }
             catch (Exception ex)
             {
-                ProgressBox.Visibility = Visibility.Collapsed;
-                Error.Text = string.Format("Update failed. {0}", ex.Message);
-                Error.Visibility = Visibility.Visible;
-                DownloadPage.Visibility = Visibility.Visible;
-                UpdateNow.Content = "TRY AGAIN";
-                UpdateNow.IsEnabled = true;
-                Keyboard.Focus(UpdateNow);
+                ShowFailed(ex.Message);
             }
             finally
             {
                 _busy = false;
             }
+        }
+
+        // For review screenshots: the screen for a made-up next version (update), during its download (update:progress),
+        // or after Windows was refused the permission it asked for (update:error)
+        public void Preview(string state)
+        {
+            var next = new Version(UpdateService.Current.Major, UpdateService.Current.Minor + 1, 0);
+            Open(new UpdateInfo(next, next.ToString(3), "", "",
+                "A new look for Home, Settings, Health and Help, with the game's own art behind every page. Interface sounds from the game, off by default."));
+            if (state == "progress")
+            {
+                ShowWorking();
+                ShowProgress((1_800_000, 4_400_000));
+            }
+            else if (state == "error")
+            {
+                ShowFailed("Windows asked for permission, and it was not given.");
+            }
+        }
+
+        // As it opens: the button to update, nothing in progress, no error
+        private void ShowReady()
+        {
+            ProgressBox.Visibility = Visibility.Collapsed;
+            Error.Visibility = Visibility.Collapsed;
+            DownloadPage.Visibility = Visibility.Collapsed;
+            UpdateNowLabel.Text = "Update now";
+            UpdateNow.IsEnabled = true;
+        }
+
+        private void ShowWorking()
+        {
+            UpdateNow.IsEnabled = false;
+            Error.Visibility = Visibility.Collapsed;
+            DownloadPage.Visibility = Visibility.Collapsed;
+            ProgressBox.Visibility = Visibility.Visible;
+        }
+
+        private void ShowFailed(string reason)
+        {
+            ProgressBox.Visibility = Visibility.Collapsed;
+            Error.Text = string.Format("Update failed. {0} Try again, or get the new version from the download page.", reason);
+            Error.Visibility = Visibility.Visible;
+            DownloadPage.Visibility = Visibility.Visible;
+            UpdateNowLabel.Text = "Try again";
+            UpdateNow.IsEnabled = true;
+            Keyboard.Focus(UpdateNow);
         }
 
         private void ShowProgress((long Done, long Total) p)
@@ -109,13 +152,13 @@ namespace CommandCenter.Pages
             {
                 Bar.Value = (double)p.Done / p.Total;
                 Percent.Text = $"{p.Done * 100 / p.Total}%";
-                Stage.Text = string.Format("Downloading · {0} of {1}", Views.Size(p.Done), Views.Size(p.Total));
+                Stage.Text = string.Format("Downloading {0} of {1}", Views.Size(p.Done), Views.Size(p.Total));
             }
             else
             {
                 Bar.Value = 0;
                 Percent.Text = "";
-                Stage.Text = p.Done > 0 ? string.Format("Downloading · {0}", Views.Size(p.Done)) : "Downloading";
+                Stage.Text = p.Done > 0 ? string.Format("Downloading, {0} so far", Views.Size(p.Done)) : "Downloading";
             }
         }
 

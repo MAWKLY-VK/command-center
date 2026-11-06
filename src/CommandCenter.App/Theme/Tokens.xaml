@@ -1,0 +1,161 @@
+<!--
+    Command Center's design tokens (plan section 3-c, approved 2026-11-04). Pages and styles take every colour, font,
+    size, spacing, radius and duration from here; ThemeTests proves the contrast of each pair and fails when a page
+    writes a colour of its own.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                    xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options"
+                    mc:Ignorable="po">
+
+    <!-- Colours. Gunmetal with a cool tint; contrast is measured on Bg.Panel (plan 3-c), and ThemeTests checks every
+         background each colour is used on. -->
+    <Color x:Key="Color.Bg.Window">#0D1013</Color>
+    <Color x:Key="Color.Bg.Panel">#151A1F</Color>
+    <Color x:Key="Color.Bg.Raised">#1E252C</Color>
+    <!-- Bg.Window at 82%, for panels over the game art -->
+    <Color x:Key="Color.Bg.PanelOverArt">#D10D1013</Color>
+
+    <!-- Bone white, then two quieter tones. Muted is for labels on the window and panels only, never on Raised. -->
+    <Color x:Key="Color.Text.Primary">#E6E0D3</Color>
+    <Color x:Key="Color.Text.Secondary">#A9ABA4</Color>
+    <Color x:Key="Color.Text.Muted">#80847F</Color>
+
+    <!-- Generals Online's gold: one filled element per screen (PLAY or the main action); elsewhere light and edges only -->
+    <Color x:Key="Color.Accent">#FECD03</Color>
+    <Color x:Key="Color.Accent.Pressed">#E2B600</Color>
+    <Color x:Key="Color.Accent.Hover">#FFD83A</Color>
+    <Color x:Key="Color.OnAccent">#231B00</Color>
+
+    <!-- States, always shown with an icon and words as well -->
+    <Color x:Key="Color.Success">#6FCF7F</Color>
+    <Color x:Key="Color.Warning">#FF8F3A</Color>
+    <Color x:Key="Color.Problem">#FF7A85</Color>
+
+    <!-- Lines. Dividers are decoration (1.4:1); control borders and the focus ring reach 3:1 on every background. -->
+    <Color x:Key="Color.Divider">#2E363F</Color>
+    <Color x:Key="Color.Border">#6A737D</Color>
+    <Color x:Key="Color.Focus">#FECD03</Color>
+
+    <!-- The game art's tint, applied once when it loads (HomeArt.Tint): lightness runs from the cool shadow to the warm
+         highlight, and Art.Keep of each pixel's own colour stays. The battle scene is shown at Art.Brightness.Scene and
+         the faction loading screens, whose large bright emblem would compete with PLAY, at Art.Brightness.Emblem. The
+         pages behind Home sit on a blurred copy at Art.Backdrop of that. -->
+    <Color x:Key="Color.Art.Shadow">#0F151C</Color>
+    <Color x:Key="Color.Art.Highlight">#E7D7B6</Color>
+    <sys:Double x:Key="Art.Keep">0.08</sys:Double>
+    <sys:Double x:Key="Art.Brightness.Scene">0.8</sys:Double>
+    <sys:Double x:Key="Art.Brightness.Emblem">0.6</sys:Double>
+    <sys:Double x:Key="Art.Backdrop">0.25</sys:Double>
+
+    <!-- The layers over the art, from the back (plan 3-c): on Home a scrim from the left and one from the bottom, then
+         everywhere a vignette, a fine grain at Art.Grain, and a scrim behind the tabs. All are Bg.Window at some opacity.
+         Home's art zooms from 1 to Art.Zoom and back over Motion.Zoom. -->
+    <LinearGradientBrush x:Key="Art.ScrimLeft" StartPoint="0,0" EndPoint="1,0" po:Freeze="True">
+        <GradientStop Color="#F20D1013" Offset="0"/>
+        <GradientStop Color="#A60D1013" Offset="0.32"/>
+        <GradientStop Color="#000D1013" Offset="0.7"/>
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="Art.ScrimBottom" StartPoint="0,1" EndPoint="0,0" po:Freeze="True">
+        <GradientStop Color="#F20D1013" Offset="0"/>
+        <GradientStop Color="#000D1013" Offset="0.55"/>
+    </LinearGradientBrush>
+    <RadialGradientBrush x:Key="Art.Vignette" RadiusX="0.75" RadiusY="0.75" po:Freeze="True">
+        <GradientStop Color="#000D1013" Offset="0.5"/>
+        <GradientStop Color="#990D1013" Offset="1"/>
+    </RadialGradientBrush>
+    <LinearGradientBrush x:Key="Art.ScrimTop" StartPoint="0,0" EndPoint="0,1" po:Freeze="True">
+        <GradientStop Color="#E60D1013" Offset="0"/>
+        <GradientStop Color="#A60D1013" Offset="0.65"/>
+        <GradientStop Color="#000D1013" Offset="1"/>
+    </LinearGradientBrush>
+    <sys:Double x:Key="Art.Grain">0.04</sys:Double>
+    <sys:Double x:Key="Art.Zoom">1.04</sys:Double>
+
+    <!-- PLAY on Home (ADR 0006): the soft gold glow behind it, the one allowed glow, and its bevel, a light line along
+         the top that belongs to the main action alone -->
+    <RadialGradientBrush x:Key="Play.Glow" RadiusX="0.5" RadiusY="0.5" po:Freeze="True">
+        <GradientStop Color="#40FECD03" Offset="0"/>
+        <GradientStop Color="#00FECD03" Offset="1"/>
+    </RadialGradientBrush>
+    <SolidColorBrush x:Key="Play.Bevel" Color="#80FFF4C2" po:Freeze="True"/>
+
+    <!-- A panel's edges over the art: a light line along the top (Text.Primary at 14%) and a dark one along the bottom -->
+    <LinearGradientBrush x:Key="Panel.Edge" StartPoint="0,0" EndPoint="0,1" po:Freeze="True">
+        <GradientStop Color="#24E6E0D3" Offset="0"/>
+        <GradientStop Color="#80000000" Offset="1"/>
+    </LinearGradientBrush>
+
+    <!-- The drawn background of a copy without the game's art: a cool light and a faint gold glow at the bottom left -->
+    <RadialGradientBrush x:Key="Art.DrawnLight" Center="0.74,0.48" GradientOrigin="0.74,0.48" RadiusX="0.5" RadiusY="0.85" po:Freeze="True">
+        <GradientStop Color="#801E252C" Offset="0"/>
+        <GradientStop Color="#001E252C" Offset="1"/>
+    </RadialGradientBrush>
+    <RadialGradientBrush x:Key="Art.DrawnGlow" Center="0.1,1" GradientOrigin="0.1,1" RadiusX="0.6" RadiusY="0.7" po:Freeze="True">
+        <GradientStop Color="#1FFECD03" Offset="0"/>
+        <GradientStop Color="#00FECD03" Offset="1"/>
+    </RadialGradientBrush>
+
+    <!-- A brush for each colour, under the colour's name without "Color." -->
+    <SolidColorBrush x:Key="Bg.Window" Color="{StaticResource Color.Bg.Window}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Bg.Panel" Color="{StaticResource Color.Bg.Panel}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Bg.Raised" Color="{StaticResource Color.Bg.Raised}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Bg.PanelOverArt" Color="{StaticResource Color.Bg.PanelOverArt}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Text.Primary" Color="{StaticResource Color.Text.Primary}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Text.Secondary" Color="{StaticResource Color.Text.Secondary}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Text.Muted" Color="{StaticResource Color.Text.Muted}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Accent" Color="{StaticResource Color.Accent}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Accent.Pressed" Color="{StaticResource Color.Accent.Pressed}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Accent.Hover" Color="{StaticResource Color.Accent.Hover}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OnAccent" Color="{StaticResource Color.OnAccent}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Success" Color="{StaticResource Color.Success}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Warning" Color="{StaticResource Color.Warning}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Problem" Color="{StaticResource Color.Problem}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Divider" Color="{StaticResource Color.Divider}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Border" Color="{StaticResource Color.Border}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Focus" Color="{StaticResource Color.Focus}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Art.Shadow" Color="{StaticResource Color.Art.Shadow}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Art.Highlight" Color="{StaticResource Color.Art.Highlight}" po:Freeze="True"/>
+
+    <!-- Fonts, from the files in Theme/Fonts (OFL, static weights because WPF has no variable axes): Barlow for text
+         (Regular, Medium, SemiBold), Barlow Condensed for headings and PLAY (SemiBold, Bold), JetBrains Mono for real
+         data only, with tabular figures. WPF files Barlow Condensed under Barlow as its condensed width, so headings
+         set Font.Heading.Stretch with the family. Segoe UI draws what they lack, such as the Arabic notice. -->
+    <FontFamily x:Key="Font.Text">./Fonts/#Barlow, Segoe UI</FontFamily>
+    <FontFamily x:Key="Font.Heading">./Fonts/#Barlow, Segoe UI</FontFamily>
+    <FontStretch x:Key="Font.Heading.Stretch">Condensed</FontStretch>
+    <FontFamily x:Key="Font.Data">./Fonts/#JetBrains Mono, Consolas</FontFamily>
+
+    <!-- Text sizes on a 1.2 scale, none under 12 px; at most three per screen. PLAY is the one heroic size. -->
+    <sys:Double x:Key="Size.Caption">12.5</sys:Double>
+    <sys:Double x:Key="Size.Body">15</sys:Double>
+    <sys:Double x:Key="Size.Title">18</sys:Double>
+    <sys:Double x:Key="Size.Heading">21.5</sys:Double>
+    <sys:Double x:Key="Size.Display">25.5</sys:Double>
+    <sys:Double x:Key="Size.Play">34</sys:Double>
+
+    <!-- Spacing on a 4 px grid: groups are further apart than the things inside them -->
+    <sys:Double x:Key="Space.1">4</sys:Double>
+    <sys:Double x:Key="Space.2">8</sys:Double>
+    <sys:Double x:Key="Space.3">12</sys:Double>
+    <sys:Double x:Key="Space.4">16</sys:Double>
+    <sys:Double x:Key="Space.6">24</sys:Double>
+    <sys:Double x:Key="Space.8">32</sys:Double>
+    <sys:Double x:Key="Space.12">48</sys:Double>
+
+    <!-- Corners stay small; the bevel belongs to the main action only -->
+    <CornerRadius x:Key="Radius.Small">2</CornerRadius>
+    <CornerRadius x:Key="Radius.Medium">4</CornerRadius>
+
+    <!-- Lines and targets. Icon.Stroke is in the icons' 24-unit grid and matches the weight of the text beside them. -->
+    <Thickness x:Key="Line.Thin">1</Thickness>
+    <Thickness x:Key="Line.Focus">2</Thickness>
+    <sys:Double x:Key="Icon.Stroke">1.8</sys:Double>
+    <sys:Double x:Key="Target.Min">32</sys:Double>
+
+    <!-- Motion shows a change of state only; the one continuous motion is Home's slow zoom -->
+    <Duration x:Key="Motion.State">0:0:0.18</Duration>
+    <Duration x:Key="Motion.Zoom">0:0:25</Duration>
+</ResourceDictionary>

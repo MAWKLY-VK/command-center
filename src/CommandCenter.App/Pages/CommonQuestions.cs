@@ -1,5 +1,5 @@
 
-namespace CommandCenter.Pages.Tools
+namespace CommandCenter.Pages
 {
     public sealed record QuestionAction(string Label, string Icon, Action Run);
 
@@ -20,7 +20,7 @@ namespace CommandCenter.Pages.Tools
             {
                 // Generals Online's own hint on the setting: on for the unmodified game, off for a mod
                 new("Rooms show greyed out and I cannot join them",
-                    "Almost every Generals Online room uses the community data patch. When it is turned off, or its file is missing, your game does not match those rooms. Turn it on in Options › Data packs; the checks name a missing file. Turn it off only while you play a mod, because mods do not work with it.",
+                    "Almost every Generals Online room uses the community data patch. When it is turned off, or its file is missing, your game does not match those rooms. Turn it on in Settings › Data packs; the checks name a missing file. Turn it off only while you play a mod, because mods do not work with it.",
                     new[] { Options("Data packs", "datapacks"), checks }),
 
                 // The setting is max_height_only_when_lobby_host in Generals Online's settings.json
@@ -29,11 +29,11 @@ namespace CommandCenter.Pages.Tools
                     new[] { Options("Camera", "camera") }),
 
                 new("The connection drops, or online games load slowly",
-                    "Two settings in Options › Network often help: set the HTTP version to 1.1, or turn on the alternative endpoints. Try one at a time. The diagnostics on the same page show your ping, loss and NAT type, and copy them for a help request.",
+                    "Two options in Settings › Network often help: set the HTTP version to 1.1, or turn on the alternative endpoints. Try one at a time. The diagnostics on the same page show your ping, loss and NAT type, and copy them for a help request.",
                     new[] { Options("Network", "network") }),
 
                 new("The game does not start, or an anti-cheat error appears",
-                    "Run the checks: they find missing game files, a missing anti-cheat plugin, an install path with non-English letters (\"Invalid game executable path\") and the \"Run as administrator\" flag (error 740). Generals Online has two anti-cheats, Easy Anti-Cheat and GeneralsOnline AntiCheat; if one does not start, choose the other in Options › Plugins. If the game still does not start, Play offers the official launcher.",
+                    "Run the checks: they find missing game files, a missing anti-cheat plugin, an install path with non-English letters (\"Invalid game executable path\") and the \"Run as administrator\" flag (error 740). Generals Online has two anti-cheats, Easy Anti-Cheat and GeneralsOnline AntiCheat; if one does not start, choose the other in Settings › Plugins. If the game still does not start, Play offers the official launcher.",
                     new[] { checks, Options("Plugins", "plugins") }),
 
                 new("My antivirus removed a game file",
@@ -55,7 +55,7 @@ namespace CommandCenter.Pages.Tools
                     new[] { new QuestionAction("Replays", "film", () => Views.Main.ShowTools("replays")) }),
 
                 new("Where do I get the game?",
-                    "Generals Online needs Zero Hour from Steam or the EA app. Install it, then install Generals Online from its website into the same folder. Command Center finds both by itself; if it does not, choose the folder in Options › Game folder.",
+                    "Generals Online needs Zero Hour from Steam or the EA app. Install it, then install Generals Online from its website into the same folder. Command Center finds both by itself; if it does not, choose the folder in Settings › Game folder.",
                     new[] { Link("Steam", "https://store.steampowered.com/app/" + GamePaths.SteamAppId + "/"), Link("Generals Online", HealthService.DownloadPage), Options("Game folder", "game") }),
 
                 new("Where can I ask for help?",

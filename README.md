@@ -9,19 +9,20 @@ game's own rules, control bar add-ons and the settings the in-game menu cannot r
 
 ## Pages
 
-Tabs along the top lead to each page; the player count and Options sit next to them. The home page shows the
-game's Steam art (a drawn background for other copies), and the colours and Options sections follow the official
-Generals Online launcher.
+Tabs along the top lead to Home, Replays, Maps, Hotkeys and Health, with Settings and Help at the top right. Home
+shows art from the player's own game, the main menu's backdrop or a faction loading screen, a different one at each
+start, and the other pages sit on a blurred copy of it (a drawn background for copies without the art). The Settings
+sections follow the official Generals Online launcher.
 
 | Page | What it does |
 | --- | --- |
-| Home | Play, the client version, anti-cheat and which copy of the game is used, the server card (players, lobbies, ping), the last match with its result and Watch, a line when the health check finds something, Live / Test choice, tiles into the tools |
-| Health | A ring with how much of the game passed, then game files (any language edition), original archives checked against Zero Hour 1.04 fingerprints, the anti-cheat and its plugin, wrapper and runtime DLLs, rule-changing archives, "Run as administrator" (error 740), compatibility modes, Visual C++, graphics driver, resolution, the community data patch, Arabic game text left by version 0.4.0, network; one-click fixes with Undo. A Common questions tab answers what new players ask most (greyed-out rooms, camera height, dropped connections, anti-cheat, antivirus, GenTool, mismatches, replays, where to get the game) with buttons to the place that fixes it |
-| Maps | The online map library and the installed maps as cards with previews, player counts and sizes, filters by player count; install by click or by dropping a `.zip` / folder |
+| Home | PLAY says what it will do: Locate game, Update (the official launcher installs a new Generals Online client), Fix (the fix for a problem that stops the game, with Undo, and Play anyway under it) or Play. Live / Test choice, a status line that also names what changed in the game's files since the last match without a mismatch, the client version, players online and ping, the last match with its result and Watch, and a Health line |
 | Replays | Every match from `Replays` and `ArchivedReplays` with map, players, armies, results and who left when, the selected one in a side panel; watch, keep, rename, copy, delete with Undo; turns the game's own *ArchiveReplays* option on or off |
+| Maps | The online map library and the installed maps as cards with previews, player counts and sizes, filters by player count; install by click or by dropping a `.zip` / folder |
 | Hotkeys | Unit and building buttons for all 12 armies drawn like the in-game bar, the game keys, and hotkey letters on the button pictures; checks duplicates and clashes before saving |
-| Add-ons | Control Bar Pro from TheSuperHackers in five sizes, checked against pinned SHA-256 hashes, with a before/after slider |
-| Options | The game folder (which copy is used, pick another), then the official launcher's sections (camera, chat, input, graphics, social, network with diagnostics of ping, loss, NAT and the servers, data packs, plugins) and Launcher: updates and about |
+| Health | Problems first, then warnings, then the checks that passed: game files (any language edition), original archives checked against Zero Hour 1.04 fingerprints, the anti-cheat and its plugin, wrapper and runtime DLLs, rule-changing archives, "Run as administrator" (error 740), compatibility modes, Visual C++, graphics driver, resolution, the community data patch, Arabic game text left by version 0.4.0, network. A fix for each problem or all of them at once, each with Undo; a History tab lists every change with its Undo |
+| Settings | The game folder (which copy is used, pick another); Appearance: the Home picture, animation effects and the game's own interface sounds (off by default); Add-ons: Control Bar Pro from TheSuperHackers in five sizes, checked against pinned SHA-256 hashes, with a before/after slider; the official launcher's sections (camera, chat, input, graphics, social, network with diagnostics of ping, loss, NAT and the servers, data packs, plugins); Launcher: updates and about |
+| Help | What new players ask most (greyed-out rooms, camera height, dropped connections, anti-cheat, antivirus, GenTool, mismatches, replays, where to get the game) with buttons to the place that fixes each one; the support report to copy, the Generals Online Discord, and Command Center's GitHub issues |
 
 ## Ground rules
 
@@ -78,7 +79,10 @@ dotnet build CommandCenter.slnx -c Release
 ```
 
 The program is `src/CommandCenter.App/bin/Release/net10.0-windows/CommandCenter.exe`. `CommandCenter.slnx` holds it,
-its services (`src/CommandCenter.Core`) and the tests.
+its services (`src/CommandCenter.Core`) and the tests. Home, Settings and Health are views of view models
+(`src/CommandCenter.App/ViewModels`, with CommunityToolkit.Mvvm); Replays, Maps and Hotkeys follow. Every colour, font,
+size and spacing is a token in `src/CommandCenter.App/Theme`, and the tests check their contrast and that no page
+writes a colour of its own.
 
 The tests run 32-bit like the program, so they also need the x86 .NET 10 runtime (the Generals Online launcher installs it):
 
@@ -91,7 +95,7 @@ commit the lock files. GitHub builds and tests every push and pull request (`.gi
 32-bit SDK, restores only what the lock files name, and keeps the built program for two weeks.
 
 To make a release, run `tools\publish.ps1 -Notes "What changed"`. It writes a single-file `publish\CommandCenter.exe`
-(about 3 MB) and `publish\update.json`. Then sign `update.json` with the maintainer's key (you type the password); its
+(about 4.5 MB, the embedded fonts included) and `publish\update.json`. Then sign `update.json` with the maintainer's key (you type the password); its
 signed part stays valid for one year:
 
 ```
@@ -109,16 +113,16 @@ x86 Desktop Runtime from [dotnet.microsoft.com](https://dotnet.microsoft.com/dow
 
 The game folder is found automatically in any installation: where Generals Online and the game's own installer
 recorded it (Steam, EA, the original discs and other copies), the current folder, the program's folder and the Steam
-libraries. Options › Game folder shows which copy is used and lets you pick another.
+libraries. Settings › Game folder shows which copy is used and lets you pick another.
 
 | Argument | Meaning |
 | --- | --- |
 | `--game <folder>` | Use this game folder |
 | `--library-folder <folder>` | Use a local folder of maps as the map library |
 | `--user-data <folder>` | Use this folder instead of `Documents\Command and Conquer Generals Zero Hour Data` (for testing) |
-| `--capture <folder> --size 1100x640 --pages home,tools:maps,options:game` | Save screenshots of pages without showing the window; `tools:health:questions` opens a tab, `options:network:run` runs the diagnostics first |
+| `--capture <folder> --size 1100x640 --pages home,maps:installed,settings:game` | Save screenshots of pages without showing the window; `health:history` opens a tab, `settings:network:run` runs the diagnostics first, and `:end` shows the end of a long section (`settings:network:end`, `health:end`); `home:fix`, `home:update`, `home:locate` or `home:play` shows PLAY in that state for review; `update`, `update:progress` or `update:error` shows the update screen in that state, last because it covers the window |
 | `--samples` | Add sample health problems to review the layout (their fixes do nothing) |
-| `--drawn-backdrop` | Show the background that copies without Steam art get |
+| `--drawn-backdrop` | Show the drawn background that copies without the game's art get |
 | `--update-url <url or file>` | Read the update manifest (`update.json`) from here instead of the latest GitHub release; a local file works for testing |
 | `--go-profile <file>` | Use this Generals Online profile instead of the one in this repository (for testing); its `.sig` must sit next to it |
 | `--test-key <public key file>` | Test builds only (`-p:TestKeys=true`): also trust this key and allow an update from a local file, to try the update path. Never published |
@@ -155,10 +159,13 @@ Copyright (C) 2026 Command Center contributors.
 
 ## Credits
 
-- The interface, the Options page and the network diagnostics are based on the [Generals Online Launcher](https://github.com/GeneralsOnlineDevelopmentTeam/Launcher) by the GeneralsOnline Development Team (GPL-3.0).
+- The interface, the Settings page and the network diagnostics are based on the [Generals Online Launcher](https://github.com/GeneralsOnlineDevelopmentTeam/Launcher) by the GeneralsOnline Development Team (GPL-3.0).
 - Control Bar Pro: [TheSuperHackers/GeneralsControlBar](https://github.com/TheSuperHackers/GeneralsControlBar) (MIT).
-- The program icon is the Generals Online launcher icon (GPL-3.0), recoloured red and without its lettering (`toolsmake-icon.ps1`).
-- Map previews, icons and artwork are read at run time from the player's own game and Steam installation.
+- The program icon is the Generals Online launcher icon (GPL-3.0), recoloured red and without its lettering (`tools/make-icon.ps1`).
+- The interface's line icons are drawn from [Feather](https://feathericons.com) by Cole Bemis (MIT), with square ends.
+- The interface's fonts are [Barlow and Barlow Condensed](https://github.com/jpt/barlow) by The Barlow Project Authors and [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) by The JetBrains Mono Project Authors, both under the SIL Open Font License 1.1 and embedded unchanged.
+- The licence texts are in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+- Map previews, game icons and artwork are read at run time from the player's own game.
 
 Command & Conquer is a trademark of Electronic Arts. This project is not affiliated with Electronic Arts
 or the Generals Online team.
