@@ -43,8 +43,8 @@ namespace CommandCenter.Core.Integrity
         public int BadgeCount => Issues;
         public bool BadgeIsProblem => Problems > 0;
 
-        // Home's line under PLAY
-        public string HomeLine => Issues == 0 ? "Your game passed every check" : string.Format("{0} found with your game", Found());
+        // Home's Health panel, under its title
+        public string HomeLine => Issues == 0 ? "Your game passed every check" : Found() + " found";
 
         private string Sentence(int all)
         {

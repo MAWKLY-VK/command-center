@@ -151,130 +151,7 @@
             <Setter Property="FontFamily" Value="Segoe UI"/>
         </Style>
 
-    <!-- Home page buttons -->
-    <Style x:Key="ActionButtonStyle" TargetType="Button">
-        <Setter Property="Foreground" Value="White"/>
-        <Setter Property="FontFamily" Value="Segoe UI"/>
-        <Setter Property="FontSize" Value="18"/>
-        <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="Height" Value="72"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="BorderBrush" Value="#2980FF"/>
-        <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="Background">
-            <Setter.Value>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                    <GradientStop Color="#070E38" Offset="0"/>
-                    <GradientStop Color="#020618" Offset="1"/>
-                </LinearGradientBrush>
-            </Setter.Value>
-        </Setter>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border
-                        x:Name="RootBorder"
-                        Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        CornerRadius="4">
-                        <Grid>
-                            <!-- Top accent line matches border color -->
-                            <Rectangle
-                                Height="2"
-                                VerticalAlignment="Top"
-                                Fill="{TemplateBinding BorderBrush}"
-                                Opacity="0.7"
-                                RadiusX="4" RadiusY="4"/>
-                            <ContentPresenter
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                TextBlock.Foreground="{TemplateBinding Foreground}"
-                                TextBlock.FontSize="{TemplateBinding FontSize}"
-                                TextBlock.FontWeight="{TemplateBinding FontWeight}"/>
-                        </Grid>
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-        <Style.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="#0A1660"/>
-                <Setter Property="BorderBrush" Value="#5BA4FF"/>
-            </Trigger>
-            <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="#2980FF"/>
-                <Setter Property="BorderBrush" Value="#5BA4FF"/>
-            </Trigger>
-        </Style.Triggers>
-    </Style>
-
-    <!-- PLAY button: gold accent, fills solid on hover -->
-    <Style x:Key="PlayButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
-        <Setter Property="Foreground" Value="#FECD03"/>
-        <Setter Property="BorderBrush" Value="#FECD03"/>
-        <Setter Property="Background">
-            <Setter.Value>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                    <GradientStop Color="#1A1200" Offset="0"/>
-                    <GradientStop Color="#080800" Offset="1"/>
-                </LinearGradientBrush>
-            </Setter.Value>
-        </Setter>
-        <Style.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="#FECD03"/>
-                <Setter Property="Foreground" Value="#01031A"/>
-                <Setter Property="BorderBrush" Value="#FECD03"/>
-            </Trigger>
-            <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="#D4AC02"/>
-                <Setter Property="Foreground" Value="#01031A"/>
-                <Setter Property="BorderBrush" Value="#D4AC02"/>
-            </Trigger>
-        </Style.Triggers>
-    </Style>
-
-    <!-- Tools and Options pages -->
-    <Style x:Key="BackButtonStyle" TargetType="Button">
-        <Setter Property="Background" Value="#0FFFFFFF"/>
-        <Setter Property="Foreground" Value="White"/>
-        <Setter Property="FontFamily" Value="Segoe UI"/>
-        <Setter Property="FontSize" Value="13"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Height" Value="42"/>
-        <Setter Property="Margin" Value="10,8,10,10"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="BorderBrush" Value="#29FFFFFF"/>
-        <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border
-                        x:Name="border"
-                        CornerRadius="10"
-                        Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
-                            TextBlock.Foreground="{TemplateBinding Foreground}"
-                            TextBlock.FontSize="{TemplateBinding FontSize}"
-                            TextBlock.FontWeight="{TemplateBinding FontWeight}"/>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#1FFFFFFF"/>
-                            <Setter TargetName="border" Property="BorderBrush" Value="#59FFFFFF"/>
-                        </Trigger>
-                        <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#0AFFFFFF"/>
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
+    <!-- Tools pages -->
     <Style x:Key="TextBoxStyle" TargetType="TextBox">
         <Setter Property="Background" Value="#D90D1328"/>
         <Setter Property="Foreground" Value="White"/>
@@ -301,15 +178,6 @@
         <Setter Property="FontSize" Value="12"/>
         <Setter Property="TextWrapping" Value="Wrap"/>
         <Setter Property="Margin" Value="0,6,0,12"/>
-    </Style>
-
-    <!-- The Arabic paragraph of the one-time English-only notice: read right to left, above the English one -->
-    <Style x:Key="ToastArabicStyle" TargetType="TextBlock">
-        <Setter Property="Foreground" Value="White"/>
-        <Setter Property="FontSize" Value="13"/>
-        <Setter Property="TextWrapping" Value="Wrap"/>
-        <Setter Property="FlowDirection" Value="RightToLeft"/>
-        <Setter Property="Margin" Value="0,0,0,8"/>
     </Style>
 
     <Style x:Key="GroupLabelStyle" TargetType="TextBlock">
@@ -569,40 +437,6 @@
 
     <!-- ── The window frame: top tabs, icon buttons, glass cards and chips ── -->
 
-    <Style x:Key="TopTabStyle" TargetType="RadioButton">
-        <Setter Property="Foreground" Value="#A7AECB"/>
-        <Setter Property="FontSize" Value="13"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Height" Value="38"/>
-        <Setter Property="Padding" Value="12,0"/>
-        <Setter Property="Margin" Value="1,0"/>
-        <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="RadioButton">
-                    <Grid>
-                        <Border x:Name="Back" Background="Transparent" CornerRadius="9" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter VerticalAlignment="Center"/>
-                        </Border>
-                        <Border x:Name="Line" Height="2" CornerRadius="1" Background="#FECD03" VerticalAlignment="Bottom" Margin="12,0,12,2"
-                                Opacity="0"/>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Back" Property="Background" Value="#0FFFFFFF"/>
-                            <Setter Property="Foreground" Value="White"/>
-                        </Trigger>
-                        <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Back" Property="Background" Value="#14FFFFFF"/>
-                            <Setter TargetName="Line" Property="Opacity" Value="1"/>
-                            <Setter Property="Foreground" Value="White"/>
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
     <Style x:Key="IconButtonStyle" TargetType="Button">
         <Setter Property="Width" Value="36"/>
         <Setter Property="Height" Value="36"/>
@@ -632,13 +466,6 @@
         </Setter>
     </Style>
 
-    <!-- Window buttons: no frame until hovered -->
-    <Style x:Key="ChromeButtonStyle" TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Foreground" Value="#A7AECB"/>
-    </Style>
-
     <Style x:Key="GlassCardStyle" TargetType="Border">
         <Setter Property="Background" Value="#9E0A0E20"/>
         <Setter Property="BorderBrush" Value="#17FFFFFF"/>
@@ -646,64 +473,4 @@
         <Setter Property="CornerRadius" Value="16"/>
     </Style>
 
-    <Style x:Key="ChipStyle" TargetType="Border">
-        <Setter Property="Background" Value="#9E0A0E20"/>
-        <Setter Property="BorderBrush" Value="#1AFFFFFF"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="15"/>
-        <Setter Property="Height" Value="30"/>
-        <Setter Property="Padding" Value="12,0"/>
-        <Setter Property="Margin" Value="0,0,8,0"/>
-    </Style>
-
-    <!-- A card that is also a button (home page tiles, last match) -->
-    <Style x:Key="CardButtonStyle" TargetType="Button">
-        <Setter Property="Foreground" Value="White"/>
-        <Setter Property="Background" Value="#9E0A0E20"/>
-        <Setter Property="BorderBrush" Value="#17FFFFFF"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-        <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
-        <Setter Property="RenderTransform">
-            <Setter.Value>
-                <TranslateTransform/>
-            </Setter.Value>
-        </Setter>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border x:Name="Back" CornerRadius="14" Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
-                            Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Back" Property="BorderBrush" Value="#737AB4FF"/>
-                            <Setter TargetName="Back" Property="Background" Value="#B8101630"/>
-                        </Trigger>
-                        <EventTrigger RoutedEvent="MouseEnter">
-                            <BeginStoryboard>
-                                <Storyboard>
-                                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" To="-3" Duration="0:0:0.2">
-                                        <DoubleAnimation.EasingFunction>
-                                            <CubicEase EasingMode="EaseOut"/>
-                                        </DoubleAnimation.EasingFunction>
-                                    </DoubleAnimation>
-                                </Storyboard>
-                            </BeginStoryboard>
-                        </EventTrigger>
-                        <EventTrigger RoutedEvent="MouseLeave">
-                            <BeginStoryboard>
-                                <Storyboard>
-                                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.Y)" To="0" Duration="0:0:0.2"/>
-                                </Storyboard>
-                            </BeginStoryboard>
-                        </EventTrigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
 </ResourceDictionary>

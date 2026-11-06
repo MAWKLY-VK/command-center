@@ -18,6 +18,10 @@ namespace CommandCenter
         public static FixRunner Fixes { get; } = new(AppState.ForgetHotkeys);
         public static FixHistory History { get; } = new(AppState.ForgetHotkeys);
 
+        // Home (ticket 13): the server numbers, and starting and watching the game
+        public static IServerStatus Server { get; } = new ServerStatus(GoApi.GetStatsAsync);
+        public static IGameLauncher Launcher { get; } = new WindowsGameLauncher();
+
         // Every check: the local ones off the UI thread, then the network ones; --samples puts its made-up problems first
         private static async Task<IReadOnlyList<HealthResult>> RunHealthChecksAsync()
         {

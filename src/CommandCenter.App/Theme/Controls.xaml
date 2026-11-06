@@ -606,6 +606,145 @@
         </Setter>
     </Style>
 
+    <!-- Home's PLAY (ADR 0006): the one heroic size, gold, with the bevel of the main action along its top. Its words
+         follow the state (Play, Fix, Update, Locate game). -->
+    <Style x:Key="PlayButtonStyle" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource OnAccent}"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Heading}"/>
+        <Setter Property="FontStretch" Value="{StaticResource Font.Heading.Stretch}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Play}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="MinHeight" Value="64"/>
+        <Setter Property="MinWidth" Value="240"/>
+        <Setter Property="Padding" Value="32,0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border x:Name="Ring" Margin="-4" BorderBrush="{StaticResource Focus}" BorderThickness="{StaticResource Line.Focus}"
+                                CornerRadius="{StaticResource Radius.Medium}" Visibility="Hidden"/>
+                        <Border x:Name="Face" Background="{StaticResource Accent}" CornerRadius="{StaticResource Radius.Small}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <Border x:Name="Bevel" Height="1" VerticalAlignment="Top" Margin="2,1,2,0" Background="{StaticResource Play.Bevel}"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Accent.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Accent.Pressed}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Ring" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <!-- Starting or running: no gold, so the screen keeps no gold fill it cannot use -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Bg.Raised}"/>
+                            <Setter TargetName="Bevel" Property="Visibility" Value="Hidden"/>
+                            <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- PLAY's other half: opens the choice of Live or Test, split from PLAY by a thin dark line -->
+    <Style x:Key="PlaySplitStyle" TargetType="ToggleButton">
+        <Setter Property="Foreground" Value="{StaticResource OnAccent}"/>
+        <Setter Property="Width" Value="48"/>
+        <Setter Property="MinHeight" Value="64"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid>
+                        <Border x:Name="Ring" Margin="-4" BorderBrush="{StaticResource Focus}" BorderThickness="{StaticResource Line.Focus}"
+                                CornerRadius="{StaticResource Radius.Medium}" Visibility="Hidden"/>
+                        <Border x:Name="Face" Background="{StaticResource Accent}" BorderBrush="{StaticResource OnAccent}" BorderThickness="1,0,0,0"
+                                CornerRadius="{StaticResource Radius.Small}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <Border x:Name="Bevel" Height="1" VerticalAlignment="Top" Margin="2,1,2,0" Background="{StaticResource Play.Bevel}"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Accent.Hover}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Accent.Pressed}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Accent.Pressed}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Ring" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Bg.Raised}"/>
+                            <Setter TargetName="Face" Property="BorderBrush" Value="{StaticResource Bg.Window}"/>
+                            <Setter TargetName="Bevel" Property="Visibility" Value="Hidden"/>
+                            <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A small choice that opens from a button, such as Live or Test: a raised panel with a control border -->
+    <Style x:Key="MenuPanelStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Bg.Raised}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Border}"/>
+        <Setter Property="BorderThickness" Value="{StaticResource Line.Thin}"/>
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Medium}"/>
+        <Setter Property="Padding" Value="{StaticResource Pad.Toast}"/>
+        <Setter Property="Margin" Value="0,0,0,8"/>
+    </Style>
+
+    <!-- A short action written as a link, such as Play anyway: gold text (gold as light, not a fill) with a line under
+         it on hover -->
+    <Style x:Key="LinkButtonStyle" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="MinHeight" Value="{StaticResource Target.Min}"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid Background="Transparent">
+                        <ContentPresenter Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                        <Border x:Name="Line" Height="1" VerticalAlignment="Bottom" Margin="0,0,0,6" Background="{StaticResource Accent}" Visibility="Hidden"/>
+                        <Border x:Name="Ring" Margin="-4,0" BorderBrush="{StaticResource Focus}" BorderThickness="{StaticResource Line.Focus}"
+                                CornerRadius="{StaticResource Radius.Small}" Visibility="Hidden"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Line" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource Accent.Pressed}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Ring" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- Health's count next to its tab: the state's colour, the number in the data face -->
     <Style x:Key="CountBadgeStyle" TargetType="Border">
         <Setter Property="MinWidth" Value="20"/>

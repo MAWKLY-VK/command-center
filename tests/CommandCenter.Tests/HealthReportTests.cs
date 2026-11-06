@@ -74,10 +74,10 @@ namespace CommandCenter.Tests
             Assert.Equal(("Your game passed every check", 0, false), (clean.HomeLine, clean.BadgeCount, clean.BadgeIsProblem));
 
             var warned = HealthReport.From([Result("w", HealthStatus.Warning)], Now);
-            Assert.Equal(("1 warning found with your game", 1, false), (warned.HomeLine, warned.BadgeCount, warned.BadgeIsProblem));
+            Assert.Equal(("1 warning found", 1, false), (warned.HomeLine, warned.BadgeCount, warned.BadgeIsProblem));
 
             var broken = HealthReport.From([Result("p1", HealthStatus.Problem), Result("p2", HealthStatus.Problem), Result("w", HealthStatus.Warning)], Now);
-            Assert.Equal(("2 problems and 1 warning found with your game", 3, true), (broken.HomeLine, broken.BadgeCount, broken.BadgeIsProblem));
+            Assert.Equal(("2 problems and 1 warning found", 3, true), (broken.HomeLine, broken.BadgeCount, broken.BadgeIsProblem));
         }
     }
 }

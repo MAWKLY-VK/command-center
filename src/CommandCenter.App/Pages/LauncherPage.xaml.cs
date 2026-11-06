@@ -1,461 +1,123 @@
-using System.Globalization;
 using System.IO;
-using System.Runtime.InteropServices;
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Interop;
-using System.Windows.Media;
-using System.Windows.Media.Animation;
 using System.Windows.Threading;
+using CommandCenter.ViewModels;
 
 namespace CommandCenter.Pages
 {
+    // Home, the Briefing stage (ticket 13): the view of HomeViewModel. The page builds the models from the shared
+    // services, watches for the game every few seconds and asks for the server numbers every minute while it shows.
     public partial class LauncherPage : Page
     {
-        private bool _initializing = true;
-        private bool _playing;
-        private bool _loadedOnce;
-        private ReplayEntry? _lastMatch;
+        private readonly HomeViewModel _model;
         private readonly bool _still = App.HasArg("--capture");
         private readonly DispatcherTimer _gameWatch = new() { Interval = TimeSpan.FromSeconds(3) };
-        private readonly DispatcherTimer _sheen = new() { Interval = TimeSpan.FromSeconds(5) };
-
-        // The player count and lobbies are asked for again every minute while the home page shows
         private readonly DispatcherTimer _statsTimer = new() { Interval = TimeSpan.FromMinutes(1) };
+        private bool _loadedOnce;
 
         public LauncherPage()
         {
             InitializeComponent();
-            Loaded += LauncherPage_Loaded;
-            Loaded += (_, _) => { _gameWatch.Start(); GameWatch_Tick(null, EventArgs.Empty); if (!_still) _statsTimer.Start(); };
-            Unloaded += (_, _) => { _gameWatch.Stop(); _sheen.Stop(); _statsTimer.Stop(); };
-            _gameWatch.Tick += GameWatch_Tick;
-            _sheen.Tick += (_, _) => Shine();
-            _statsTimer.Tick += (_, _) => _ = AppState.RefreshStatsAsync();
-            AppState.StatsChanged += () => Dispatcher.Invoke(ShowStats);
-            GoProfile.Changed += () => Dispatcher.Invoke(ShowGame);
-            AppState.HealthChanged += () => Dispatcher.Invoke(ShowHealth);
-            AppState.ReplaysChanged += () => Dispatcher.Invoke(ShowLastMatch);
+            var shell = Views.Main;
+            var play = new PlayFlow(AppServices.Launcher, AppServices.GameFolder, AppServices.Health, AppServices.Server, AppServices.Fixes, shell,
+                QuickChecksAsync, Views.Open, AfterGame);
+            var lastMatch = new LastMatchViewModel(() => AppState.Replays, ReplayService.ReadResults,
+                replay => Tools.ReplayRow.MapName(replay, MapCatalog.InstalledFolders()), replay => Views.MapPreview(replay.MapPath, replay.Map),
+                ReplayService.Watch, AppServices.Launcher.IsRunning, shell);
+            _model = new HomeViewModel(play, AppServices.Health, AppServices.Server, AppServices.Launcher, lastMatch, shell, AppState.ClientVersion,
+                () => AppState.MatchChanges, () => LauncherJson.Load().PreferLive, SavePreferLive);
+            DataContext = _model;
+
+            AppState.ReplaysChanged += () => Dispatcher.Invoke(() => _ = lastMatch.ShowAsync());
+            AppState.MatchGuardChanged += () => Dispatcher.Invoke(_model.RefreshGuard);
+            // Another profile or game folder can name other programs
+            GoProfile.Changed += () => Dispatcher.Invoke(_model.Refresh);
+            AppServices.GameFolder.Changed += () => Dispatcher.Invoke(_model.Refresh);
+
+            _gameWatch.Tick += async (_, _) => await _model.WatchGameAsync();
+            _statsTimer.Tick += (_, _) => _ = AppServices.Server.RefreshAsync();
+            Loaded += OnLoaded;
+            Unloaded += (_, _) =>
+            {
+                _gameWatch.Stop();
+                _statsTimer.Stop();
+            };
         }
 
-        private void LauncherPage_Loaded(object sender, RoutedEventArgs e)
+        // For review screenshots: PLAY in one of its states (home:locate, home:update, home:fix or home:play), as the
+        // decision gives it for made-up inputs. Other names (the pictures) change nothing.
+        public void PreviewPlay(string state)
         {
+            var server = AppServices.Server;
+            PlayInputs? inputs = state.ToLowerInvariant() switch
+            {
+                "locate" => new PlayInputs(false, [], server.Stats, server.Asked),
+                "update" => new PlayInputs(true, [new HealthResult
+                {
+                    Id = HealthService.GoVersionId, Group = HealthService.GroupNetwork, Title = "Generals Online has a new version", Detail = "",
+                    Status = HealthStatus.Warning,
+                }], server.Stats, server.Asked),
+                "fix" => new PlayInputs(true, [new HealthResult
+                {
+                    Id = "sample:runtime", Group = HealthService.GroupFiles, Title = "Old Visual C++ file inside the game folder", Detail = "",
+                    Status = HealthStatus.Problem, Impact = HealthImpact.StopsGame, IsSample = true,
+                }], server.Stats, server.Asked),
+                "play" => new PlayInputs(true, [], server.Stats, server.Asked),
+                _ => null,
+            };
+            if (inputs != null)
+                _model.Preview(PlayDecision.Decide(inputs));
+        }
+
+        private void OnLoaded(object sender, RoutedEventArgs e)
+        {
+            _gameWatch.Start();
+            _ = _model.WatchGameAsync();
             if (!_still)
-                _sheen.Start();
+                _statsTimer.Start();
             if (_loadedOnce)
             {
-                ShowAll();
+                _model.Refresh();
                 return;
             }
             _loadedOnce = true;
 
-            if (GameLauncher.HasTestClient)
-                ClientSelectorPanel.Visibility = Visibility.Visible;
-
-            try { Directory.CreateDirectory(GamePaths.GoData); } catch { }
-
-            var launcher = LauncherJson.Load();
-            rbLiveClient.IsChecked = launcher.PreferLive;
-            rbTestEnv.IsChecked = !launcher.PreferLive;
-            _initializing = false;
-
-            ShowAll();
+            try
+            {
+                Directory.CreateDirectory(GamePaths.GoData);
+            }
+            catch
+            {
+                // Generals Online creates it itself on its first start
+            }
+            _ = _model.LastMatch.ShowAsync();
             if (AppState.Stats == null)
-                _ = AppState.RefreshStatsAsync();
+                _ = AppServices.Server.RefreshAsync();
             if (AppState.HealthCheckedAt == null)
-                _ = AppState.RefreshHealthAsync();
+                _ = AppServices.Health.CheckAsync();
             if (AppState.Replays.Count == 0)
                 _ = AppState.RefreshReplaysAsync();
             if (!AppState.MatchGuardChecked)
                 _ = AppState.RefreshMatchGuardAsync();
         }
 
-        private void ShowAll()
+        // The fast checks of the player's own files, just before the launch (no network)
+        private static async Task<IReadOnlyList<HealthResult>> QuickChecksAsync() => await Task.Run(HealthService.Run);
+
+        // A game closed: its replay and what the match guard keeps may have changed
+        private static void AfterGame()
         {
-            ShowGame();
-            ShowStats();
-            ShowHealth();
-            ShowLastMatch();
-            _ = ShowTilesAsync();
+            _ = AppState.RefreshReplaysAsync();
+            _ = AppState.RefreshMatchGuardAsync();
         }
 
-        // The chips under the title: which client, which anti-cheat, which copy of the game
-        private void ShowGame()
+        // launcher.json is edited in place, so the fields Command Center does not know stay
+        private static void SavePreferLive(bool live)
         {
-            VersionText.Text = GamePaths.GameFound
-                ? "Generals Online " + AppState.ClientVersion()
-                : "Generals Online is not installed";
-
-            string? antiCheat = AntiCheatName();
-            AntiCheatChip.Visibility = antiCheat == null ? Visibility.Collapsed : Visibility.Visible;
-            AntiCheatText.Text = antiCheat ?? "";
-
-            if (!GamePaths.ZeroHourFound)
-                SourceText.Text = "Game not found";
-            else
-                SourceText.Text = GamePaths.Game.Contains(@"\steamapps\", StringComparison.OrdinalIgnoreCase)
-                    ? "Steam copy"
-                    : "Other copy";
-            SourceChip.ToolTip = GamePaths.ZeroHourFound ? GamePaths.Game : null;
+            var launcher = LauncherJson.Load();
+            launcher.PreferLive = live;
+            launcher.Save(live ? "Chose the Live client" : "Chose the Test client");
         }
-
-        private void ShowStats()
-        {
-            var stats = AppState.Stats;
-            if (stats == null)
-            {
-                PlayersText.Text = "—";
-                LobbiesText.Text = "—";
-                PingText.Text = "—";
-                // Before the first answer it is being checked; after it, no answer means the service is out of reach
-                // (asked again every minute)
-                bool unreachable = AppState.StatsChecked;
-                ServerState.Text = unreachable ? "Unreachable" : "Checking…";
-                ServerState.Foreground = unreachable ? Views.Brush("#FF8A8A") : Views.Hint;
-                ServerDot.Fill = unreachable ? Views.Brush("#FF5A5F") : Views.Hint;
-                return;
-            }
-            Count(PlayersText, stats.Players);
-            LobbiesText.Text = stats.Lobbies.ToString("N0", CultureInfo.CurrentCulture);
-            PingText.Text = stats.LatencyMs > 0 ? stats.LatencyMs + " ms" : "—";
-            ServerState.Text = "Online";
-            ServerState.Foreground = Views.Brush("#7BE39A");
-            ServerDot.Fill = Views.Brush("#52D273");
-        }
-
-        // Counts up to the number the first time it shows
-        private void Count(TextBlock box, int to)
-        {
-            int.TryParse(box.Text, NumberStyles.AllowThousands, CultureInfo.CurrentCulture, out int from);
-            if (_still || from == to)
-            {
-                box.Text = to.ToString("N0", CultureInfo.CurrentCulture);
-                return;
-            }
-            var start = DateTime.Now;
-            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
-            timer.Tick += (_, _) =>
-            {
-                double t = Math.Min(1, (DateTime.Now - start).TotalMilliseconds / 900);
-                double eased = 1 - Math.Pow(1 - t, 3);
-                box.Text = ((int)Math.Round(from + (to - from) * eased)).ToString("N0", CultureInfo.CurrentCulture);
-                if (t >= 1)
-                    timer.Stop();
-            };
-            timer.Start();
-        }
-
-        // A coloured line under PLAY: problems in red, warnings in amber, or a quiet all-clear
-        private void ShowHealth()
-        {
-            // The words come from Health's report; the colours stay until Home moves to the new look (ticket 13)
-            var report = AppServices.Health.Report;
-            if (!report.IsReady)
-            {
-                HealthChip.Visibility = Visibility.Collapsed;
-                return;
-            }
-            string color;
-            if (report.Issues == 0)
-            {
-                color = "#52D273";
-                HealthIcon.Kind = "check-circle";
-                HealthReview.Visibility = Visibility.Collapsed;
-            }
-            else
-            {
-                color = report.Problems > 0 ? "#FF5A5F" : "#FFAA00";
-                HealthIcon.Kind = "alert";
-                HealthReview.Visibility = Visibility.Visible;
-            }
-            HealthText.Text = report.HomeLine;
-            var brush = Views.Brush(color);
-            HealthIcon.Foreground = brush;
-            HealthText.Foreground = Views.Brush("#E6E9F5");
-            HealthReview.Foreground = brush;
-            HealthChip.Background = new SolidColorBrush(Color.FromArgb(0x1F, brush.Color.R, brush.Color.G, brush.Color.B));
-            HealthChip.BorderBrush = new SolidColorBrush(Color.FromArgb(0x55, brush.Color.R, brush.Color.G, brush.Color.B));
-            HealthChip.Visibility = Visibility.Visible;
-        }
-
-        // The newest replay the game recorded, with its map and the recorder's result when it is known
-        private void ShowLastMatch()
-        {
-            _lastMatch = AppState.Replays.OrderByDescending(r => r.Start).FirstOrDefault();
-            if (_lastMatch == null)
-            {
-                LastMatchCard.Visibility = Visibility.Collapsed;
-                ReplaysTileText.Text = "No replays yet";
-                return;
-            }
-            ReplaysTileText.Text = English.Plural(AppState.Replays.Count, "{0} replay", "{0} replays");
-
-            var match = _lastMatch;
-            string map = Tools.ReplayRow.MapName(match, MapCatalog.InstalledFolders());
-            LastMatchName.Text = map.Length > 0 ? map : "Unknown map";
-            LastMatchInfo.Text = string.Join(", ", new[] { Views.Day(match.Start), Views.Length(match.Length), Tools.ReplayRow.ModeText(match.Mode) });
-            LastMatchMap.ImageSource = Views.MapPreview(match.MapPath, match.Map);
-            LastResultChip.Visibility = Visibility.Collapsed;
-            LastMatchCard.Visibility = Visibility.Visible;
-
-            _ = Task.Run(() => ReplayService.ReadResults(match)).ContinueWith(task =>
-            {
-                if (task.IsFaulted || task.Result is not { } results || _lastMatch != match)
-                    return;
-                var result = results.Recorder >= 0 && results.Recorder < results.Players.Count ? results.Players[results.Recorder].Result : null;
-                if (result == null)
-                    return;
-                bool won = result == MatchResult.Won;
-                var brush = Views.Brush(won ? "#52D273" : "#FF5A5F");
-                LastResult.Text = won ? "WON" : "LOST";
-                LastResult.Foreground = brush;
-                LastResultChip.Background = new SolidColorBrush(Color.FromArgb(0x26, brush.Color.R, brush.Color.G, brush.Color.B));
-                LastResultChip.Visibility = Visibility.Visible;
-            }, TaskScheduler.FromCurrentSynchronizationContext());
-        }
-
-        private async Task ShowTilesAsync()
-        {
-            var (kind, resolution) = AddonService.Installed();
-            BarTileText.Text = kind switch
-            {
-                BarKind.Pro => "Control Bar Pro" + (resolution != null ? " " + resolution : ""),
-                BarKind.Other => "Another control bar",
-                _ => "Original control bar",
-            };
-
-            int maps = await Task.Run(() =>
-            {
-                try
-                {
-                    return Directory.Exists(GamePaths.Maps)
-                        ? Directory.EnumerateDirectories(GamePaths.Maps).Count(d => Directory.EnumerateFiles(d, "*.map").Any())
-                        : 0;
-                }
-                catch
-                {
-                    return 0;
-                }
-            });
-            MapsTileText.Text = maps == 0 ? "Browse and install maps" : English.Plural(maps, "{0} map installed", "{0} maps installed");
-        }
-
-        // The display name of the anti-cheat plugin selected in settings.json, read from the plugin's own JSON file
-        private static string? AntiCheatName()
-        {
-            try
-            {
-                string id = GoSettings.Load().AntiCheat;
-                if (string.IsNullOrEmpty(id))
-                    return null;
-                string folder = Path.Combine(GamePaths.Game, "plugins", id);
-                string? json = Directory.Exists(folder)
-                    ? Directory.GetFiles(folder, "*.json").OrderBy(Path.GetFileName).FirstOrDefault()
-                    : null;
-                if (json == null)
-                    return null;
-                using var doc = JsonDocument.Parse(File.ReadAllText(json));
-                return doc.RootElement.TryGetProperty("plugin_name", out var name) ? name.ToString() : null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        // The anti-cheat choice is left to the player and to Generals Online, which picks one itself when it is empty
-
-        private void ClientSelector_Changed(object sender, RoutedEventArgs e)
-        {
-            if (_initializing)
-                return;
-            try
-            {
-                var launcher = LauncherJson.Load();
-                launcher.PreferLive = rbLiveClient.IsChecked == true;
-                launcher.Save(launcher.PreferLive ? "Chose the Live client" : "Chose the Test client");
-            }
-            catch (Exception ex)
-            {
-                Views.Main.Toast(string.Format("Could not save: {0}", ex.Message), isError: true);
-            }
-        }
-
-        private void HealthChip_Click(object sender, RoutedEventArgs e) => Views.Main.ShowTools("health");
-
-        private void SourceChip_Click(object sender, RoutedEventArgs e) => Views.Main.ShowOptions("game");
-
-        private void Tile_Click(object sender, RoutedEventArgs e) => Views.Main.ShowTools(((FrameworkElement)sender).Tag as string);
-
-        private void WatchLast_Click(object sender, RoutedEventArgs e)
-        {
-            if (_lastMatch == null)
-                return;
-            try
-            {
-                ReplayService.Watch(_lastMatch);
-            }
-            catch (Exception ex)
-            {
-                Views.Main.Toast(ex.Message, isError: true);
-            }
-        }
-
-        private async void BtnPlay_Click(object sender, RoutedEventArgs e)
-        {
-            if (_playing)
-                return;
-            if (!GamePaths.ZeroHourFound && !LocateGame())
-                return;
-            if (!GamePaths.GameFound)
-            {
-                var answer = MessageBox.Show(string.Format("Generals Online is not installed in the game folder:\n{0}\n\nInstall it, then press Play again. Open the Generals Online download page?", GamePaths.Game),
-                    "Command Center", MessageBoxButton.YesNo, MessageBoxImage.Information, MessageBoxResult.Yes);
-                if (answer == MessageBoxResult.Yes)
-                    Views.Open(HealthService.DownloadPage);
-                return;
-            }
-            if (GameLauncher.IsGameRunning())
-            {
-                ShowGameState(true);
-                MessageBox.Show("The game is already running.", "Command Center",
-                    MessageBoxButton.OK, MessageBoxImage.Information, MessageBoxResult.OK);
-                return;
-            }
-
-            var channel = ClientSelectorPanel.Visibility == Visibility.Visible && rbTestEnv.IsChecked == true ? Channel.Test : Channel.Live;
-            if (!GameLauncher.CanStart(channel))
-            {
-                OfferOfficialLauncher(string.Format("{0} is not in the game folder, so Command Center cannot start this version of Generals Online.", GameLauncher.ExecutableFor(channel)));
-                return;
-            }
-
-            var window = Application.Current.MainWindow;
-            bool minimized = false, started = true;
-            try
-            {
-                _playing = true;
-                ShowGameState(true, starting: true);
-                GameLauncher.PlayOnline(channel);
-
-                // Stays open under the game while it starts (it hands the focus back to the game if Windows gives it
-                // here), then steps aside without taking the focus; back when the game closes
-                var handle = new WindowInteropHelper(window).Handle;
-                started = await GameLauncher.WaitForGameAsync(handle, () =>
-                {
-                    minimized = true;
-                    Dispatcher.Invoke(() => ShowGameState(true));
-                    ShowWindow(handle, MinimizedNoActivate);
-                });
-                if (minimized)
-                {
-                    window.WindowState = WindowState.Normal;
-                    window.Activate();
-                }
-                _ = AppState.RefreshReplaysAsync();
-                _ = AppState.RefreshMatchGuardAsync();
-            }
-            catch (Exception ex)
-            {
-                if (minimized)
-                    window.WindowState = WindowState.Normal;
-                MessageBox.Show(string.Format("Failed to launch the game: {0}", ex.Message), "Command Center",
-                    MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
-            }
-            finally
-            {
-                _playing = false;
-                ShowGameState(false);
-            }
-
-            if (!started)
-                OfferOfficialLauncher("The game did not start. What happened is written in play.log in Command Center's folder.");
-        }
-
-        // When Play cannot start the game, the official launcher, which knows its own programs, is offered instead
-        private void OfferOfficialLauncher(string reason)
-        {
-            if (!GameLauncher.HasOfficialLauncher)
-            {
-                if (MessageBox.Show(reason + "\n\nOpen the Generals Online download page?", "Command Center",
-                        MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.Yes) == MessageBoxResult.Yes)
-                    Views.Open(HealthService.DownloadPage);
-                return;
-            }
-            if (MessageBox.Show(reason + "\n\nStart the official Generals Online launcher instead?", "Command Center",
-                    MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.Yes) != MessageBoxResult.Yes)
-                return;
-            try
-            {
-                GameLauncher.StartOfficialLauncher();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(string.Format("Failed to launch the game: {0}", ex.Message), "Command Center",
-                    MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
-            }
-        }
-
-        // Zero Hour was not found by itself: the player picks its folder, which is remembered
-        private bool LocateGame()
-        {
-            var answer = MessageBox.Show("Command & Conquer Generals - Zero Hour was not found. Choose its folder now?\n\nChoose No to see where to get the game.", "Command Center",
-                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes);
-            if (answer == MessageBoxResult.No)
-            {
-                Views.Main.ShowQuestions();
-                return false;
-            }
-            if (answer != MessageBoxResult.Yes || !Views.ChooseGameFolder())
-                return false;
-            ShowGame();
-            return true;
-        }
-
-        // PLAY waits while the game runs, whoever started it (the official launcher does the same)
-        private void ShowGameState(bool running, bool starting = false)
-        {
-            PlayButton.IsEnabled = !running;
-            PlayButton.Opacity = running ? 0.85 : 1;
-            PlayIdle.Visibility = running ? Visibility.Collapsed : Visibility.Visible;
-            PlayBusy.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
-            PlayBusyText.Text = starting ? "Starting…" : "RUNNING";
-
-            var spin = (RotateTransform)Spinner.RenderTransform;
-            if (running && !_still)
-                spin.BeginAnimation(RotateTransform.AngleProperty,
-                    new DoubleAnimation(0, 360, TimeSpan.FromSeconds(1)) { RepeatBehavior = RepeatBehavior.Forever });
-            else
-                spin.BeginAnimation(RotateTransform.AngleProperty, null);
-        }
-
-        // A light sweep across PLAY every few seconds while it waits
-        private void Shine()
-        {
-            if (!PlayButton.IsEnabled || !IsVisible)
-                return;
-            SheenMove.BeginAnimation(TranslateTransform.XProperty,
-                new DoubleAnimation(-90, PlayButton.ActualWidth + 40, TimeSpan.FromMilliseconds(1100)) { EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } });
-        }
-
-        private async void GameWatch_Tick(object? sender, EventArgs e)
-        {
-            if (_playing || !IsVisible)
-                return;
-            bool running = await Task.Run(GameLauncher.IsGameRunning);
-            if (!_playing && running != !PlayButton.IsEnabled)
-            {
-                ShowGameState(running);
-                // A game started elsewhere has just closed: its match may change what the match guard keeps
-                if (!running)
-                    _ = AppState.RefreshMatchGuardAsync();
-            }
-        }
-
-        private const int MinimizedNoActivate = 7;
-
-        [DllImport("user32.dll")]
-        private static extern bool ShowWindow(IntPtr window, int command);
     }
 }

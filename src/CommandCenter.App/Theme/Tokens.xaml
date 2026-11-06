@@ -26,6 +26,7 @@
     <!-- Generals Online's gold: one filled element per screen (PLAY or the main action); elsewhere light and edges only -->
     <Color x:Key="Color.Accent">#FECD03</Color>
     <Color x:Key="Color.Accent.Pressed">#E2B600</Color>
+    <Color x:Key="Color.Accent.Hover">#FFD83A</Color>
     <Color x:Key="Color.OnAccent">#231B00</Color>
 
     <!-- States, always shown with an icon and words as well -->
@@ -73,6 +74,14 @@
     <sys:Double x:Key="Art.Grain">0.04</sys:Double>
     <sys:Double x:Key="Art.Zoom">1.04</sys:Double>
 
+    <!-- PLAY on Home (ADR 0006): the soft gold glow behind it, the one allowed glow, and its bevel, a light line along
+         the top that belongs to the main action alone -->
+    <RadialGradientBrush x:Key="Play.Glow" RadiusX="0.5" RadiusY="0.5" po:Freeze="True">
+        <GradientStop Color="#40FECD03" Offset="0"/>
+        <GradientStop Color="#00FECD03" Offset="1"/>
+    </RadialGradientBrush>
+    <SolidColorBrush x:Key="Play.Bevel" Color="#80FFF4C2" po:Freeze="True"/>
+
     <!-- A panel's edges over the art: a light line along the top (Text.Primary at 14%) and a dark one along the bottom -->
     <LinearGradientBrush x:Key="Panel.Edge" StartPoint="0,0" EndPoint="0,1" po:Freeze="True">
         <GradientStop Color="#24E6E0D3" Offset="0"/>
@@ -99,6 +108,7 @@
     <SolidColorBrush x:Key="Text.Muted" Color="{StaticResource Color.Text.Muted}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Accent" Color="{StaticResource Color.Accent}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Accent.Pressed" Color="{StaticResource Color.Accent.Pressed}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Accent.Hover" Color="{StaticResource Color.Accent.Hover}" po:Freeze="True"/>
     <SolidColorBrush x:Key="OnAccent" Color="{StaticResource Color.OnAccent}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Success" Color="{StaticResource Color.Success}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Warning" Color="{StaticResource Color.Warning}" po:Freeze="True"/>

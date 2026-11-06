@@ -5,11 +5,17 @@ namespace CommandCenter
     // Data several pages share, loaded once in the background and refreshed on demand.
     public static class AppState
     {
-        public static ServerStats? Stats { get; private set; }
-        public static event Action? StatsChanged;
+        // The server numbers live in AppServices.Server (ticket 13); these forward to it for the pages that have not moved
+        public static ServerStats? Stats => AppServices.Server.Stats;
+
+        public static event Action? StatsChanged
+        {
+            add => AppServices.Server.Changed += value;
+            remove => AppServices.Server.Changed -= value;
+        }
 
         // An answer was asked for at least once, so a missing one means the service could not be reached
-        public static bool StatsChecked { get; private set; }
+        public static bool StatsChecked => AppServices.Server.Asked;
 
         // Health's results live in AppServices.Health (ticket 10); these forward to it for the pages that have not moved
         public static IReadOnlyList<HealthResult> Health => AppServices.Health.Results;
@@ -31,12 +37,7 @@ namespace CommandCenter
         public static int ProblemCount => AppServices.Health.Report.Problems;
         public static int WarningCount => AppServices.Health.Report.Warnings;
 
-        public static async Task RefreshStatsAsync()
-        {
-            Stats = await GoApi.GetStatsAsync();
-            StatsChecked = true;
-            StatsChanged?.Invoke();
-        }
+        public static Task RefreshStatsAsync() => AppServices.Server.RefreshAsync();
 
         // --samples adds made-up problems so the problem layouts can be reviewed on a healthy PC; their fixes do nothing
         public static bool Samples { get; set; }

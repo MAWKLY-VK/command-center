@@ -69,6 +69,7 @@ namespace CommandCenter.Tests
             }
             pairs.Add("Color.OnAccent", "Color.Accent");
             pairs.Add("Color.OnAccent", "Color.Accent.Pressed");
+            pairs.Add("Color.OnAccent", "Color.Accent.Hover");
             return pairs;
         }
 
@@ -160,8 +161,6 @@ namespace CommandCenter.Tests
         private static readonly string[] NotYetMoved =
         [
             @"Imaging\FactionArt.cs",                     // phase 6 (the dossier)
-            @"Pages\LauncherPage.xaml",                   // ticket 13
-            @"Pages\LauncherPage.xaml.cs",                // ticket 13
             @"Pages\Tools\HotkeyLettersPanel.xaml",       // phase 6
             @"Pages\Tools\HotkeyLettersPanel.xaml.cs",    // phase 6
             @"Pages\Tools\HotkeysSection.xaml",           // phase 6

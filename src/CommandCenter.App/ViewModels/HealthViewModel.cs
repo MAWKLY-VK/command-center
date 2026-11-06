@@ -153,20 +153,7 @@ namespace CommandCenter.ViewModels
             return new HealthItem(result, null, null, null);
         }
 
-        private void Fix(HealthResult result)
-        {
-            var outcome = _fixes.Apply([result]);
-            if (outcome.OnlySamples)
-            {
-                _shell.Toast("This is a sample problem; nothing was changed.");
-                return;
-            }
-            if (outcome.Failed.Count > 0)
-                _shell.Toast(outcome.Failed[0], isError: true);
-            else
-                _shell.Toast(string.Format("Fixed: {0}", result.Title), outcome.CanUndo ? () => UndoFixes(outcome, "Change undone") : null);
-            _ = Recheck();
-        }
+        private void Fix(HealthResult result) => FixActions.ApplyOne(_fixes, _shell, result, Recheck);
 
         // The fixes that worked can be undone even when others failed
         [RelayCommand]

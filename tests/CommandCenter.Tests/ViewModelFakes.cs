@@ -17,6 +17,57 @@ namespace CommandCenter.Tests
         public void RefreshHealth() => HealthRefreshes++;
         public int HelpShown { get; private set; }
         public void ShowHelp() => HelpShown++;
+
+        // Yes/no questions asked, and the answer each gets (yes unless set)
+        public List<string> Questions { get; } = [];
+        public bool Answer { get; set; } = true;
+        public bool Confirm(string message)
+        {
+            Questions.Add(message);
+            return Answer;
+        }
+
+        public IntPtr WindowHandle => new(42);
+        public int SteppedAside { get; private set; }
+        public int CameBack { get; private set; }
+        public void StepAside() => SteppedAside++;
+        public void ComeBack() => CameBack++;
+
+        public List<string> ToolsShown { get; } = [];
+        public void ShowTools(string? section = null) => ToolsShown.Add(section ?? "");
+    }
+
+    // The Windows side of Play: which programs are there, what was started, and how the wait for the game goes
+    internal sealed class FakeLauncher : IGameLauncher
+    {
+        public bool HasTestClient { get; set; }
+        public bool HasOfficialLauncher { get; set; } = true;
+        public bool Running { get; set; }
+        public bool Startable { get; set; } = true;
+        public List<Channel> Started { get; } = [];
+        public int OfficialStarted { get; private set; }
+        public Exception? StartError { get; set; }
+
+        // What the wait does: by default the game starts, holds the front (settled) and closes again
+        public Func<Action, Task<bool>> Wait { get; set; } = settled =>
+        {
+            settled();
+            return Task.FromResult(true);
+        };
+
+        public bool IsRunning() => Running;
+        public bool CanStart(Channel channel) => Startable;
+        public string ExecutableFor(Channel channel) => channel == Channel.Test ? "GeneralsOnlineZH_TestEnvironment.exe" : "GeneralsOnlineZH_60.exe";
+
+        public void Start(Channel channel)
+        {
+            if (StartError != null)
+                throw StartError;
+            Started.Add(channel);
+        }
+
+        public void StartOfficialLauncher() => OfficialStarted++;
+        public Task<bool> WaitAsync(IntPtr window, Action settled) => Wait(settled);
     }
 
     internal sealed class FakeGameFolder : IGameFolder

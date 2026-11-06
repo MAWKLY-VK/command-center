@@ -445,6 +445,25 @@ namespace CommandCenter
 
         public void RefreshHealth() => _ = AppState.RefreshHealthAsync();
 
+        public bool Confirm(string message) =>
+            MessageBox.Show(this, message, "Command Center", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.Yes) == MessageBoxResult.Yes;
+
+        public IntPtr WindowHandle => new System.Windows.Interop.WindowInteropHelper(this).Handle;
+
+        // Minimized without taking the focus, so a full-screen game keeps it
+        public void StepAside() => ShowWindow(WindowHandle, MinimizedNoActivate);
+
+        public void ComeBack()
+        {
+            WindowState = WindowState.Normal;
+            Activate();
+        }
+
+        private const int MinimizedNoActivate = 7;
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr window, int command);
+
         // ── Screenshots for review (--capture <folder>) ──
         // The window is placed off screen and never activated, so it does not take focus from a running game.
         // Page ids: home, home:<picture> (mainmenu, usa, china or gla), replays, maps[:installed|library],
@@ -512,6 +531,9 @@ namespace CommandCenter
                         // The stats line and the health notice arrive in the background
                         for (int wait = 0; wait < 40 && (AppState.Stats == null || AppState.HealthCheckedAt == null); wait++)
                             await Task.Delay(500);
+                        // home:locate, home:update, home:fix or home:play shows PLAY in that state for review
+                        if (id.Length > 1)
+                            _home!.PreviewPlay(id[1]);
                         break;
                 }
                 await Task.Delay(900);
