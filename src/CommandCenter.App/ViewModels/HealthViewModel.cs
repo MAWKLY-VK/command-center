@@ -141,6 +141,8 @@ namespace CommandCenter.ViewModels
         // A result's action: its fix while it is not passed, else its guide (the common questions open Help)
         private HealthItem Item(HealthResult result)
         {
+            if (result.FixAsync != null && result.FixLabel != null && result.Status != HealthStatus.Passed)
+                return new HealthItem(result, result.FixLabel, "wrench", new AsyncRelayCommand(() => FixActions.ApplyOneAsync(_fixes, _shell, result, Recheck)));
             if (result.Fix != null && result.FixLabel != null && result.Status != HealthStatus.Passed)
                 return new HealthItem(result, result.FixLabel, "wrench", new RelayCommand(() => Fix(result)));
             if (result.GuideTarget is { } target && result.GuideLabel is { } label)

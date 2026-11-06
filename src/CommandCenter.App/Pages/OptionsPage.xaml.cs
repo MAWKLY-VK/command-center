@@ -27,7 +27,12 @@ namespace CommandCenter.Pages
                 game,
                 // The diagnostics keep their own direct route: the game does not go through a proxy either
                 new NetworkDiagnosticsViewModel(token => new NetworkDiagnosticsService().RunAsync(token), Copy),
-                new PluginsViewModel(game, () => GamePaths.Game));
+                new PluginsViewModel(game, () => GamePaths.Game),
+                // The dedicated graphics card (ADR 0010), in the game folder Command Center uses
+                new DedicatedGpuViewModel(GraphicsCards.Read(), () => AppServices.GameFolder.GeneralsOnlineFound,
+                    () => GamePaths.Game.Length > 0 ? DedicatedGpu.Default.State(GamePaths.Game) : DedicatedGpuState.Off,
+                    progress => DedicatedGpu.Default.EnableAsync(GamePaths.Game, progress),
+                    () => DedicatedGpu.Default.Disable(GamePaths.Game), AppServices.Fixes, shell));
             DataContext = _settings;
             // Another game folder: its settings and its control bar are read again
             AppServices.GameFolder.Changed += () =>

@@ -97,6 +97,11 @@ CommandCenter.exe --game <copy of Desktop\Test_Generals> --user-data <temp folde
   `FixRunner` and `HealthChecks` (Core/Integrity) and `FixHistory` (Core/Safety) make up Health, and `GameSounds` and
   `WaveFiles` (Core/Game) read the game's interface sounds, which the App plays through winmm's PlaySound from copies
   that never move in memory.
+- The dedicated graphics card (ADR 0010): `GraphicsCards` (Core/Game) lists the PC's cards through DXGI and decides
+  whether there are two; `DedicatedGpu` (Core/Content) downloads `dxwrapper_go.zip`, checks it and each file against
+  their pinned SHA-256 and writes them into the game folder through `BackupService`, and its `Disable` quarantines
+  them. Health offers it with an asynchronous fix (`HealthResult.FixAsync`, left out of Fix all), and Settings ›
+  Graphics has `DedicatedGpuViewModel`'s switch.
 - The other services are static classes until their pages move to MVVM in phase 6:
   - `GamePaths` decides the game folder in this order: `--game`, the chosen folder, the working or program folder, then
     the Steam libraries. A folder counts only if it has `WindowZH.big` and `INIZH.big`; otherwise `Game` stays empty.
@@ -170,6 +175,8 @@ CommandCenter.exe --game <copy of Desktop\Test_Generals> --user-data <temp folde
   framework-dependent portable exe. 0.5.0 must read and migrate 0.4.0 data.
 - No commit, push, pull request, release or publish unless the user asks.
 - `dxwrapper.zip` is a release asset, not code. It lives in `C:\Users\vdyxm\Desktop\cc-assets\` and is never committed.
+  It is attached to the v0.5.0 release as `dxwrapper_go.zip` (ADR 0009's asset name), with its licence file as
+  `dxwrapper_go-License.txt`; `DedicatedGpu.Release` pins that address and the SHA-256 of the zip and of each file.
 
 ## How to work
 

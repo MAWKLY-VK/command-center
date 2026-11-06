@@ -21,14 +21,14 @@ sections follow the official Generals Online launcher.
 | Maps | The online map library and the installed maps as cards with previews, player counts and sizes, filters by player count; install by click or by dropping a `.zip` / folder |
 | Hotkeys | Unit and building buttons for all 12 armies drawn like the in-game bar, the game keys, and hotkey letters on the button pictures; checks duplicates and clashes before saving |
 | Health | Problems first, then warnings, then the checks that passed: game files (any language edition), original archives checked against Zero Hour 1.04 fingerprints, the anti-cheat and its plugin, wrapper and runtime DLLs, rule-changing archives, "Run as administrator" (error 740), compatibility modes, Visual C++, graphics driver, resolution, the community data patch, Arabic game text left by version 0.4.0, network. A fix for each problem or all of them at once, each with Undo; a History tab lists every change with its Undo |
-| Settings | The game folder (which copy is used, pick another); Appearance: the Home picture, animation effects and the game's own interface sounds (off by default); Add-ons: Control Bar Pro from TheSuperHackers in five sizes, checked against pinned SHA-256 hashes, with a before/after slider; the official launcher's sections (camera, chat, input, graphics, social, network with diagnostics of ping, loss, NAT and the servers, data packs, plugins); Launcher: updates and about |
+| Settings | The game folder (which copy is used, pick another); on a PC with two graphics cards, the dedicated graphics card for Generals Online (Graphics); Appearance: the Home picture, animation effects and the game's own interface sounds (off by default); Add-ons: Control Bar Pro from TheSuperHackers in five sizes, checked against pinned SHA-256 hashes, with a before/after slider; the official launcher's sections (camera, chat, input, graphics, social, network with diagnostics of ping, loss, NAT and the servers, data packs, plugins); Launcher: updates and about |
 | Help | What new players ask most (greyed-out rooms, camera height, dropped connections, anti-cheat, antivirus, GenTool, mismatches, replays, where to get the game) with buttons to the place that fixes each one; the support report to copy, the Generals Online Discord, and Command Center's GitHub issues |
 
 ## Ground rules
 
 - Every change is backed up first and can be undone.
 - Fixes move files to a quarantine folder instead of deleting them.
-- Nothing is written into the game folder except what you ask for (hotkey files, control bar archives, fixes and quarantine moves) and the one-time removal of version 0.4.0's Arabic game text described below.
+- Nothing is written into the game folder except what you ask for (hotkey files, control bar archives, the dedicated graphics card's `dxwrapper_go` files, fixes and quarantine moves) and the one-time removal of version 0.4.0's Arabic game text described below.
 - Nothing in the game folder, `Options.ini` or `settings.json` is changed while the game is running.
 - Generals Online's `settings.json` and `launcher.json` are only written when you change a setting, and only the settings you changed;
   fields Command Center does not know stay as they are. The anti-cheat choice is never changed for you.
@@ -161,6 +161,7 @@ Copyright (C) 2026 Command Center contributors.
 
 - The interface, the Settings page and the network diagnostics are based on the [Generals Online Launcher](https://github.com/GeneralsOnlineDevelopmentTeam/Launcher) by the GeneralsOnline Development Team (GPL-3.0).
 - Control Bar Pro: [TheSuperHackers/GeneralsControlBar](https://github.com/TheSuperHackers/GeneralsControlBar) (MIT).
+- The dedicated graphics card uses [dxwrapper](https://github.com/elishacloud/dxwrapper) by elishacloud (zlib, with parts under other licences), build provided by the Generals Online team. Command Center downloads it from its own release only when you turn it on.
 - The program icon is the Generals Online launcher icon (GPL-3.0), recoloured red and without its lettering (`tools/make-icon.ps1`).
 - The interface's line icons are drawn from [Feather](https://feathericons.com) by Cole Bemis (MIT), with square ends.
 - The interface's fonts are [Barlow and Barlow Condensed](https://github.com/jpt/barlow) by The Barlow Project Authors and [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) by The JetBrains Mono Project Authors, both under the SIL Open Font License 1.1 and embedded unchanged.

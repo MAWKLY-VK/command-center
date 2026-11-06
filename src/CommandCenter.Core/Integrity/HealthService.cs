@@ -34,6 +34,10 @@ namespace CommandCenter.Core.Integrity
         public Action? Fix { get; init; }
         public string? FixPreview { get; init; }
 
+        // A fix that takes time, such as a download (the dedicated graphics card): it says what it is doing and gives the
+        // changes it made, which Undo puts back. Fix all leaves it out.
+        public Func<IProgress<string>?, Task<IReadOnlyList<BackupEntry>>>? FixAsync { get; init; }
+
         // Or a guide that opens a page or setting for the player
         public string? GuideLabel { get; init; }
         public string? GuideTarget { get; init; }
@@ -167,6 +171,9 @@ namespace CommandCenter.Core.Integrity
             {
                 Add(() => CheckEacSettings(game));
                 Add(() => CheckAntiCheatPlugin(game));
+                // The dedicated graphics card works with Generals Online's clients only (ADR 0010)
+                Add(() => DedicatedGpuCheck(GraphicsCards.Read(), DedicatedGpu.Default.State(game),
+                    progress => DedicatedGpu.Default.EnableAsync(game, progress)));
             }
 
             AddMany(() => CheckAdminFlag(game));
@@ -482,6 +489,34 @@ namespace CommandCenter.Core.Integrity
             var info = FileVersionInfo.GetVersionInfo(path);
             return new Version(info.FileMajorPart, info.FileMinorPart, info.FileBuildPart, info.FilePrivatePart);
         }
+
+        // The dedicated graphics card (ADR 0010): offered on a PC with two graphics cards, a pass once it is on, and a note
+        // when dxwrapper_go's files differ from Command Center's copy (not a wrapper warning: Generals Online loads it on
+        // purpose). A PC with one card and no dxwrapper_go sees nothing.
+        public static HealthResult? DedicatedGpuCheck(IReadOnlyList<GraphicsCard> cards, DedicatedGpuState state,
+            Func<IProgress<string>?, Task<IReadOnlyList<BackupEntry>>> enable) => state switch
+        {
+            DedicatedGpuState.On => new HealthResult
+            {
+                Id = "gpu", Group = GroupWindows, Title = "Dedicated graphics card is on", Status = HealthStatus.Passed,
+                Detail = "Generals Online loads dxwrapper_go from its folder and runs on the faster card. Settings › Graphics turns it off.",
+            },
+            DedicatedGpuState.Changed => new HealthResult
+            {
+                Id = "gpu", Group = GroupWindows, Title = "dxwrapper_go was changed", Status = HealthStatus.Passed,
+                Detail = "Its files in the game folder differ from Command Center's copy: edited by hand, or another build. Command Center leaves them as they are.",
+            },
+            _ when GraphicsCards.HasTwo(cards) => new HealthResult
+            {
+                Id = "gpu", Group = GroupWindows, Title = "Your PC has two graphics cards. Generals Online may run on the slower one", Status = HealthStatus.Warning,
+                Detail = string.Format("This PC has {0}. Choosing the card in Windows or in the NVIDIA panel does not reach the game: it runs on the faster card only with dxwrapper_go, two small files from the Generals Online team.",
+                    English.List(GraphicsCards.Real(cards).Select(card => card.Name))),
+                FixLabel = "Enable dedicated graphics card",
+                FixPreview = "Downloads dxwrapper_go (3.3 MB) from Command Center's release on GitHub, checks it and copies its two files into the game folder. Undo takes them away; Settings › Graphics turns it off.",
+                FixAsync = enable,
+            },
+            _ => null,
+        };
 
         private static IEnumerable<HealthResult> CheckWrappers(string game)
         {
