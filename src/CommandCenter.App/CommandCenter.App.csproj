@@ -31,6 +31,9 @@
     <Resource Include="Assets\**\*.jpg" />
     <Resource Include="Assets\app.ico" />
     <Resource Include="Assets\logo.png" />
+    <!-- Barlow, Barlow Condensed and JetBrains Mono (OFL), with their licences, so every PC shows the same type -->
+    <Resource Include="Theme\Fonts\*.ttf" />
+    <Resource Include="Theme\Fonts\*-OFL.txt" />
   </ItemGroup>
 
   <ItemGroup>

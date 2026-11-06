@@ -11,17 +11,23 @@ namespace CommandCenter.Tests
     {
         private static readonly Lazy<ResourceDictionary> Tokens = new(LoadTokens);
 
-        // The compiled dictionary as the program ships it, loaded on a single-threaded apartment like WPF wants
-        private static ResourceDictionary LoadTokens()
+        // The compiled dictionary as the program ships it
+        private static ResourceDictionary LoadTokens() => OnSta(() =>
         {
-            ResourceDictionary? tokens = null;
+            _ = System.IO.Packaging.PackUriHelper.UriSchemePack;
+            return (ResourceDictionary)Application.LoadComponent(new Uri("/CommandCenter;component/Theme/Tokens.xaml", UriKind.Relative));
+        });
+
+        // Runs on a single-threaded apartment, as WPF wants
+        private static T OnSta<T>(Func<T> work)
+        {
+            T result = default!;
             Exception? error = null;
             var thread = new Thread(() =>
             {
                 try
                 {
-                    _ = System.IO.Packaging.PackUriHelper.UriSchemePack;
-                    tokens = (ResourceDictionary)Application.LoadComponent(new Uri("/CommandCenter;component/Theme/Tokens.xaml", UriKind.Relative));
+                    result = work();
                 }
                 catch (Exception ex)
                 {
@@ -31,7 +37,7 @@ namespace CommandCenter.Tests
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
             thread.Join();
-            return tokens ?? throw new InvalidOperationException("Theme/Tokens.xaml could not be loaded.", error);
+            return error == null ? result : throw new InvalidOperationException("The theme could not be read.", error);
         }
 
         private static Color Token(string key) =>
@@ -121,6 +127,30 @@ namespace CommandCenter.Tests
             var spaces = Numbers("Space.").ToArray();
             Assert.NotEmpty(spaces);
             Assert.All(spaces, s => Assert.True(s.Value > 0 && s.Value % 4 == 0, $"{s.Key} is {s.Value} px."));
+        }
+
+        // ── Fonts ──
+
+        // Each font token reaches the file inside the program in every weight the design uses, on any PC, instead of
+        // falling back to a font Windows has. A font's width comes from its .Stretch token when it has one.
+        [Theory]
+        [InlineData("Font.Text", 400, "Barlow-Regular.ttf")]
+        [InlineData("Font.Text", 500, "Barlow-Medium.ttf")]
+        [InlineData("Font.Text", 600, "Barlow-SemiBold.ttf")]
+        [InlineData("Font.Heading", 600, "BarlowCondensed-SemiBold.ttf")]
+        [InlineData("Font.Heading", 700, "BarlowCondensed-Bold.ttf")]
+        [InlineData("Font.Data", 400, "JetBrainsMono-Regular.ttf")]
+        public void Each_font_resolves_to_its_file_inside_the_program(string key, int weight, string file)
+        {
+            string? font = OnSta(() =>
+            {
+                var stretch = Tokens.Value.Contains(key + ".Stretch") ? (FontStretch)Tokens.Value[key + ".Stretch"] : FontStretches.Normal;
+                var typeface = new Typeface((FontFamily)Tokens.Value[key], FontStyles.Normal, FontWeight.FromOpenTypeWeight(weight), stretch);
+                return typeface.TryGetGlyphTypeface(out var glyphs) ? glyphs.FontUri.ToString() : null;
+            });
+            Assert.NotNull(font);
+            Assert.StartsWith("pack://application:,,,/CommandCenter;component/Theme/Fonts/", font, StringComparison.OrdinalIgnoreCase);
+            Assert.EndsWith("/" + file, font, StringComparison.OrdinalIgnoreCase);
         }
 
         // ── No colour outside Theme ──

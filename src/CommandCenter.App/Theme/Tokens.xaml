@@ -66,11 +66,14 @@
     <SolidColorBrush x:Key="Art.Shadow" Color="{StaticResource Color.Art.Shadow}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Art.Highlight" Color="{StaticResource Color.Art.Highlight}" po:Freeze="True"/>
 
-    <!-- Fonts. Barlow, Barlow Condensed and JetBrains Mono replace these with the embedded files (ticket 03). Mono is for
-         real data only, with tabular figures. -->
-    <FontFamily x:Key="Font.Text">Segoe UI</FontFamily>
-    <FontFamily x:Key="Font.Heading">Segoe UI</FontFamily>
-    <FontFamily x:Key="Font.Data">Consolas</FontFamily>
+    <!-- Fonts, from the files in Theme/Fonts (OFL, static weights because WPF has no variable axes): Barlow for text
+         (Regular, Medium, SemiBold), Barlow Condensed for headings and PLAY (SemiBold, Bold), JetBrains Mono for real
+         data only, with tabular figures. WPF files Barlow Condensed under Barlow as its condensed width, so headings
+         set Font.Heading.Stretch with the family. Segoe UI draws what they lack, such as the Arabic notice. -->
+    <FontFamily x:Key="Font.Text">./Fonts/#Barlow, Segoe UI</FontFamily>
+    <FontFamily x:Key="Font.Heading">./Fonts/#Barlow, Segoe UI</FontFamily>
+    <FontStretch x:Key="Font.Heading.Stretch">Condensed</FontStretch>
+    <FontFamily x:Key="Font.Data">./Fonts/#JetBrains Mono, Consolas</FontFamily>
 
     <!-- Text sizes on a 1.2 scale, none under 12 px; at most three per screen. PLAY is the one heroic size. -->
     <sys:Double x:Key="Size.Caption">12.5</sys:Double>

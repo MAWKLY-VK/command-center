@@ -11,3 +11,5 @@ tools/capture-data/** -text
 # Signed files keep the exact bytes GitHub serves, so their signatures match on every PC
 go-profile.json text eol=lf
 *.sig -text
+# The embedded fonts and their licences keep the exact bytes of their releases (SHA-256 in THIRD-PARTY-NOTICES.md)
+src/CommandCenter.App/Theme/Fonts/** -text
