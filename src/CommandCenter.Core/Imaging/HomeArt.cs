@@ -6,9 +6,10 @@ namespace CommandCenter.Core.Imaging
 
     public readonly record struct Rgb(byte R, byte G, byte B);
 
-    // The near-monochrome tint of plan 3-c: lightness runs from a cool shadow colour to a warm highlight colour, and Keep
-    // (0 to 1) is how much of each pixel's own colour stays
-    public sealed record ArtTint(Rgb Shadow, Rgb Highlight, double Keep);
+    // The near-monochrome tint of plan 3-c: lightness runs from a cool shadow colour to a warm highlight colour, Keep
+    // (0 to 1) is how much of each pixel's own colour stays, and Brightness (0 to 1) scales the result, so a bright picture
+    // stays behind the page instead of competing with it
+    public sealed record ArtTint(Rgb Shadow, Rgb Highlight, double Keep, double Brightness = 1);
 
     // The picture Home shows at this start, with its pixels
     public sealed record HomePicture(HomeImage Image, DecodedImage Picture);
@@ -60,11 +61,12 @@ namespace CommandCenter.Core.Imaging
             return new DecodedImage(rect.Width, rect.Height, pixels);
         }
 
-        // Each pixel's lightness (Rec. 709 luma) picks a colour between the tint's shadow and highlight, and Keep of the
-        // pixel's own colour is mixed back in. Alpha stays as it was.
+        // Each pixel's lightness (Rec. 709 luma) picks a colour between the tint's shadow and highlight, Keep of the pixel's
+        // own colour is mixed back in, and the result is scaled by the brightness. Alpha stays as it was.
         public static DecodedImage Tint(DecodedImage image, ArtTint tint)
         {
-            double keep = Math.Clamp(tint.Keep, 0, 1), mono = 1 - keep;
+            double brightness = Math.Clamp(tint.Brightness, 0, 1);
+            double keep = Math.Clamp(tint.Keep, 0, 1) * brightness, mono = (1 - Math.Clamp(tint.Keep, 0, 1)) * brightness;
             byte[] source = image.Pixels, pixels = new byte[source.Length];
             for (int i = 0; i + 3 < source.Length; i += 4)
             {

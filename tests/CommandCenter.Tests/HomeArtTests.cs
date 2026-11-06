@@ -72,6 +72,14 @@ namespace CommandCenter.Tests
             Assert.Equal([eb, eg, er, 255], tinted.Pixels);
         }
 
+        [Fact]
+        public void A_brightness_under_1_darkens_the_tinted_picture()
+        {
+            // white: 233.75, 220.15 and 199.75 at full brightness, halved
+            var tinted = HomeArt.Tint(Pixel(255, 255, 255), Tint with { Brightness = 0.5 });
+            Assert.Equal([100, 110, 117, 255], tinted.Pixels);
+        }
+
         // ── The copy behind the pages ──
 
         private static DecodedImage Uniform(int width, int height, byte value)

@@ -39,12 +39,49 @@
     <Color x:Key="Color.Focus">#FECD03</Color>
 
     <!-- The game art's tint, applied once when it loads (HomeArt.Tint): lightness runs from the cool shadow to the warm
-         highlight, and Art.Keep of each pixel's own colour stays. The pages behind Home sit on a blurred copy at
-         Art.Backdrop of its brightness. -->
+         highlight, and Art.Keep of each pixel's own colour stays. The battle scene is shown at Art.Brightness.Scene and
+         the faction loading screens, whose large bright emblem would compete with PLAY, at Art.Brightness.Emblem. The
+         pages behind Home sit on a blurred copy at Art.Backdrop of that. -->
     <Color x:Key="Color.Art.Shadow">#0F151C</Color>
     <Color x:Key="Color.Art.Highlight">#E7D7B6</Color>
-    <sys:Double x:Key="Art.Keep">0.15</sys:Double>
+    <sys:Double x:Key="Art.Keep">0.08</sys:Double>
+    <sys:Double x:Key="Art.Brightness.Scene">0.8</sys:Double>
+    <sys:Double x:Key="Art.Brightness.Emblem">0.6</sys:Double>
     <sys:Double x:Key="Art.Backdrop">0.4</sys:Double>
+
+    <!-- The layers over the art, from the back (plan 3-c): on Home a scrim from the left and one from the bottom, then
+         everywhere a vignette, a fine grain at Art.Grain, and a scrim behind the tabs. All are Bg.Window at some opacity.
+         Home's art zooms from 1 to Art.Zoom and back over Motion.Zoom. -->
+    <LinearGradientBrush x:Key="Art.ScrimLeft" StartPoint="0,0" EndPoint="1,0" po:Freeze="True">
+        <GradientStop Color="#F20D1013" Offset="0"/>
+        <GradientStop Color="#A60D1013" Offset="0.32"/>
+        <GradientStop Color="#000D1013" Offset="0.7"/>
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="Art.ScrimBottom" StartPoint="0,1" EndPoint="0,0" po:Freeze="True">
+        <GradientStop Color="#F20D1013" Offset="0"/>
+        <GradientStop Color="#000D1013" Offset="0.55"/>
+    </LinearGradientBrush>
+    <RadialGradientBrush x:Key="Art.Vignette" RadiusX="0.75" RadiusY="0.75" po:Freeze="True">
+        <GradientStop Color="#000D1013" Offset="0.5"/>
+        <GradientStop Color="#990D1013" Offset="1"/>
+    </RadialGradientBrush>
+    <LinearGradientBrush x:Key="Art.ScrimTop" StartPoint="0,0" EndPoint="0,1" po:Freeze="True">
+        <GradientStop Color="#E60D1013" Offset="0"/>
+        <GradientStop Color="#A60D1013" Offset="0.65"/>
+        <GradientStop Color="#000D1013" Offset="1"/>
+    </LinearGradientBrush>
+    <sys:Double x:Key="Art.Grain">0.04</sys:Double>
+    <sys:Double x:Key="Art.Zoom">1.04</sys:Double>
+
+    <!-- The drawn background of a copy without the game's art: a cool light and a faint gold glow at the bottom left -->
+    <RadialGradientBrush x:Key="Art.DrawnLight" Center="0.74,0.48" GradientOrigin="0.74,0.48" RadiusX="0.5" RadiusY="0.85" po:Freeze="True">
+        <GradientStop Color="#801E252C" Offset="0"/>
+        <GradientStop Color="#001E252C" Offset="1"/>
+    </RadialGradientBrush>
+    <RadialGradientBrush x:Key="Art.DrawnGlow" Center="0.1,1" GradientOrigin="0.1,1" RadiusX="0.6" RadiusY="0.7" po:Freeze="True">
+        <GradientStop Color="#1FFECD03" Offset="0"/>
+        <GradientStop Color="#00FECD03" Offset="1"/>
+    </RadialGradientBrush>
 
     <!-- A brush for each colour, under the colour's name without "Color." -->
     <SolidColorBrush x:Key="Bg.Window" Color="{StaticResource Color.Bg.Window}" po:Freeze="True"/>
@@ -102,6 +139,7 @@
     <sys:Double x:Key="Icon.Stroke">1.8</sys:Double>
     <sys:Double x:Key="Target.Min">32</sys:Double>
 
-    <!-- Motion shows a change of state only -->
+    <!-- Motion shows a change of state only; the one continuous motion is Home's slow zoom -->
     <Duration x:Key="Motion.State">0:0:0.18</Duration>
+    <Duration x:Key="Motion.Zoom">0:0:25</Duration>
 </ResourceDictionary>

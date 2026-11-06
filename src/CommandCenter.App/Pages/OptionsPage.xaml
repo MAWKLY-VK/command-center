@@ -76,6 +76,8 @@
                              Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
                 <RadioButton x:Name="rbPlugins" Content="PLUGINS" GroupName="OptionsTabs"
                              Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
+                <RadioButton x:Name="rbAddons" Content="ADD-ONS" GroupName="OptionsTabs"
+                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
                 <RadioButton x:Name="rbLauncher" Content="LAUNCHER" GroupName="OptionsTabs"
                              Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
             </StackPanel>
@@ -482,6 +484,9 @@
                 </StackPanel>
 
                 <!-- LAUNCHER: Command Center's own preferences -->
+                <!-- ADD-ONS: Control Bar Pro, moved here from its own tab (P5-D1); its look follows in ticket 08 -->
+                <ContentControl x:Name="PanelAddons" Visibility="Collapsed" Focusable="False"/>
+
                 <StackPanel x:Name="PanelLauncher" Visibility="Collapsed">
                     <TextBlock Text="LAUNCHER" Style="{StaticResource SectionHeaderStyle}"/>
 

@@ -160,8 +160,6 @@ namespace CommandCenter.Tests
         private static readonly string[] NotYetMoved =
         [
             @"Imaging\FactionArt.cs",                     // phase 6 (the dossier)
-            @"MainWindow.xaml",                           // ticket 06
-            @"MainWindow.xaml.cs",                        // ticket 06
             @"Pages\LauncherPage.xaml",                   // ticket 13
             @"Pages\LauncherPage.xaml.cs",                // ticket 13
             @"Pages\OptionsPage.xaml",                    // tickets 08 and 09
@@ -179,8 +177,8 @@ namespace CommandCenter.Tests
             @"Pages\Tools\PlayerStrip.cs",                // phase 6
             @"Pages\Tools\ReplaysSection.xaml",           // phase 6
             @"Pages\Tools\ReplaysSection.xaml.cs",        // phase 6
-            @"Pages\UpdateOverlay.xaml",                  // ticket 06
-            @"Pages\Views.cs",                            // ticket 06
+            @"Pages\UpdateOverlay.xaml",                  // ticket 15 (captured with a test key)
+            @"Pages\Views.cs",                            // its status colours serve the pages above
         ];
 
         // Not Command Center's own look: these draw the hotkey letters into the game's textures
@@ -189,7 +187,7 @@ namespace CommandCenter.Tests
         private static readonly Regex Colour = new(
             "[\"'>]#(?:[0-9A-Fa-f]{3,4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})[\"'<]" +
             @"|Color\.FromA?Rgb\(|\bColors\.(?!Transparent\b)[A-Z]|\bBrushes\.(?!Transparent\b)[A-Z]" +
-            "|(?:Foreground|Background|Fill|Stroke|BorderBrush|Color)=\"(?!Transparent\")[A-Z][a-z]+(?:[A-Z][a-z]+)*\"",
+            "|\\b(?:Foreground|Background|Fill|Stroke|BorderBrush|Color)=\"(?!Transparent\")[A-Z][a-z]+(?:[A-Z][a-z]+)*\"",
             RegexOptions.Compiled);
 
         private static string AppFolder()

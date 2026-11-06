@@ -2,6 +2,9 @@
 # Found by comparing two runs of the 0.4.0 reference build on 2026-11-05. The values are device pixels of a 1600x1000
 # capture on the maintainer's PC, which saves it as 1942x1102 at its display scaling.
 #   <capture, or * for all> <x> <y> <width> <height>   # why it changes
-*                     1600  15  185  50   # live player count in the title bar
-pages/01-home.png     1520 735  372 212   # live servers card: players, lobbies and ping
-samples/01-home.png   1520 735  372 212   # live servers card: players, lobbies and ping
+pages/01-home.png         1520 735  372 212   # live servers card: players, lobbies and ping
+pages/02-home-usa.png     1520 735  372 212   # live servers card: players, lobbies and ping
+pages/03-home-china.png   1520 735  372 212   # live servers card: players, lobbies and ping
+pages/04-home-gla.png     1520 735  372 212   # live servers card: players, lobbies and ping
+samples/01-home.png       1520 735  372 212   # live servers card: players, lobbies and ping
+drawn/01-home.png         1520 735  372 212   # live servers card: players, lobbies and ping

@@ -4,10 +4,10 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Threading;
+using CommandCenter.Imaging;
 using CommandCenter.Pages;
 
 namespace CommandCenter
@@ -22,10 +22,11 @@ namespace CommandCenter
         private Action? _toastAction;
         private Task? _updateCheck;
         private Task? _englishOnlyStep;
+        private Task? _artLoad;
         private bool _selectingTab;
+        private bool _onHome = true;
         private readonly bool _still = App.HasArg("--capture");
-        private readonly List<Storyboard> _ambient = new();
-        private int _shownPlayers;
+        private Storyboard? _zoom;
 
         public MainWindow()
         {
@@ -33,15 +34,15 @@ namespace CommandCenter
             _toastTimer.Tick += (_, _) => HideToast();
             PreviewKeyDown += OnPreviewKeyDown;
             Closing += OnClosing;
-            // Near the smallest size the tabs need the room, so the player count drops its word
-            SizeChanged += (_, e) => OnlineLabel.Visibility = e.NewSize.Width < 1060 ? Visibility.Collapsed : Visibility.Visible;
-            LoadBackdrop();
-            AppState.StatsChanged += () => Dispatcher.Invoke(ShowOnline);
+            Grain.Fill = ArtLayers.Grain();
+            SystemParameters.StaticPropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(SystemParameters.ClientAreaAnimation))
+                    Dispatcher.Invoke(UpdateZoom);
+            };
             AppState.HealthChanged += () => Dispatcher.Invoke(ShowHealthBadge);
-            ShowOnline();
             ShowHealthBadge();
-            if (!_still)
-                StartAmbient();
+            _artLoad = LoadArtAsync(AppSettings.Current.HomeImage, remember: true);
             ShowHome();
 
             // Screenshots skip the update check unless a manifest is given
@@ -53,7 +54,7 @@ namespace CommandCenter
                 AppState.ReadHotkeysAfter(_englishOnlyStep);
         }
 
-        // ── Navigation ──
+        // ── Navigation (P5-D1): Home, Replays, Maps, Hotkeys and Health, then Settings and Help ──
 
         public void ShowHome()
         {
@@ -61,8 +62,15 @@ namespace CommandCenter
             Navigate(_home ??= new LauncherPage());
         }
 
+        // Replays, Maps, Hotkeys or Health. Add-ons is a section of Settings.
         public void ShowTools(string? section = null)
         {
+            if (section == "addons")
+            {
+                ShowOptions("addons");
+                return;
+            }
+            bool fromHelp = TabHelp.IsChecked == true;
             _tools ??= new ToolsPage();
             if (section != null)
                 _tools.Select(section);
@@ -71,22 +79,30 @@ namespace CommandCenter
                 "maps" => TabMaps,
                 "replays" => TabReplays,
                 "hotkeys" => TabHotkeys,
-                "addons" => TabAddons,
                 _ => TabHealth,
             });
             Navigate(_tools);
+            // Help shows the common questions inside Health, so Health's own tab goes back to its checks
+            if (fromHelp && _tools.Current == "health")
+                _tools.ShowPart("checks");
         }
 
-        // Health › Common questions; with the game not found, where to get it comes first
-        public void ShowQuestions()
+        // The common questions; with the game not found, where to get it comes first. They stay in Health until Help gets
+        // its own page (ticket 07).
+        public void ShowHelp()
         {
-            ShowTools("health");
-            _tools!.ShowPart("questions");
+            _tools ??= new ToolsPage();
+            _tools.Select("health");
+            SelectTab(TabHelp);
+            Navigate(_tools);
+            _tools.ShowPart("questions");
         }
+
+        public void ShowQuestions() => ShowHelp();
 
         public void ShowOptions(string? part = null)
         {
-            SelectTab(null);
+            SelectTab(TabSettings);
             Navigate(_options ??= new OptionsPage());
             if (part != null)
                 _options.ShowPart(part);
@@ -94,172 +110,153 @@ namespace CommandCenter
 
         private void Navigate(Page page)
         {
-            // Leaving the Options page by a tab keeps what was set there, as its own Save button does
+            // Leaving Settings by a tab keeps what was set there, as its own Save button does
             if (ContentFrame.Content is OptionsPage options && !ReferenceEquals(options, page))
                 options.Commit();
             if (ReferenceEquals(ContentFrame.Content, page))
             {
-                ShowBackdropFor(page);
+                ShowArtFor(page);
                 return;
             }
             ContentFrame.Navigate(page);
         }
 
-        private void SelectTab(RadioButton? tab)
+        private void SelectTab(RadioButton tab)
         {
             _selectingTab = true;
-            foreach (var other in new[] { TabHome, TabHealth, TabMaps, TabReplays, TabHotkeys, TabAddons })
+            foreach (var other in new[] { TabHome, TabReplays, TabMaps, TabHotkeys, TabHealth, TabSettings, TabHelp })
                 other.IsChecked = ReferenceEquals(other, tab);
             _selectingTab = false;
-            if (tab == null)
-                OptionsButton.BorderBrush = new SolidColorBrush(Color.FromArgb(0x99, 0xFE, 0xCD, 0x03));
-            else
-                OptionsButton.ClearValue(BorderBrushProperty);
         }
 
         private void Tab_Checked(object sender, RoutedEventArgs e)
         {
             if (_selectingTab || sender is not RadioButton { Tag: string id })
                 return;
-            if (id == "home")
-                ShowHome();
-            else
-                ShowTools(id);
+            switch (id)
+            {
+                case "home":
+                    ShowHome();
+                    break;
+                case "settings":
+                    ShowOptions();
+                    break;
+                case "help":
+                    ShowHelp();
+                    break;
+                default:
+                    ShowTools(id);
+                    break;
+            }
         }
-
-        private void Options_Click(object sender, RoutedEventArgs e) => ShowOptions();
 
         private void ContentFrame_Navigated(object sender, NavigationEventArgs e)
         {
             if (e.Content is FrameworkElement page)
-            {
-                ShowBackdropFor(page);
-                Enter(page);
-            }
+                ShowArtFor(page);
             if (e.Content is ToolsPage tools)
                 tools.OnShown();
             while (ContentFrame.CanGoBack)
                 ContentFrame.RemoveBackEntry();
         }
 
-        // ── Backdrop and motion ──
+        // ── The art (phase 5 spec) ──
 
-        // The game's art from the Steam library; other copies get the drawn background
-        private void LoadBackdrop()
+        // The picture for this start (or the one asked for), tinted, with its blurred copy for the other pages. The drawn
+        // background stands in when the game or its art is missing. The reading and tinting run off the interface thread.
+        private async Task LoadArtAsync(HomeImage setting, bool remember)
+        {
+            var scene = new ArtTint(TokenRgb("Color.Art.Shadow"), TokenRgb("Color.Art.Highlight"), (double)FindResource("Art.Keep"),
+                (double)FindResource("Art.Brightness.Scene"));
+            var emblem = scene with { Brightness = (double)FindResource("Art.Brightness.Emblem") };
+            double backdrop = (double)FindResource("Art.Backdrop");
+            var last = AppSettings.Current.LastHomeImage;
+            bool drawn = App.HasArg("--drawn-backdrop") || !GamePaths.ZeroHourFound;
+            var art = drawn ? null : await Task.Run(() => PrepareArt(setting, last, scene, emblem, backdrop));
+
+            DrawnBackdrop.Visibility = art == null ? Visibility.Visible : Visibility.Collapsed;
+            HomeArtImage.Source = art?.Home;
+            PagesArt.Source = art?.Pages;
+            if (art != null && remember)
+            {
+                AppSettings.Current.LastHomeImage = art.Value.Image;
+                AppSettings.Current.Save();
+            }
+            ShowArtFor(ContentFrame.Content as FrameworkElement);
+        }
+
+        // The battle scene gets the scene's tint, the three faction loading screens the darker emblem tint
+        private static (HomeImage Image, BitmapSource Home, BitmapSource Pages)? PrepareArt(HomeImage setting, HomeImage? last, ArtTint scene,
+            ArtTint emblem, double backdrop)
         {
             try
             {
-                // --drawn-backdrop shows the background other copies get, for screenshots
-                if (!App.HasArg("--drawn-backdrop") && GamePaths.SteamArt("library_hero.jpg") is { } hero)
-                {
-                    var image = new BitmapImage();
-                    image.BeginInit();
-                    image.UriSource = new Uri(hero);
-                    image.DecodePixelWidth = 1920;
-                    image.CacheOption = BitmapCacheOption.OnLoad;
-                    image.EndInit();
-                    image.Freeze();
-                    HeroArt.Source = image;
-                    return;
-                }
+                var images = new GameImages(new GameFiles(GamePaths.Game), HotkeyService.DetectLanguage());
+                if (HomeArt.Pick(setting, last, image => HomeArt.Load(images, image)) is not { } pick)
+                    return null;
+                var tinted = HomeArt.Tint(pick.Picture, pick.Image == HomeImage.MainMenu ? scene : emblem);
+                return (pick.Image, tinted.ToBitmap(), HomeArt.Backdrop(tinted, backdrop).ToBitmap());
             }
-            catch { }
-            HeroArt.Visibility = Visibility.Collapsed;
-            DrawnBackdrop.Visibility = Visibility.Visible;
+            catch (Exception ex)
+            {
+                ErrorLog.Write(ex);
+                return null;
+            }
         }
 
-        // The art shows in full on the home page and steps back, blurred and dimmed, behind the tools
-        private void ShowBackdropFor(FrameworkElement page)
+        private Rgb TokenRgb(string key) => FindResource(key) is Color c ? new Rgb(c.R, c.G, c.B) : default;
+
+        // Home shows the picture with its scrims; the other pages sit on the blurred copy, or on the drawn background
+        // dimmed. The change is a short fade, and none when Windows' animation effects are off.
+        private void ShowArtFor(FrameworkElement? page)
         {
-            bool home = page is LauncherPage;
-            var time = _still ? TimeSpan.Zero : TimeSpan.FromMilliseconds(450);
-            ToolScrim.BeginAnimation(OpacityProperty, new DoubleAnimation(home ? 0 : 1, time));
-            HeroBlur.BeginAnimation(BlurEffect.RadiusProperty, new DoubleAnimation(home ? 0 : 10, time));
+            _onHome = page is null or LauncherPage;
+            bool art = HomeArtImage.Source != null;
+            var time = _still || !SystemParameters.ClientAreaAnimation ? TimeSpan.Zero : ((Duration)FindResource("Motion.State")).TimeSpan;
+            Fade(HomeArtImage, art && _onHome ? 1 : 0, time);
+            Fade(HomeScrims, _onHome ? 1 : 0, time);
+            Fade(PagesArt, art && !_onHome ? 1 : 0, time);
+            Fade(PagesScrim, !art && !_onHome ? 1 : 0, time);
+            UpdateZoom();
         }
 
-        // Pages slide up a little as they appear
-        private void Enter(FrameworkElement page)
+        private static void Fade(UIElement element, double to, TimeSpan time) =>
+            element.BeginAnimation(OpacityProperty, new DoubleAnimation(to, time));
+
+        // The one continuous motion (plan 3-c): Home's picture zooms in and out very slowly while Home shows. It stops
+        // while the window is minimized, when Windows' animation effects are off, and for screenshots.
+        private void UpdateZoom()
         {
-            if (_still)
+            bool run = _onHome && HomeArtImage.Source != null && WindowState != WindowState.Minimized
+                       && SystemParameters.ClientAreaAnimation && !_still;
+            if (!run)
+            {
+                _zoom?.Pause(this);
                 return;
-            var move = new TranslateTransform(0, 14);
-            page.RenderTransform = move;
-            var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
-            move.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(0, TimeSpan.FromMilliseconds(420)) { EasingFunction = ease });
-            page.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(320)));
-        }
-
-        private void StartAmbient()
-        {
-            var zoom = new Storyboard { RepeatBehavior = RepeatBehavior.Forever, AutoReverse = true };
+            }
+            if (_zoom != null)
+            {
+                _zoom.Resume(this);
+                return;
+            }
+            _zoom = new Storyboard { RepeatBehavior = RepeatBehavior.Forever, AutoReverse = true };
+            double to = (double)FindResource("Art.Zoom");
+            var duration = (Duration)FindResource("Motion.Zoom");
             foreach (string axis in new[] { "ScaleX", "ScaleY" })
             {
-                var grow = new DoubleAnimation(1.03, 1.12, TimeSpan.FromSeconds(26)) { EasingFunction = new SineEase() };
-                Storyboard.SetTarget(grow, HeroArt);
+                var grow = new DoubleAnimation(1, to, duration) { EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut } };
+                Storyboard.SetTarget(grow, HomeArtImage);
                 Storyboard.SetTargetProperty(grow, new PropertyPath("RenderTransform." + axis));
-                zoom.Children.Add(grow);
+                _zoom.Children.Add(grow);
             }
-            var pulse = new Storyboard { RepeatBehavior = RepeatBehavior.Forever };
-            foreach (string axis in new[] { "ScaleX", "ScaleY" })
-            {
-                var spread = new DoubleAnimation(1, 2.4, TimeSpan.FromSeconds(1.6)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } };
-                Storyboard.SetTarget(spread, PulseRing);
-                Storyboard.SetTargetProperty(spread, new PropertyPath("RenderTransform." + axis));
-                pulse.Children.Add(spread);
-            }
-            var fade = new DoubleAnimation(0.6, 0, TimeSpan.FromSeconds(1.6));
-            Storyboard.SetTarget(fade, PulseRing);
-            Storyboard.SetTargetProperty(fade, new PropertyPath(OpacityProperty));
-            pulse.Children.Add(fade);
-            _ambient.Add(zoom);
-            _ambient.Add(pulse);
-            foreach (var storyboard in _ambient)
-                storyboard.Begin(this, true);
-        }
-
-        // Nothing moves while the window is minimized (during a match)
-        private void PauseAmbient(bool pause)
-        {
-            foreach (var storyboard in _ambient)
-            {
-                if (pause)
-                    storyboard.Pause(this);
-                else
-                    storyboard.Resume(this);
-            }
-        }
-
-        // Players online, counted up to the new number
-        private void ShowOnline()
-        {
-            if (AppState.Stats is not { } stats)
-                return;
-            OnlinePill.Visibility = Visibility.Visible;
-            int from = _shownPlayers, to = stats.Players;
-            _shownPlayers = to;
-            if (_still || from == to)
-            {
-                OnlineCount.Text = to.ToString("N0");
-                return;
-            }
-            var start = DateTime.Now;
-            var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(30) };
-            timer.Tick += (_, _) =>
-            {
-                double t = Math.Min(1, (DateTime.Now - start).TotalMilliseconds / 1100);
-                double eased = 1 - Math.Pow(1 - t, 3);
-                OnlineCount.Text = ((int)Math.Round(from + (to - from) * eased)).ToString("N0");
-                if (t >= 1)
-                    timer.Stop();
-            };
-            timer.Start();
+            _zoom.Begin(this, true);
         }
 
         private void ShowHealthBadge()
         {
             int count = AppState.ProblemCount + AppState.WarningCount;
             HealthBadge.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
-            HealthBadge.Background = new SolidColorBrush(AppState.ProblemCount > 0 ? Color.FromRgb(0xFF, 0x5A, 0x5A) : Color.FromRgb(0xFF, 0xB0, 0x20));
+            HealthBadge.Background = (Brush)FindResource(AppState.ProblemCount > 0 ? "Problem" : "Warning");
             HealthBadgeText.Text = count.ToString();
         }
 
@@ -273,7 +270,8 @@ namespace CommandCenter
         {
             if (ContentFrame.Content is OptionsPage options)
                 options.Commit();
-            if (UpdateOverlay.Restarting || _tools == null || !_tools.HasPendingChanges)
+            bool pending = _tools?.HasPendingChanges == true || _options?.HasPendingChanges == true;
+            if (UpdateOverlay.Restarting || !pending)
                 return;
             var answer = MessageBox.Show(this, "You have unsaved changes. Close without saving?", "Command Center",
                 MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
@@ -289,7 +287,7 @@ namespace CommandCenter
             base.OnStateChanged(e);
             // A maximized borderless window overhangs the screen by the resize border
             Root.Margin = WindowState == WindowState.Maximized ? new Thickness(7) : new Thickness(0);
-            PauseAmbient(WindowState == WindowState.Minimized);
+            UpdateZoom();
         }
 
         // ── Toast ──
@@ -303,10 +301,12 @@ namespace CommandCenter
                 return;
             }
             ToastText.Text = message;
-            ToastText.Foreground = isError ? new SolidColorBrush(Color.FromRgb(0xFF, 0x6B, 0x6B)) : Brushes.White;
-            ToastBox.BorderBrush = isError ? new SolidColorBrush(Color.FromRgb(0xFF, 0x44, 0x44)) : new SolidColorBrush(Color.FromRgb(0x29, 0x80, 0xFF));
+            ToastIcon.Visibility = isError ? Visibility.Visible : Visibility.Collapsed;
+            if (isError)
+                ToastBox.BorderBrush = (Brush)FindResource("Problem");
+            else
+                ToastBox.ClearValue(Border.BorderBrushProperty);
             _toastAction = undo;
-            ToastAction.Content = "UNDO";
             ToastAction.Visibility = undo != null ? Visibility.Visible : Visibility.Collapsed;
             ToastBox.Visibility = Visibility.Visible;
             _toastTimer.Stop();
@@ -409,7 +409,7 @@ namespace CommandCenter
                 await UpdateOverlay.InstallAsync();
         }
 
-        // The Options page's check: true when a newer version was found (the update screen is then shown)
+        // Settings' check: true when a newer version was found (the update screen is then shown)
         public async Task<bool> CheckForUpdateNowAsync()
         {
             if (await UpdateService.CheckAsync(UpdateSource) is not { } update)
@@ -420,8 +420,9 @@ namespace CommandCenter
 
         // ── Screenshots for review (--capture <folder>) ──
         // The window is placed off screen and never activated, so it does not take focus from a running game.
-        // Page ids: home, options, tools:health, tools:maps, tools:replays, tools:hotkeys, tools:addons; options:network:run
-        // also runs the network diagnostics first
+        // Page ids: home, home:<picture> (mainmenu, usa, china or gla), replays, maps[:installed|library],
+        // hotkeys[:buttons|keys|letters], health[:history], settings[:<section>[:run]] (run also runs the network
+        // diagnostics first), help
 
         public async Task CaptureAsync(string folder, string size, string? pages)
         {
@@ -436,12 +437,14 @@ namespace CommandCenter
             Show();
 
             Directory.CreateDirectory(folder);
-            string[] ids = (pages ?? "home,tools:health,tools:maps,tools:replays,tools:hotkeys,tools:addons,options").Split(',');
+            string[] ids = (pages ?? "home,replays,maps,hotkeys,health,settings,help").Split(',');
             await Task.Delay(1500);
             if (_updateCheck != null)
                 await _updateCheck;
             if (_englishOnlyStep != null)
                 await _englishOnlyStep;
+            if (_artLoad != null)
+                await _artLoad;
             if (UpdateOverlay.Restarting)
                 return;
             int n = 1;
@@ -450,7 +453,7 @@ namespace CommandCenter
                 string[] id = entry.Split(':');
                 switch (id[0])
                 {
-                    case "options":
+                    case "settings":
                         ShowOptions();
                         if (id.Length > 1)
                         {
@@ -460,13 +463,19 @@ namespace CommandCenter
                                 await _options.RunDiagnosticsAsync();
                         }
                         break;
-                    case "tools":
-                        ShowTools(id.Length > 1 ? id[1] : null);
-                        if (id.Length > 2)
-                            _tools!.ShowPart(id[2]);
+                    case "help":
+                        ShowHelp();
+                        await _tools!.ReadyAsync();
+                        break;
+                    case "replays" or "maps" or "hotkeys" or "health":
+                        ShowTools(id[0]);
+                        if (id.Length > 1)
+                            _tools!.ShowPart(id[1]);
                         await _tools!.ReadyAsync();
                         break;
                     default:
+                        if (id.Length > 1 && Enum.TryParse(id[1], ignoreCase: true, out HomeImage picture))
+                            await LoadArtAsync(picture, remember: false);
                         ShowHome();
                         // The stats line and the health notice arrive in the background
                         for (int wait = 0; wait < 40 && (AppState.Stats == null || AppState.HealthCheckedAt == null); wait++)

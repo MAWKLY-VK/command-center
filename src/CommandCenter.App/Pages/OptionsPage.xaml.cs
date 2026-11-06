@@ -23,6 +23,10 @@ namespace CommandCenter.Pages
         private Dictionary<string, string> _shown = new();
         private bool _loaded;
         private string _anticheat = "";
+        private Tools.AddonsSection? _addons;
+
+        // An add-on download or install still running in the Add-ons section
+        public bool HasPendingChanges => _addons?.HasPendingChanges == true;
         private bool _anticheatTouched;
         private bool _populatingPlugins;
         private NetworkDiagnosticsResult? _lastDiagResult;
@@ -185,7 +189,7 @@ namespace CommandCenter.Pages
         // Opens a section by its sidebar name, e.g. "network" or "launcher" (used when taking screenshots)
         public void ShowPart(string part)
         {
-            var tab = new[] { rbGame, rbCamera, rbChat, rbInput, rbGraphics, rbSocial, rbNetwork, rbDataPacks, rbPlugins, rbLauncher }
+            var tab = new[] { rbGame, rbCamera, rbChat, rbInput, rbGraphics, rbSocial, rbNetwork, rbDataPacks, rbPlugins, rbAddons, rbLauncher }
                 .FirstOrDefault(r => r.Name.Equals("rb" + part.Replace(" ", ""), StringComparison.OrdinalIgnoreCase));
             if (tab != null)
                 tab.IsChecked = true;
@@ -210,6 +214,7 @@ namespace CommandCenter.Pages
             PanelNetwork.Visibility = Visibility.Collapsed;
             PanelDataPacks.Visibility = Visibility.Collapsed;
             PanelPlugins.Visibility = Visibility.Collapsed;
+            PanelAddons.Visibility = Visibility.Collapsed;
             PanelLauncher.Visibility = Visibility.Collapsed;
 
             if (ReferenceEquals(sender, rbGame)) PanelGame.Visibility = Visibility.Visible;
@@ -224,6 +229,12 @@ namespace CommandCenter.Pages
             {
                 PanelPlugins.Visibility = Visibility.Visible;
                 PopulateAnticheatPlugins();
+            }
+            else if (ReferenceEquals(sender, rbAddons))
+            {
+                PanelAddons.Content ??= _addons = new Tools.AddonsSection();
+                PanelAddons.Visibility = Visibility.Visible;
+                _addons!.OnShown();
             }
             else if (ReferenceEquals(sender, rbLauncher)) PanelLauncher.Visibility = Visibility.Visible;
         }

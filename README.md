@@ -9,9 +9,10 @@ game's own rules, control bar add-ons and the settings the in-game menu cannot r
 
 ## Pages
 
-Tabs along the top lead to each page; the player count and Options sit next to them. The home page shows the
-game's Steam art (a drawn background for other copies), and the colours and Options sections follow the official
-Generals Online launcher.
+Tabs along the top lead to Home, Replays, Maps, Hotkeys and Health, with Settings and Help at the top right. Home
+shows art from the player's own game, the main menu's backdrop or a faction loading screen, a different one at each
+start, and the other pages sit on a blurred copy of it (a drawn background for copies without the art). The Settings
+sections follow the official Generals Online launcher.
 
 | Page | What it does |
 | --- | --- |
@@ -118,7 +119,7 @@ libraries. Options › Game folder shows which copy is used and lets you pick an
 | `--user-data <folder>` | Use this folder instead of `Documents\Command and Conquer Generals Zero Hour Data` (for testing) |
 | `--capture <folder> --size 1100x640 --pages home,tools:maps,options:game` | Save screenshots of pages without showing the window; `tools:health:questions` opens a tab, `options:network:run` runs the diagnostics first |
 | `--samples` | Add sample health problems to review the layout (their fixes do nothing) |
-| `--drawn-backdrop` | Show the background that copies without Steam art get |
+| `--drawn-backdrop` | Show the drawn background that copies without the game's art get |
 | `--update-url <url or file>` | Read the update manifest (`update.json`) from here instead of the latest GitHub release; a local file works for testing |
 | `--go-profile <file>` | Use this Generals Online profile instead of the one in this repository (for testing); its `.sig` must sit next to it |
 | `--test-key <public key file>` | Test builds only (`-p:TestKeys=true`): also trust this key and allow an update from a local file, to try the update path. Never published |
@@ -161,7 +162,7 @@ Copyright (C) 2026 Command Center contributors.
 - The interface's line icons are drawn from [Feather](https://feathericons.com) by Cole Bemis (MIT), with square ends.
 - The interface's fonts are [Barlow and Barlow Condensed](https://github.com/jpt/barlow) by The Barlow Project Authors and [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono) by The JetBrains Mono Project Authors, both under the SIL Open Font License 1.1 and embedded unchanged.
 - The licence texts are in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
-- Map previews, game icons and artwork are read at run time from the player's own game and Steam installation.
+- Map previews, game icons and artwork are read at run time from the player's own game.
 
 Command & Conquer is a trademark of Electronic Arts. This project is not affiliated with Electronic Arts
 or the Generals Online team.
