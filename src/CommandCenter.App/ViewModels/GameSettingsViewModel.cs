@@ -171,7 +171,8 @@ namespace CommandCenter.ViewModels
             bool goChanged = ApplyGoChanges(go, now);
             var ini = IniChanges(now);
             bool iniChanged = OptionsFile.WouldChange(ini);
-            bool launcherChanged = Changed(now, "launcher/windowed") || Changed(now, "launcher/resolution");
+            bool sizeChanged = Changed(now, "launcher/resolution");
+            bool launcherChanged = Changed(now, "launcher/windowed") || sizeChanged;
 
             if ((goChanged || iniChanged) && _gameRunning())
             {
@@ -186,7 +187,7 @@ namespace CommandCenter.ViewModels
                 if (iniChanged)
                     OptionsFile.Write(ini, "Game options", "Saved from Settings");
                 if (launcherChanged)
-                    SaveLauncher();
+                    SaveLauncher(sizeChanged);
             }
             catch (Exception ex)
             {
@@ -279,12 +280,14 @@ namespace CommandCenter.ViewModels
             return changes;
         }
 
-        // launcher.json is edited as a JSON tree, so the client choice and anything else in it stays as it was
-        private void SaveLauncher()
+        // launcher.json is edited as a JSON tree, so the client choice and anything else in it stays as it was. The size
+        // is written only when the player chose one: a size the screen does not list shows the first mode instead, and
+        // must not replace the player's own when only windowed mode changes.
+        private void SaveLauncher(bool sizeChanged)
         {
             var launcher = LauncherJson.Load();
             launcher.Windowed = Windowed;
-            if (Resolution?.Split('x') is [var width, var height] && int.TryParse(width, out int w) && int.TryParse(height, out int h))
+            if (sizeChanged && Resolution?.Split('x') is [var width, var height] && int.TryParse(width, out int w) && int.TryParse(height, out int h))
             {
                 launcher.WindowedWidth = w;
                 launcher.WindowedHeight = h;

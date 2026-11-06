@@ -33,7 +33,8 @@ namespace CommandCenter.Core.Integrity
         public IReadOnlyList<HealthResult> Results { get; private set; } = [];
         public DateTime? CheckedAt { get; private set; }
         public bool IsChecking { get; private set; }
-        public HealthReport Report => HealthReport.From(Results, CheckedAt);
+        // Built once per set of results
+        public HealthReport Report { get; private set; } = HealthReport.From([], null);
         public event Action? Changed;
 
         public Task CheckAsync()
@@ -62,6 +63,7 @@ namespace CommandCenter.Core.Integrity
                 var results = await run();
                 Results = results;
                 CheckedAt = now();
+                Report = HealthReport.From(Results, CheckedAt);
             }
             finally
             {

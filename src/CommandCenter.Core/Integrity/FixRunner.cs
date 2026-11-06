@@ -39,13 +39,29 @@ namespace CommandCenter.Core.Integrity
             return new FixOutcome(applied, failed, made, OnlySamples: false);
         }
 
-        // Puts back what the fixes changed, the newest change first
-        public void Undo(FixOutcome outcome)
+        // Puts back what the fixes changed, the newest change first. Null when all of it was put back; otherwise why a
+        // change stayed (changed again since, or the game is running), for the player to read instead of "undone".
+        public string? Undo(FixOutcome outcome)
         {
+            int undone = 0;
+            string? failure = null;
             foreach (var entry in Enumerable.Reverse(outcome.Made))
-                BackupService.Undo(entry);
-            if (outcome.Made.Count > 0)
+            {
+                try
+                {
+                    if (BackupService.Undo(entry))
+                        undone++;
+                    else
+                        failure ??= "Changed again since, so this cannot be undone here";
+                }
+                catch (Exception ex)
+                {
+                    failure ??= ex.Message;
+                }
+            }
+            if (undone > 0)
                 changed();
+            return failure;
         }
     }
 }

@@ -30,8 +30,17 @@ namespace CommandCenter.Core.Game
 
         // Reads the game's last replay: an online match (two or more people) that ended without a mismatch and is newer
         // than the one kept takes its place. Then gives what changed since the kept match, or null before the first one.
-        // Called at start and when the game exits.
+        // Called at start, after another game folder was chosen and when the game exits, each off the UI thread, so the
+        // calls take turns: each reads the record the one before it saved.
         public static MatchChanges? Update()
+        {
+            lock (Gate)
+                return UpdateLocked();
+        }
+
+        private static readonly object Gate = new();
+
+        private static MatchChanges? UpdateLocked()
         {
             string game = GamePaths.Game;
             if (game.Length == 0 || !Directory.Exists(game))

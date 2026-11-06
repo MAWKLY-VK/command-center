@@ -35,9 +35,26 @@ namespace CommandCenter.Tests
             Assert.Equal(1, _changed);
             Assert.Contains(File.ReadAllLines(OperationLog.FilePath), line => line.Contains("\"fix\"") && line.Contains("\"ini\"") && line.Contains("\"done\""));
 
-            runner.Undo(outcome);
+            Assert.Null(runner.Undo(outcome));
             Assert.Equal("before", File.ReadAllText(file));
             Assert.Equal(2, _changed);
+        }
+
+        [Fact]
+        public void An_undo_that_cannot_put_the_file_back_says_why_instead_of_claiming_it_did()
+        {
+            string file = _game.Write(@"game\Data\INI\Test.ini", "before");
+            var runner = Runner();
+            var outcome = runner.Apply([Writes("ini", @"Data\INI\Test.ini", "after")]);
+
+            using (new GameRunning())
+                Assert.Equal(BackupService.GameRunningMessage, runner.Undo(outcome));
+            Assert.Equal("after", File.ReadAllText(file));
+
+            File.WriteAllText(file, "changed again");
+            Assert.Equal("Changed again since, so this cannot be undone here", runner.Undo(outcome));
+            Assert.Equal("changed again", File.ReadAllText(file));
+            Assert.Equal(1, _changed);
         }
 
         [Fact]

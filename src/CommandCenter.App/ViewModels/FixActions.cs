@@ -17,9 +17,9 @@ namespace CommandCenter.ViewModels
             else
                 shell.Toast(string.Format("Fixed: {0}", result.Title), outcome.CanUndo ? () =>
                 {
-                    fixes.Undo(outcome);
+                    string? failure = fixes.Undo(outcome);
                     _ = recheck();
-                    shell.Toast("Change undone");
+                    shell.Toast(failure ?? "Change undone", isError: failure != null);
                 } : null);
             _ = recheck();
         }

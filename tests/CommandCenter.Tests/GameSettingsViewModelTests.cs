@@ -129,6 +129,19 @@ namespace CommandCenter.Tests
         }
 
         [Fact]
+        public void A_window_size_the_screen_does_not_list_stays_when_only_windowed_mode_changes()
+        {
+            Launcher("""{"windowed":false,"windowed_width":1366,"windowed_height":768}""");
+            var model = Model();
+            model.Windowed = true;
+            model.Commit();
+
+            var saved = Saved(GamePaths.LauncherSettings);
+            Assert.True(saved["windowed"]!.GetValue<bool>());
+            Assert.Equal((1366, 768), (saved["windowed_width"]!.GetValue<int>(), saved["windowed_height"]!.GetValue<int>()));
+        }
+
+        [Fact]
         public void Window_sizes_are_the_screens_modes_from_640_by_480_largest_first()
         {
             var model = new GameSettingsViewModel(_shell, () => false, () => [(800, 600), (1920, 1080), (320, 200), (1280, 720), (1920, 1080), (1920, 1200)], () => { });

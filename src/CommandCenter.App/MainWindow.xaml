@@ -59,8 +59,8 @@
                Navigated="ContentFrame_Navigated" Focusable="False"/>
 
         <!-- Top bar (P5-D1): the name, the five tabs, then Settings and Help and the window buttons -->
-        <Grid x:Name="TopBar" Height="64" VerticalAlignment="Top" Background="{StaticResource Art.ScrimTop}">
-            <DockPanel Margin="20,0,8,0" LastChildFill="False">
+        <Grid x:Name="TopBar" Height="{StaticResource Bar.Height}" VerticalAlignment="Top" Background="{StaticResource Art.ScrimTop}">
+            <DockPanel Margin="{StaticResource Pad.Bar}" LastChildFill="False">
                 <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,24,0">
                     <Image Source="/Assets/logo.png" Width="32" Height="32" RenderOptions.BitmapScalingMode="HighQuality"/>
                     <TextBlock Text="Command Center" Style="{StaticResource BrandStyle}" Margin="10,0,0,0"/>

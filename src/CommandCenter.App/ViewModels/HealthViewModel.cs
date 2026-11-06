@@ -177,9 +177,9 @@ namespace CommandCenter.ViewModels
 
         private void UndoFixes(FixOutcome outcome, string message)
         {
-            _fixes.Undo(outcome);
+            string? failure = _fixes.Undo(outcome);
             _ = Recheck();
-            _shell.Toast(message);
+            _shell.Toast(failure ?? message, isError: failure != null);
         }
 
         private Task Recheck() => Guarded(_checks.CheckAsync);

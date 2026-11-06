@@ -9,13 +9,13 @@
          blurred. The only ways out are installing the update or closing the window. -->
     <Grid Background="Transparent">
         <!-- The window's own close button is underneath, so the screen brings its own in the same place: the top bar's
-             height and right margin -->
-        <Grid Height="64" VerticalAlignment="Top">
-            <Button HorizontalAlignment="Right" Margin="0,0,8,0" Style="{StaticResource WindowButtonStyle}" Click="Close_Click"
+             height and padding -->
+        <DockPanel Height="{StaticResource Bar.Height}" Margin="{StaticResource Pad.Bar}" VerticalAlignment="Top" LastChildFill="False">
+            <Button DockPanel.Dock="Right" Style="{StaticResource WindowButtonStyle}" Click="Close_Click"
                     ToolTip="Close" AutomationProperties.Name="Close">
                 <c:Icon Kind="close" Width="14" Height="14"/>
             </Button>
-        </Grid>
+        </DockPanel>
 
         <Border Style="{StaticResource DialogStyle}">
             <StackPanel>
