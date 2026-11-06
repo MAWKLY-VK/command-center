@@ -1,0 +1,100 @@
+<Page x:Class="CommandCenter.Pages.HelpPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:c="clr-namespace:CommandCenter.Controls"
+      Title="Help"
+      Background="Transparent"
+      FontFamily="{StaticResource Font.Text}">
+
+    <!-- Help (phase 5 spec): the common questions with the buttons that open the place that fixes each one, and at the
+         side where to ask, with the support report as the page's main action -->
+    <Grid Margin="{StaticResource Page.Margin}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="{StaticResource Column.Gap}"/>
+            <ColumnDefinition Width="{StaticResource Column.Side}"/>
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.ColumnSpan="3">
+            <TextBlock Text="Help" Style="{StaticResource PageTitleStyle}"/>
+            <TextBlock Text="What new players ask most. Each button opens the place that fixes it." Style="{StaticResource PageIntroStyle}"/>
+        </StackPanel>
+
+        <!-- One surface for all the questions, a hairline between them -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Focusable="False">
+            <Border Style="{StaticResource PanelStyle}" Padding="0">
+                <ItemsControl x:Name="QuestionList" Focusable="False">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border x:Name="Entry" BorderBrush="{StaticResource Divider}" BorderThickness="0,1,0,0"
+                                    Padding="{StaticResource Pad.ListItem}">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" Style="{StaticResource PanelTitleStyle}"/>
+                                    <TextBlock Text="{Binding Answer}" Style="{StaticResource PanelTextStyle}"/>
+                                    <ItemsControl ItemsSource="{Binding Actions}" Margin="{StaticResource Gap.Actions}" Focusable="False">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Style="{StaticResource QuietButtonStyle}" Margin="{StaticResource Gap.Button}" Click="Action_Click">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <c:Icon Kind="{Binding Icon}" Width="16" Height="16" Margin="0,0,8,0"/>
+                                                        <TextBlock Text="{Binding Label}" Style="{StaticResource ButtonLabelStyle}"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource PreviousData}}" Value="{x:Null}">
+                                    <Setter TargetName="Entry" Property="BorderThickness" Value="0"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+        </ScrollViewer>
+
+        <!-- Where to ask: the support report for the Generals Online Discord, and Command Center's own issues -->
+        <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource PanelStyle}" VerticalAlignment="Top">
+            <StackPanel>
+                <TextBlock Text="Ask for help" Style="{StaticResource PanelTitleStyle}"/>
+                <TextBlock Style="{StaticResource PanelTextStyle}"
+                           Text="Copy the support report and paste it with your question in the Generals Online Discord. It lists what the checks found, without your Windows user name or PC name."/>
+                <StackPanel Margin="{StaticResource Gap.Actions}">
+                    <Button Style="{StaticResource PrimaryButtonStyle}" Margin="{StaticResource Gap.Stack}" Click="Report_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <c:Icon Kind="copy" Width="16" Height="16" Margin="0,0,8,0"/>
+                            <TextBlock Text="Copy support report" Style="{StaticResource ButtonLabelStyle}"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource QuietButtonStyle}" Click="Discord_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <c:Icon Kind="external" Width="16" Height="16" Margin="0,0,8,0"/>
+                            <TextBlock Text="Open the Discord" Style="{StaticResource ButtonLabelStyle}"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <TextBlock Style="{StaticResource PanelTextStyle}" Margin="{StaticResource Gap.Group}"
+                           Text="Something wrong with Command Center itself? Report it in its GitHub issues."/>
+                <Button Style="{StaticResource QuietButtonStyle}" Margin="{StaticResource Gap.Actions}" Click="Issues_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <c:Icon Kind="external" Width="16" Height="16" Margin="0,0,8,0"/>
+                        <TextBlock Text="Open GitHub issues" Style="{StaticResource ButtonLabelStyle}"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>

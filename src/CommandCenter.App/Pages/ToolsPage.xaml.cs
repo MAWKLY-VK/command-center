@@ -38,6 +38,14 @@ namespace CommandCenter.Pages
 
         public Task ReadyAsync() => SectionHost.Content is IToolSection section ? section.ReadyAsync() : Task.CompletedTask;
 
+        // Health's checks again, with its own button showing that they run
+        public void RunHealthChecks()
+        {
+            Show("health");
+            if (SectionHost.Content is HealthSection health)
+                _ = health.RunChecksAsync();
+        }
+
         private void Show(string id)
         {
             if (id == Current)

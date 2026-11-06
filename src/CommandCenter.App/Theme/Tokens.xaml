@@ -73,6 +73,12 @@
     <sys:Double x:Key="Art.Grain">0.04</sys:Double>
     <sys:Double x:Key="Art.Zoom">1.04</sys:Double>
 
+    <!-- A panel's edges over the art: a light line along the top (Text.Primary at 14%) and a dark one along the bottom -->
+    <LinearGradientBrush x:Key="Panel.Edge" StartPoint="0,0" EndPoint="0,1" po:Freeze="True">
+        <GradientStop Color="#24E6E0D3" Offset="0"/>
+        <GradientStop Color="#80000000" Offset="1"/>
+    </LinearGradientBrush>
+
     <!-- The drawn background of a copy without the game's art: a cool light and a faint gold glow at the bottom left -->
     <RadialGradientBrush x:Key="Art.DrawnLight" Center="0.74,0.48" GradientOrigin="0.74,0.48" RadiusX="0.5" RadiusY="0.85" po:Freeze="True">
         <GradientStop Color="#801E252C" Offset="0"/>

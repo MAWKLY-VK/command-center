@@ -10,6 +10,69 @@
     <Thickness x:Key="Pad.Toast">16,12</Thickness>
     <Thickness x:Key="Pad.QuietButton">12,0</Thickness>
     <Thickness x:Key="Pad.Badge">6,0</Thickness>
+    <Thickness x:Key="Pad.Panel">20,16</Thickness>
+
+    <!-- A page's layout on the 4 px grid: groups are further apart than the things inside them -->
+    <Thickness x:Key="Page.Margin">48,24,48,24</Thickness>
+    <Thickness x:Key="Gap.Intro">0,4,0,24</Thickness>
+    <Thickness x:Key="Gap.Panel">0,0,0,12</Thickness>
+    <Thickness x:Key="Gap.Text">0,8,0,0</Thickness>
+    <Thickness x:Key="Gap.Actions">0,16,0,0</Thickness>
+    <Thickness x:Key="Gap.Button">0,0,8,8</Thickness>
+    <Thickness x:Key="Gap.Group">0,24,0,0</Thickness>
+    <Thickness x:Key="Gap.Stack">0,0,0,8</Thickness>
+    <Thickness x:Key="Pad.ListItem">24,20</Thickness>
+    <GridLength x:Key="Column.Gap">32</GridLength>
+    <GridLength x:Key="Column.Side">360</GridLength>
+
+    <!-- Page text: the page's title, the line under it, a panel's title and its text -->
+    <Style x:Key="PageTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Heading}"/>
+        <Setter Property="FontStretch" Value="{StaticResource Font.Heading.Stretch}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Display}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+    </Style>
+
+    <Style x:Key="PageIntroStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="Margin" Value="{StaticResource Gap.Intro}"/>
+    </Style>
+
+    <Style x:Key="PanelTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Title}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Primary}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+
+    <Style x:Key="PanelTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="Foreground" Value="{StaticResource Text.Secondary}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="LineHeight" Value="22"/>
+        <Setter Property="Margin" Value="{StaticResource Gap.Text}"/>
+    </Style>
+
+    <!-- A button's label: it takes the button's font and colour -->
+    <Style x:Key="ButtonLabelStyle" TargetType="TextBlock">
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- A quiet panel over the art (plan 3-c): the dark panel colour, a light line along the top and a dark one along
+         the bottom, small corners -->
+    <Style x:Key="PanelStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource Bg.PanelOverArt}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Panel.Edge}"/>
+        <Setter Property="BorderThickness" Value="0,1,0,1"/>
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Medium}"/>
+        <Setter Property="Padding" Value="{StaticResource Pad.Panel}"/>
+    </Style>
 
     <!-- The window's tabs, and its Settings and Help links, which are tabs too: quiet text, the selected one in primary
          text with the gold line under it (gold on edges only) -->
@@ -117,6 +180,41 @@
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="Face" Property="BorderBrush" Value="{StaticResource Focus}"/>
                             <Setter TargetName="Face" Property="BorderThickness" Value="{StaticResource Line.Focus}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A page's main action when it is not PLAY: the one gold fill on the screen (plan 3-c). Its focus ring sits outside
+         the gold, apart from it. -->
+    <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+        <Setter Property="Foreground" Value="{StaticResource OnAccent}"/>
+        <Setter Property="FontFamily" Value="{StaticResource Font.Text}"/>
+        <Setter Property="FontSize" Value="{StaticResource Size.Body}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="MinHeight" Value="{StaticResource Target.Min}"/>
+        <Setter Property="Padding" Value="{StaticResource Pad.QuietButton}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid>
+                        <Border x:Name="Ring" Margin="-4" BorderBrush="{StaticResource Focus}" BorderThickness="{StaticResource Line.Focus}"
+                                CornerRadius="{StaticResource Radius.Medium}" Visibility="Hidden"/>
+                        <Border x:Name="Face" Background="{StaticResource Accent}" CornerRadius="{StaticResource Radius.Small}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Face" Property="Background" Value="{StaticResource Accent.Pressed}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Ring" Property="Visibility" Value="Visible"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

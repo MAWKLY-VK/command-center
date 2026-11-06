@@ -17,6 +17,7 @@ namespace CommandCenter
         private LauncherPage? _home;
         private ToolsPage? _tools;
         private OptionsPage? _options;
+        private HelpPage? _help;
         private readonly DispatcherTimer _toastTimer = new() { Interval = TimeSpan.FromSeconds(6) };
         private (string Message, Action? Undo, bool IsError)? _afterNotice;
         private Action? _toastAction;
@@ -70,7 +71,6 @@ namespace CommandCenter
                 ShowOptions("addons");
                 return;
             }
-            bool fromHelp = TabHelp.IsChecked == true;
             _tools ??= new ToolsPage();
             if (section != null)
                 _tools.Select(section);
@@ -82,20 +82,20 @@ namespace CommandCenter
                 _ => TabHealth,
             });
             Navigate(_tools);
-            // Help shows the common questions inside Health, so Health's own tab goes back to its checks
-            if (fromHelp && _tools.Current == "health")
-                _tools.ShowPart("checks");
         }
 
-        // The common questions; with the game not found, where to get it comes first. They stay in Health until Help gets
-        // its own page (ticket 07).
+        // Health with its checks running again, as a common question's "Run the checks" asks
+        public void RunChecks()
+        {
+            ShowTools("health");
+            _tools!.RunHealthChecks();
+        }
+
+        // The common questions, the support report and where to ask; with the game not found, where to get it comes first
         public void ShowHelp()
         {
-            _tools ??= new ToolsPage();
-            _tools.Select("health");
             SelectTab(TabHelp);
-            Navigate(_tools);
-            _tools.ShowPart("questions");
+            Navigate(_help ??= new HelpPage());
         }
 
         public void ShowQuestions() => ShowHelp();
@@ -465,7 +465,6 @@ namespace CommandCenter
                         break;
                     case "help":
                         ShowHelp();
-                        await _tools!.ReadyAsync();
                         break;
                     case "replays" or "maps" or "hotkeys" or "health":
                         ShowTools(id[0]);
