@@ -143,7 +143,7 @@ namespace CommandCenter.Tests
 
     public class ReplayHeaderTests
     {
-        internal static byte[] Replay(string options, uint start = 1_760_000_000, uint end = 1_760_000_754)
+        internal static byte[] Replay(string options, uint start = 1_760_000_000, uint end = 1_760_000_754, bool desync = false)
         {
             using var stream = new MemoryStream();
             using var w = new BinaryWriter(stream);
@@ -152,7 +152,7 @@ namespace CommandCenter.Tests
             w.Write(start);
             w.Write(end);
             w.Write(18_000u);           // frames
-            w.Write((byte)0);           // desync
+            w.Write((byte)(desync ? 1 : 0));
             w.Write((byte)1);           // quit early
             w.Write(new byte[8]);       // disconnects
             Wide("Last Replay");

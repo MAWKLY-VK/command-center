@@ -67,6 +67,8 @@ namespace CommandCenter.Pages
                 _ = AppState.RefreshHealthAsync();
             if (AppState.Replays.Count == 0)
                 _ = AppState.RefreshReplaysAsync();
+            if (!AppState.MatchGuardChecked)
+                _ = AppState.RefreshMatchGuardAsync();
         }
 
         private void ShowAll()
@@ -356,6 +358,7 @@ namespace CommandCenter.Pages
                     window.Activate();
                 }
                 _ = AppState.RefreshReplaysAsync();
+                _ = AppState.RefreshMatchGuardAsync();
             }
             catch (Exception ex)
             {
@@ -446,7 +449,12 @@ namespace CommandCenter.Pages
                 return;
             bool running = await Task.Run(GameLauncher.IsGameRunning);
             if (!_playing && running != !PlayButton.IsEnabled)
+            {
                 ShowGameState(running);
+                // A game started elsewhere has just closed: its match may change what the match guard keeps
+                if (!running)
+                    _ = AppState.RefreshMatchGuardAsync();
+            }
         }
 
         private const int MinimizedNoActivate = 7;

@@ -51,6 +51,26 @@ namespace CommandCenter
             ReplaysChanged?.Invoke();
         }
 
+        // What changed in the game's files since the last online match without a mismatch (P5-D3); null before the first
+        // one. Checked at start and when the game exits; Home shows it (ticket 13).
+        public static MatchChanges? MatchChanges { get; private set; }
+        public static bool MatchGuardChecked { get; private set; }
+        public static event Action? MatchGuardChanged;
+
+        public static async Task RefreshMatchGuardAsync()
+        {
+            try
+            {
+                MatchChanges = await Task.Run(MatchGuard.Update);
+            }
+            catch (Exception ex)
+            {
+                ErrorLog.Write(ex);
+            }
+            MatchGuardChecked = true;
+            MatchGuardChanged?.Invoke();
+        }
+
         public static Task<HotkeyService?> Hotkeys()
         {
             _hotkeys ??= Task.Run<HotkeyService?>(async () =>
