@@ -1,5 +1,6 @@
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CommandCenter.Core.Settings
 {
@@ -18,6 +19,29 @@ namespace CommandCenter.Core.Settings
 
         // Hotkey letters drawn on the unit and building pictures in the game (IconLettersService)
         public bool IconLetters { get; set; }
+
+        // Home's picture: Changing (the next one at each start) or the one Settings pins (HomeArt)
+        [JsonIgnore]
+        public HomeImage HomeImage
+        {
+            get => Named(HomeImageName) ?? HomeImage.Changing;
+            set => HomeImageName = value.ToString();
+        }
+
+        // The picture Home showed at the last start, which the next start follows; none before the first
+        [JsonIgnore]
+        public HomeImage? LastHomeImage
+        {
+            get => Named(LastHomeImageName);
+            set => LastHomeImageName = value?.ToString();
+        }
+
+        // Both are stored by name, so a name this version does not know reads as unset instead of losing every setting
+        public string? HomeImageName { get; set; }
+        public string? LastHomeImageName { get; set; }
+
+        private static HomeImage? Named(string? name) =>
+            name != null && Enum.GetNames<HomeImage>().Contains(name) ? Enum.Parse<HomeImage>(name) : null;
 
         private static string FilePath => Path.Combine(GamePaths.AppData, "settings.json");
         private static AppSettings? _current;

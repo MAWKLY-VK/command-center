@@ -38,6 +38,14 @@
     <Color x:Key="Color.Border">#6A737D</Color>
     <Color x:Key="Color.Focus">#FECD03</Color>
 
+    <!-- The game art's tint, applied once when it loads (HomeArt.Tint): lightness runs from the cool shadow to the warm
+         highlight, and Art.Keep of each pixel's own colour stays. The pages behind Home sit on a blurred copy at
+         Art.Backdrop of its brightness. -->
+    <Color x:Key="Color.Art.Shadow">#0F151C</Color>
+    <Color x:Key="Color.Art.Highlight">#E7D7B6</Color>
+    <sys:Double x:Key="Art.Keep">0.15</sys:Double>
+    <sys:Double x:Key="Art.Backdrop">0.4</sys:Double>
+
     <!-- A brush for each colour, under the colour's name without "Color." -->
     <SolidColorBrush x:Key="Bg.Window" Color="{StaticResource Color.Bg.Window}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Bg.Panel" Color="{StaticResource Color.Bg.Panel}" po:Freeze="True"/>
@@ -55,6 +63,8 @@
     <SolidColorBrush x:Key="Divider" Color="{StaticResource Color.Divider}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Border" Color="{StaticResource Color.Border}" po:Freeze="True"/>
     <SolidColorBrush x:Key="Focus" Color="{StaticResource Color.Focus}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Art.Shadow" Color="{StaticResource Color.Art.Shadow}" po:Freeze="True"/>
+    <SolidColorBrush x:Key="Art.Highlight" Color="{StaticResource Color.Art.Highlight}" po:Freeze="True"/>
 
     <!-- Fonts. Barlow, Barlow Condensed and JetBrains Mono replace these with the embedded files (ticket 03). Mono is for
          real data only, with tabular figures. -->
