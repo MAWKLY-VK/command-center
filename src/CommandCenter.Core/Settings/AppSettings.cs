@@ -24,7 +24,7 @@ namespace CommandCenter.Core.Settings
         [JsonIgnore]
         public HomeImage HomeImage
         {
-            get => Named(HomeImageName) ?? HomeImage.Changing;
+            get => Named<HomeImage>(HomeImageName) ?? HomeImage.Changing;
             set => HomeImageName = value.ToString();
         }
 
@@ -32,16 +32,28 @@ namespace CommandCenter.Core.Settings
         [JsonIgnore]
         public HomeImage? LastHomeImage
         {
-            get => Named(LastHomeImageName);
+            get => Named<HomeImage>(LastHomeImageName);
             set => LastHomeImageName = value?.ToString();
         }
 
-        // Both are stored by name, so a name this version does not know reads as unset instead of losing every setting
+        // Animation effects: following Windows' "Show animations" unless the player sets them (Appearance)
+        [JsonIgnore]
+        public AnimationSetting Animations
+        {
+            get => Named<AnimationSetting>(AnimationsName) ?? AnimationSetting.FollowWindows;
+            set => AnimationsName = value.ToString();
+        }
+
+        // These are stored by name, so a name this version does not know reads as unset instead of losing every setting
         public string? HomeImageName { get; set; }
         public string? LastHomeImageName { get; set; }
+        public string? AnimationsName { get; set; }
 
-        private static HomeImage? Named(string? name) =>
-            name != null && Enum.GetNames<HomeImage>().Contains(name) ? Enum.Parse<HomeImage>(name) : null;
+        // The game's own interface sounds on clicks and launch (ticket 14), off until the player turns them on
+        public bool InterfaceSounds { get; set; }
+
+        private static T? Named<T>(string? name) where T : struct, Enum =>
+            name != null && Enum.GetNames<T>().Contains(name) ? Enum.Parse<T>(name) : null;
 
         private static string FilePath => Path.Combine(GamePaths.AppData, "settings.json");
         private static AppSettings? _current;

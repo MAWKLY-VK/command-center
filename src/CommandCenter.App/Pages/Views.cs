@@ -19,7 +19,7 @@ namespace CommandCenter.Pages
             return brush;
         }
 
-        // Status colours used across the Tools pages (same as the Options page diagnostics)
+        // Status colours used across the pages that have not moved to the theme yet (as Settings' diagnostics)
         public static readonly SolidColorBrush Passed = Brush("#52D273");
         public static readonly SolidColorBrush Warning = Brush("#FFB020");
         public static readonly SolidColorBrush Problem = Brush("#FF6B6B");
@@ -99,22 +99,17 @@ namespace CommandCenter.Pages
             catch { }
         }
 
-        // The player picks the Zero Hour folder; it is remembered and the checks run again. Nothing in it is changed.
-        public static bool ChooseGameFolder(Window? owner)
+        // The player picks the Zero Hour folder; it is remembered, and whatever depends on the game hears of it
+        // (AppServices). Nothing in it is changed.
+        public static bool ChooseGameFolder()
         {
-            var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Choose the Zero Hour folder" };
-            if (GamePaths.ZeroHourFound)
-                dialog.InitialDirectory = GamePaths.Game;
-            if (dialog.ShowDialog(owner) != true)
+            if (Main.ChooseFolder("Choose the Zero Hour folder", GamePaths.ZeroHourFound ? GamePaths.Game : null) is not { } folder)
                 return false;
-            if (!GamePaths.UseGameFolder(dialog.FolderName))
+            if (!AppServices.GameFolder.Choose(folder))
             {
-                MessageBox.Show("That folder does not hold Zero Hour. Choose the folder with WindowZH.big and INIZH.big in it.", "Command Center",
-                    MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK);
+                Main.Warn("That folder does not hold Zero Hour. Choose the folder with WindowZH.big and INIZH.big in it.");
                 return false;
             }
-            AppState.ForgetHotkeys();
-            _ = AppState.RefreshHealthAsync();
             return true;
         }
 

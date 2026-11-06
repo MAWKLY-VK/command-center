@@ -162,10 +162,8 @@ namespace CommandCenter.Tests
             @"Imaging\FactionArt.cs",                     // phase 6 (the dossier)
             @"Pages\LauncherPage.xaml",                   // ticket 13
             @"Pages\LauncherPage.xaml.cs",                // ticket 13
-            @"Pages\OptionsPage.xaml",                    // tickets 08 and 09
-            @"Pages\OptionsPage.xaml.cs",                 // tickets 08 and 09
-            @"Pages\Tools\AddonsSection.xaml",            // ticket 08
-            @"Pages\Tools\AddonsSection.xaml.cs",         // ticket 08
+            @"Pages\OptionsPage.xaml",                    // ticket 09 (its Generals Online sections)
+            @"Pages\OptionsPage.xaml.cs",                 // ticket 09
             @"Pages\Tools\HealthSection.xaml",            // ticket 10
             @"Pages\Tools\HealthSection.xaml.cs",         // ticket 10
             @"Pages\Tools\HotkeyLettersPanel.xaml",       // phase 6

@@ -411,7 +411,7 @@ namespace CommandCenter.Pages
                 Views.Main.ShowQuestions();
                 return false;
             }
-            if (answer != MessageBoxResult.Yes || !Views.ChooseGameFolder(Window.GetWindow(this)))
+            if (answer != MessageBoxResult.Yes || !Views.ChooseGameFolder())
                 return false;
             ShowGame();
             return true;

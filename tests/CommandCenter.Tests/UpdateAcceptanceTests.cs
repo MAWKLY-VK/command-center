@@ -47,6 +47,24 @@ namespace CommandCenter.Tests
 
         private static string Log => File.ReadAllText(Path.Combine(GamePaths.AppData, "operations.log"));
 
+        // Settings' "Check for updates" tells the three answers apart (ticket 08)
+        [Fact]
+        public async Task A_check_that_cannot_run_says_why_instead_of_saying_the_version_is_the_latest()
+        {
+            var unreachable = await UpdateService.CheckNowAsync(Path.Combine(_game.Root, "no-such-manifest.json"));
+            Assert.Null(unreachable.Update);
+            Assert.Equal("The update information could not be read. Check the internet connection.", unreachable.Failure);
+
+            var refused = await UpdateService.CheckNowAsync(Manifest(Payload(), sign: false));
+            Assert.Null(refused.Update);
+            Assert.StartsWith("The update information was refused: ", refused.Failure);
+
+            var latest = await UpdateService.CheckNowAsync(Manifest(Payload(version: UpdateService.Current)));
+            Assert.Equal((null, null), (latest.Update, latest.Failure));
+
+            Assert.NotNull((await UpdateService.CheckNowAsync(Manifest(Payload()))).Update);
+        }
+
         [Fact]
         public async Task A_signed_manifest_that_passes_every_rule_offers_the_update()
         {

@@ -1,11 +1,12 @@
 <Project>
-  <!-- One version of each package for every project (central package management). The product itself has no package
-       yet; CommunityToolkit.Mvvm arrives in phase 5 with the first MVVM page (docs/adr/0004). -->
+  <!-- One version of each package for every project (central package management). The product's one package is
+       CommunityToolkit.Mvvm, for the pages' view models (docs/adr/0004); the others are for the tests. -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.0.2" />

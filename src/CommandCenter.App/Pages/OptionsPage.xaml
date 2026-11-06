@@ -47,8 +47,8 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Sidebar -->
-        <Border Grid.Column="0" Style="{StaticResource GlassCardStyle}" Margin="40,14,0,22" Padding="0,6">
+        <!-- The sections, Command Center's own first, then Generals Online's -->
+        <Border Grid.Column="0" Style="{StaticResource PanelStyle}" Margin="40,24,0,24" Padding="0,8">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
@@ -56,37 +56,49 @@
             </Grid.RowDefinitions>
 
             <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Focusable="False">
-            <StackPanel Margin="0,8,0,0">
-                <RadioButton x:Name="rbGame" Content="GAME FOLDER" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" IsChecked="True"
-                             Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbCamera" Content="CAMERA" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbChat" Content="CHAT" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbInput" Content="INPUT" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbGraphics" Content="GRAPHICS" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbSocial" Content="SOCIAL" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbNetwork" Content="NETWORK" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbDataPacks" Content="DATA PACKS" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbPlugins" Content="PLUGINS" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbAddons" Content="ADD-ONS" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
-                <RadioButton x:Name="rbLauncher" Content="LAUNCHER" GroupName="OptionsTabs"
-                             Style="{StaticResource NavTabStyle}" Checked="Tab_Checked"/>
+            <StackPanel>
+                <RadioButton x:Name="rbGame" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" IsChecked="True" Checked="Tab_Checked">
+                    <TextBlock Text="Game folder" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbAppearance" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Appearance" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbAddons" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Add-ons" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbCamera" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Camera" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbChat" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Chat" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbInput" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Input" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbGraphics" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Graphics" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbSocial" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Social" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbNetwork" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Network" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbDataPacks" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Data packs" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbPlugins" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Plugins" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
+                <RadioButton x:Name="rbLauncher" GroupName="OptionsTabs" Style="{StaticResource SideTabStyle}" Checked="Tab_Checked">
+                    <TextBlock Text="Launcher" Style="{StaticResource ButtonLabelStyle}"/>
+                </RadioButton>
             </StackPanel>
             </ScrollViewer>
 
-            <Button Grid.Row="1" x:Name="btnBack"
-                    Content="SAVE &amp; GO BACK"
-                    Style="{StaticResource BackButtonStyle}"
-                    Click="BtnBack_Click"/>
+            <Button Grid.Row="1" x:Name="btnBack" Style="{StaticResource QuietButtonStyle}" Margin="16,8,16,8" Click="BtnBack_Click">
+                <TextBlock Text="Save and go back" Style="{StaticResource ButtonLabelStyle}"/>
+            </Button>
         </Grid>
         </Border>
 
@@ -96,57 +108,81 @@
 
             <!-- All panels overlap in the same cell — only one visible at a time -->
             <Grid>
-                <!-- GAME FOLDER: which Zero Hour this launcher plays, and where the game keeps its data -->
-                <StackPanel x:Name="PanelGame" Visibility="Visible">
-                    <TextBlock Text="GAME FOLDER" Style="{StaticResource SectionHeaderStyle}"/>
-                    <Border Style="{StaticResource GlassCardStyle}" Padding="18,16" MaxWidth="760" HorizontalAlignment="Stretch">
+                <!-- Game folder: which Zero Hour is played, where that came from, and where the game keeps its data -->
+                <Grid x:Name="PanelGame" Visibility="Visible" DataContext="{Binding GameFolder}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="760"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Game folder" Style="{StaticResource PageTitleStyle}"/>
+                    <TextBlock Text="{Binding Note}" Style="{StaticResource PageIntroStyle}"/>
+                    <Border Style="{StaticResource PanelStyle}">
                         <StackPanel>
                             <DockPanel>
-                                <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="12" Background="#24FECD03" Margin="0,0,14,0">
-                                    <c:Icon Kind="folder" Width="20" Height="20" Foreground="#FECD03"/>
-                                </Border>
-                                <Button DockPanel.Dock="Right" Style="{StaticResource DiagButtonStyle}" Height="38" Margin="16,0,0,0"
-                                        VerticalAlignment="Center" Click="ChangeFolder_Click">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource QuietButtonStyle}" Margin="16,0,0,0" VerticalAlignment="Center"
+                                        Command="{Binding ChangeFolderCommand}">
                                     <StackPanel Orientation="Horizontal">
-                                        <c:Icon Kind="folder" Width="15" Height="15" Margin="0,0,8,0"/>
-                                        <TextBlock Text="CHANGE FOLDER" VerticalAlignment="Center"/>
+                                        <c:Icon Kind="folder" Width="16" Height="16" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Change folder" Style="{StaticResource ButtonLabelStyle}"/>
                                     </StackPanel>
                                 </Button>
-                                <StackPanel VerticalAlignment="Center">
+                                <StackPanel>
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="Game folder" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/>
-                                        <Border x:Name="SourceBadge" Height="22" CornerRadius="7" Padding="9,0" Margin="10,0,0,0" VerticalAlignment="Center">
-                                            <TextBlock x:Name="SourceBadgeText" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Zero Hour" Style="{StaticResource PanelTitleStyle}"/>
+                                        <Border Style="{StaticResource TagStyle}" Margin="12,0,0,0">
+                                            <TextBlock Text="{Binding Source}" Style="{StaticResource TagTextStyle}"/>
                                         </Border>
                                     </StackPanel>
-                                    <TextBlock x:Name="txtGameFolder" FontSize="13" Foreground="#D5D9EA"
-                                               Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding Folder}" Style="{StaticResource DataTextStyle}" TextWrapping="Wrap" TextTrimming="None" Margin="{StaticResource Gap.Text}"/>
                                 </StackPanel>
                             </DockPanel>
-                            <WrapPanel x:Name="GameChips" Margin="56,12,0,0"/>
-                            <TextBlock x:Name="txtGameNote" Style="{StaticResource HintStyle}" Margin="56,6,0,0" TextWrapping="Wrap"/>
+                            <ItemsControl ItemsSource="{Binding Found}" Margin="{StaticResource Gap.Actions}" Focusable="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,24,0">
+                                            <c:Icon Kind="check-circle" Width="16" Height="16" Margin="0,0,8,0" Foreground="{StaticResource Success}"/>
+                                            <TextBlock Text="{Binding}" Style="{StaticResource StateTextStyle}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ItemsControl ItemsSource="{Binding Missing}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="{StaticResource Gap.Text}">
+                                            <c:Icon Kind="alert" Width="16" Height="16" Margin="0,0,8,0" Foreground="{StaticResource Problem}"/>
+                                            <TextBlock Text="{Binding}" Style="{StaticResource StateTextStyle}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <Border Style="{StaticResource PanelDividerStyle}"/>
+
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource QuietButtonStyle}" Margin="16,0,0,0" VerticalAlignment="Center"
+                                        Command="{Binding OpenDataFolderCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <c:Icon Kind="external" Width="16" Height="16" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Open folder" Style="{StaticResource ButtonLabelStyle}"/>
+                                    </StackPanel>
+                                </Button>
+                                <StackPanel>
+                                    <TextBlock Text="Settings, maps and replays" Style="{StaticResource PanelTitleStyle}"/>
+                                    <TextBlock Text="{Binding DataFolder}" Style="{StaticResource DataTextStyle}" TextWrapping="Wrap" TextTrimming="None" Margin="{StaticResource Gap.Text}"/>
+                                    <TextBlock Text="Where the game itself keeps them, also when an installer moved them." Style="{StaticResource PanelTextStyle}"/>
+                                </StackPanel>
+                            </DockPanel>
                         </StackPanel>
                     </Border>
-
-                    <Border Style="{StaticResource GlassCardStyle}" Padding="18,14" Margin="0,12,0,0" MaxWidth="760" HorizontalAlignment="Stretch">
-                        <DockPanel>
-                            <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="12" Background="#242980FF" Margin="0,0,14,0">
-                                <c:Icon Kind="drive" Width="20" Height="20" Foreground="#7AB4FF"/>
-                            </Border>
-                            <Button DockPanel.Dock="Right" Style="{StaticResource IconButtonStyle}" Width="38" Height="38" Margin="16,0,0,0"
-                                    VerticalAlignment="Center" Click="OpenData_Click" ToolTip="OPEN FOLDER" AutomationProperties.Name="OPEN FOLDER">
-                                <c:Icon Kind="external" Width="16" Height="16"/>
-                            </Button>
-                            <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="Settings, maps and replays" FontSize="15" FontWeight="Bold"/>
-                                <TextBlock x:Name="txtDataFolder" FontSize="13" Foreground="#D5D9EA"
-                                           Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Text="Where the game itself keeps them, also when an installer moved them." Style="{StaticResource HintStyle}"
-                                           Margin="0,3,0,0" TextWrapping="Wrap"/>
-                            </StackPanel>
-                        </DockPanel>
-                    </Border>
                 </StackPanel>
+                </Grid>
 
                 <!-- CAMERA -->
                 <StackPanel x:Name="PanelCamera" Visibility="Collapsed">
@@ -483,24 +519,107 @@
                     </Border>
                 </StackPanel>
 
-                <!-- LAUNCHER: Command Center's own preferences -->
-                <!-- ADD-ONS: Control Bar Pro, moved here from its own tab (P5-D1); its look follows in ticket 08 -->
-                <ContentControl x:Name="PanelAddons" Visibility="Collapsed" Focusable="False"/>
+                <!-- Appearance: Home's picture, animation effects and interface sounds -->
+                <Grid x:Name="PanelAppearance" Visibility="Collapsed" DataContext="{Binding Appearance}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="760"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Appearance" Style="{StaticResource PageTitleStyle}"/>
+                    <TextBlock Text="How Command Center looks and sounds. The game itself is not changed." Style="{StaticResource PageIntroStyle}"/>
+                    <Border Style="{StaticResource PanelStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Home picture" Style="{StaticResource PanelTitleStyle}"/>
+                            <TextBlock Text="From your own game: the battle scene of the main menu, or a faction's loading screen." Style="{StaticResource PanelTextStyle}"/>
+                            <ItemsControl ItemsSource="{Binding Pictures}" Margin="{StaticResource Gap.Actions}" Focusable="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <RadioButton GroupName="HomePicture" Style="{StaticResource ChoiceStyle}" IsChecked="{Binding Selected}">
+                                            <TextBlock Text="{Binding Label}" Style="{StaticResource ButtonLabelStyle}"/>
+                                        </RadioButton>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
 
-                <StackPanel x:Name="PanelLauncher" Visibility="Collapsed">
-                    <TextBlock Text="LAUNCHER" Style="{StaticResource SectionHeaderStyle}"/>
+                            <Border Style="{StaticResource PanelDividerStyle}"/>
 
-                    <TextBlock Text="UPDATES" Foreground="#A7AECB" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
-                        <TextBlock x:Name="txtVersion" Style="{StaticResource FieldLabelStyle}"/>
-                        <Button x:Name="btnCheckUpdates" Content="CHECK FOR UPDATES" Style="{StaticResource DiagButtonStyle}" Click="BtnCheckUpdates_Click"/>
-                        <TextBlock x:Name="txtUpdateStatus" Foreground="#A7AECB" FontSize="12" VerticalAlignment="Center" Margin="12,0,0,0"/>
-                    </StackPanel>
+                            <TextBlock Text="Animation effects" Style="{StaticResource PanelTitleStyle}"/>
+                            <TextBlock Text="The slow zoom of the Home picture and the short fades between pages. Following Windows uses its &quot;Show animations&quot; setting." Style="{StaticResource PanelTextStyle}"/>
+                            <ItemsControl ItemsSource="{Binding Animations}" Margin="{StaticResource Gap.Actions}" Focusable="False">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <RadioButton GroupName="Animations" Style="{StaticResource ChoiceStyle}" IsChecked="{Binding Selected}">
+                                            <TextBlock Text="{Binding Label}" Style="{StaticResource ButtonLabelStyle}"/>
+                                        </RadioButton>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
 
-                    <TextBlock Text="ABOUT" Foreground="#A7AECB" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"/>
-                    <TextBlock Foreground="#A0A0C0" FontSize="12" TextWrapping="Wrap" MaxWidth="560" HorizontalAlignment="Left"
-                               Text="Command Center is free software under the GNU General Public License, version 3. It is based on the Generals Online Launcher by the GeneralsOnline Development Team, also under GPL-3.0. It is not made by or affiliated with Generals Online or Electronic Arts."/>
+                            <Border Style="{StaticResource PanelDividerStyle}"/>
+
+                            <CheckBox Style="{StaticResource CheckStyle}" IsChecked="{Binding InterfaceSounds}">
+                                <TextBlock Text="Interface sounds" Style="{StaticResource ButtonLabelStyle}"/>
+                            </CheckBox>
+                            <TextBlock Text="The game's own click and launch sounds, read from your game." Style="{StaticResource PanelTextStyle}"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
+                </Grid>
+
+                <!-- Add-ons: Control Bar Pro, moved here from its own tab (P5-D1) -->
+                <Grid x:Name="PanelAddonsHost" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="760"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ContentControl x:Name="PanelAddons" Focusable="False"/>
+                </Grid>
+
+                <!-- Launcher: Command Center's own version, the update check, and where it comes from -->
+                <Grid x:Name="PanelLauncher" Visibility="Collapsed" DataContext="{Binding Launcher}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MaxWidth="760"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Launcher" Style="{StaticResource PageTitleStyle}"/>
+                    <TextBlock Text="Command Center updates itself when it starts; you can also check now." Style="{StaticResource PageIntroStyle}"/>
+                    <Border Style="{StaticResource PanelStyle}">
+                        <StackPanel>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource QuietButtonStyle}" Margin="16,0,0,0" VerticalAlignment="Center"
+                                        Command="{Binding CheckForUpdatesCommand}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <c:Icon Kind="refresh" Width="16" Height="16" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Check for updates" Style="{StaticResource ButtonLabelStyle}"/>
+                                    </StackPanel>
+                                </Button>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Version}" Style="{StaticResource PanelTitleStyle}"/>
+                                    <TextBlock Text="{Binding UpdateStatus}" Style="{StaticResource PanelTextStyle}" Visibility="{Binding ShowUpdateStatus, Converter={StaticResource Visible}}"/>
+                                </StackPanel>
+                            </DockPanel>
+
+                            <Border Style="{StaticResource PanelDividerStyle}"/>
+
+                            <TextBlock Text="About" Style="{StaticResource PanelTitleStyle}"/>
+                            <TextBlock Style="{StaticResource PanelTextStyle}"
+                                       Text="Command Center is free software under the GNU General Public License, version 3. It is based on the Generals Online Launcher by the GeneralsOnline Development Team, also under GPL-3.0. It is not made by or affiliated with Generals Online or Electronic Arts."/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                </Grid>
             </Grid>
         </ScrollViewer>
     </Grid>

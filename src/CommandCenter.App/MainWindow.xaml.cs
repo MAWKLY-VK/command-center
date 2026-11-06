@@ -12,7 +12,7 @@ using CommandCenter.Pages;
 
 namespace CommandCenter
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, IShell
     {
         private LauncherPage? _home;
         private ToolsPage? _tools;
@@ -28,6 +28,7 @@ namespace CommandCenter
         private bool _onHome = true;
         private readonly bool _still = App.HasArg("--capture");
         private Storyboard? _zoom;
+        private HomeImage? _shownImage;
 
         public MainWindow()
         {
@@ -42,6 +43,15 @@ namespace CommandCenter
                     Dispatcher.Invoke(UpdateZoom);
             };
             AppState.HealthChanged += () => Dispatcher.Invoke(ShowHealthBadge);
+            // Another game folder brings its own picture; a picture pinned in Settings shows at once
+            AppServices.GameFolder.Changed += () => _artLoad = LoadArtAsync(AppSettings.Current.HomeImage, remember: true);
+            AppServices.Appearance.Changed += () =>
+            {
+                var pinned = AppServices.Appearance.HomeImage;
+                if (pinned != HomeImage.Changing && pinned != _shownImage)
+                    _artLoad = LoadArtAsync(pinned, remember: true);
+                UpdateZoom();
+            };
             ShowHealthBadge();
             _artLoad = LoadArtAsync(AppSettings.Current.HomeImage, remember: true);
             ShowHome();
@@ -177,6 +187,7 @@ namespace CommandCenter
             DrawnBackdrop.Visibility = art == null ? Visibility.Visible : Visibility.Collapsed;
             HomeArtImage.Source = art?.Home;
             PagesArt.Source = art?.Pages;
+            _shownImage = art?.Image;
             if (art != null && remember)
             {
                 AppSettings.Current.LastHomeImage = art.Value.Image;
@@ -212,7 +223,7 @@ namespace CommandCenter
         {
             _onHome = page is null or LauncherPage;
             bool art = HomeArtImage.Source != null;
-            var time = _still || !SystemParameters.ClientAreaAnimation ? TimeSpan.Zero : ((Duration)FindResource("Motion.State")).TimeSpan;
+            var time = _still || !AppServices.Appearance.AnimationsOn ? TimeSpan.Zero : ((Duration)FindResource("Motion.State")).TimeSpan;
             Fade(HomeArtImage, art && _onHome ? 1 : 0, time);
             Fade(HomeScrims, _onHome ? 1 : 0, time);
             Fade(PagesArt, art && !_onHome ? 1 : 0, time);
@@ -228,7 +239,7 @@ namespace CommandCenter
         private void UpdateZoom()
         {
             bool run = _onHome && HomeArtImage.Source != null && WindowState != WindowState.Minimized
-                       && SystemParameters.ClientAreaAnimation && !_still;
+                       && AppServices.Appearance.AnimationsOn && !_still;
             if (!run)
             {
                 _zoom?.Pause(this);
@@ -409,14 +420,29 @@ namespace CommandCenter
                 await UpdateOverlay.InstallAsync();
         }
 
-        // Settings' check: true when a newer version was found (the update screen is then shown)
-        public async Task<bool> CheckForUpdateNowAsync()
+        // ── The shell the view models ask (IShell) ──
+
+        // Settings' check: the update screen opens when a newer version was found
+        public async Task<UpdateCheck> CheckForUpdateAsync()
         {
-            if (await UpdateService.CheckAsync(UpdateSource) is not { } update)
-                return false;
-            UpdateOverlay.Open(update);
-            return true;
+            var check = await UpdateService.CheckNowAsync(UpdateSource);
+            if (check.Update != null)
+                UpdateOverlay.Open(check.Update);
+            return check;
         }
+
+        public string? ChooseFolder(string title, string? initial)
+        {
+            var dialog = new Microsoft.Win32.OpenFolderDialog { Title = title };
+            if (initial != null)
+                dialog.InitialDirectory = initial;
+            return dialog.ShowDialog(this) == true ? dialog.FolderName : null;
+        }
+
+        public void Warn(string message) =>
+            MessageBox.Show(this, message, "Command Center", MessageBoxButton.OK, MessageBoxImage.Warning, MessageBoxResult.OK);
+
+        public void RefreshHealth() => _ = AppState.RefreshHealthAsync();
 
         // ── Screenshots for review (--capture <folder>) ──
         // The window is placed off screen and never activated, so it does not take focus from a running game.

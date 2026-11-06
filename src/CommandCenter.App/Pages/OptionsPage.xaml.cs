@@ -1,4 +1,5 @@
 using CommandCenter.Imaging;
+using CommandCenter.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -23,10 +24,11 @@ namespace CommandCenter.Pages
         private Dictionary<string, string> _shown = new();
         private bool _loaded;
         private string _anticheat = "";
-        private Tools.AddonsSection? _addons;
+        // The game folder, Appearance, Add-ons and the launcher (ticket 08); the other sections follow in ticket 09
+        private readonly SettingsViewModel _settings;
 
-        // An add-on download or install still running in the Add-ons section
-        public bool HasPendingChanges => _addons?.HasPendingChanges == true;
+        // A control bar change chosen in Add-ons and not applied yet
+        public bool HasPendingChanges => _settings.Addons.HasPendingChanges;
         private bool _anticheatTouched;
         private bool _populatingPlugins;
         private NetworkDiagnosticsResult? _lastDiagResult;
@@ -183,13 +185,26 @@ namespace CommandCenter.Pages
         public OptionsPage()
         {
             InitializeComponent();
+            var shell = Views.Main;
+            _settings = new SettingsViewModel(
+                new GameFolderViewModel(AppServices.GameFolder, shell, AppState.ClientVersion, () => GamePaths.UserData),
+                new LauncherViewModel(shell, AppState.Version),
+                new AppearanceViewModel(AppServices.Appearance),
+                new AddonsViewModel(AppServices.Addons, AppServices.GameFolder, shell));
+            DataContext = _settings;
+            // Another game folder: its settings and its control bar are read again
+            AppServices.GameFolder.Changed += () =>
+            {
+                LoadGameSettings();
+                _settings.Addons.Refresh();
+            };
             Loaded += OptionsPage_Loaded;
         }
 
         // Opens a section by its sidebar name, e.g. "network" or "launcher" (used when taking screenshots)
         public void ShowPart(string part)
         {
-            var tab = new[] { rbGame, rbCamera, rbChat, rbInput, rbGraphics, rbSocial, rbNetwork, rbDataPacks, rbPlugins, rbAddons, rbLauncher }
+            var tab = new[] { rbGame, rbAppearance, rbAddons, rbCamera, rbChat, rbInput, rbGraphics, rbSocial, rbNetwork, rbDataPacks, rbPlugins, rbLauncher }
                 .FirstOrDefault(r => r.Name.Equals("rb" + part.Replace(" ", ""), StringComparison.OrdinalIgnoreCase));
             if (tab != null)
                 tab.IsChecked = true;
@@ -198,7 +213,6 @@ namespace CommandCenter.Pages
         private void OptionsPage_Loaded(object sender, RoutedEventArgs e)
         {
             LoadGameSettings();
-            LoadLauncherOptions();
         }
 
         private void Tab_Checked(object sender, RoutedEventArgs e)
@@ -206,6 +220,7 @@ namespace CommandCenter.Pages
             if (PanelCamera == null) return; // not yet loaded
 
             PanelGame.Visibility = Visibility.Collapsed;
+            PanelAppearance.Visibility = Visibility.Collapsed;
             PanelCamera.Visibility = Visibility.Collapsed;
             PanelChat.Visibility = Visibility.Collapsed;
             PanelInput.Visibility = Visibility.Collapsed;
@@ -214,10 +229,11 @@ namespace CommandCenter.Pages
             PanelNetwork.Visibility = Visibility.Collapsed;
             PanelDataPacks.Visibility = Visibility.Collapsed;
             PanelPlugins.Visibility = Visibility.Collapsed;
-            PanelAddons.Visibility = Visibility.Collapsed;
+            PanelAddonsHost.Visibility = Visibility.Collapsed;
             PanelLauncher.Visibility = Visibility.Collapsed;
 
             if (ReferenceEquals(sender, rbGame)) PanelGame.Visibility = Visibility.Visible;
+            else if (ReferenceEquals(sender, rbAppearance)) PanelAppearance.Visibility = Visibility.Visible;
             else if (ReferenceEquals(sender, rbCamera)) PanelCamera.Visibility = Visibility.Visible;
             else if (ReferenceEquals(sender, rbChat)) PanelChat.Visibility = Visibility.Visible;
             else if (ReferenceEquals(sender, rbInput)) PanelInput.Visibility = Visibility.Visible;
@@ -232,9 +248,9 @@ namespace CommandCenter.Pages
             }
             else if (ReferenceEquals(sender, rbAddons))
             {
-                PanelAddons.Content ??= _addons = new Tools.AddonsSection();
-                PanelAddons.Visibility = Visibility.Visible;
-                _addons!.OnShown();
+                PanelAddons.Content ??= new Tools.AddonsSection { DataContext = _settings.Addons };
+                PanelAddonsHost.Visibility = Visibility.Visible;
+                _settings.Addons.Refresh();
             }
             else if (ReferenceEquals(sender, rbLauncher)) PanelLauncher.Visibility = Visibility.Visible;
         }
@@ -658,9 +674,9 @@ namespace CommandCenter.Pages
             try
             {
                 if (goChanged)
-                    go.Save("Saved from the Options page");
+                    go.Save("Saved from Settings");
                 if (iniChanged)
-                    OptionsFile.Write(ini, "Game options", "Saved from the Options page");
+                    OptionsFile.Write(ini, "Game options", "Saved from Settings");
                 if (launcherChanged)
                     SaveWindowedToLauncherJson();
             }
@@ -687,103 +703,6 @@ namespace CommandCenter.Pages
             }
         }
 
-        // ── LAUNCHER: Command Center's own preferences ──
-
-        private void LoadLauncherOptions()
-        {
-            txtVersion.Text = "Command Center " + AppState.Version;
-            ShowGameFolder();
-        }
-
-        // ── GAME FOLDER: which Zero Hour is played, and where the game keeps its data ──
-
-        private void ShowGameFolder()
-        {
-            bool found = GamePaths.ZeroHourFound;
-            string folder = GamePaths.Game;
-            txtGameFolder.Text = found ? folder : "Game not found";
-            txtGameFolder.ToolTip = found ? folder : null;
-
-            (string badge, Color color) = !found ? ("Not found", Views.Problem.Color)
-                : GamePaths.ChosenByPlayer ? ("Chosen by you", Views.Blue.Color)
-                : GamePaths.IsSteamCopy(folder) ? ("Steam copy", Views.Passed.Color)
-                : ("Other copy", Views.Gold.Color);
-            SourceBadgeText.Text = badge;
-            SourceBadgeText.Foreground = new SolidColorBrush(color);
-            SourceBadge.Background = new SolidColorBrush(Color.FromArgb(0x26, color.R, color.G, color.B));
-
-            GameChips.Children.Clear();
-            if (found)
-            {
-                GameChips.Children.Add(Chip("Zero Hour", true));
-                GameChips.Children.Add(GamePaths.GameFound
-                    ? Chip("Generals Online " + AppState.ClientVersion(), true)
-                    : Chip("Generals Online is not installed", false));
-            }
-            txtGameNote.Text = !found ? "Choose the folder of any copy of Zero Hour: Steam, EA or another install."
-                : GamePaths.GameFound ? "Any copy works: Steam, EA or another install. Changing the folder changes nothing in the game files."
-                : "Install Generals Online into this folder, then press Play.";
-
-            txtDataFolder.Text = GamePaths.UserData;
-            txtDataFolder.ToolTip = GamePaths.UserData;
-        }
-
-        private static Border Chip(string text, bool ok)
-        {
-            var color = ok ? Views.Passed.Color : Views.Problem.Color;
-            var row = new StackPanel { Orientation = Orientation.Horizontal };
-            row.Children.Add(new Controls.Icon
-            {
-                Kind = ok ? "check" : "close",
-                Width = 11,
-                Height = 11,
-                StrokeThickness = 3,
-                Foreground = new SolidColorBrush(color),
-                Margin = new Thickness(0, 0, 6, 0),
-            });
-            row.Children.Add(new TextBlock
-            {
-                Text = text,
-                FontSize = 12,
-                Foreground = Views.Brush(ok ? "#C6EED2" : "#FFC2C2"),
-                VerticalAlignment = VerticalAlignment.Center,
-            });
-            return new Border
-            {
-                Child = row,
-                Height = 28,
-                Padding = new Thickness(10, 0, 11, 0),
-                Margin = new Thickness(0, 0, 6, 6),
-                CornerRadius = new CornerRadius(14),
-                Background = new SolidColorBrush(Color.FromArgb(0x14, color.R, color.G, color.B)),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(0x33, color.R, color.G, color.B)),
-                BorderThickness = new Thickness(1),
-            };
-        }
-
-        private void ChangeFolder_Click(object sender, RoutedEventArgs e)
-        {
-            if (!Views.ChooseGameFolder(Window.GetWindow(this)))
-                return;
-            LoadGameSettings();
-            ShowGameFolder();
-            Views.Main.Toast("Game folder changed. The checks run again.");
-        }
-
-        private void OpenData_Click(object sender, RoutedEventArgs e)
-        {
-            Views.ShowInFolder(GamePaths.UserData);
-        }
-
-        private async void BtnCheckUpdates_Click(object sender, RoutedEventArgs e)
-        {
-            btnCheckUpdates.IsEnabled = false;
-            txtUpdateStatus.Text = "Checking…";
-            bool found = await Views.Main.CheckForUpdateNowAsync();
-            txtUpdateStatus.Text = found ? "" : "You have the latest version.";
-            btnCheckUpdates.IsEnabled = true;
-        }
-
         // launcher.json is edited as a JSON tree, so the client choice and anything else in it stays as it was
         private void SaveWindowedToLauncherJson()
         {
@@ -794,7 +713,7 @@ namespace CommandCenter.Pages
                 launcher.WindowedWidth = w;
                 launcher.WindowedHeight = h;
             }
-            launcher.Save("Saved from the Options page");
+            launcher.Save("Saved from Settings");
         }
 
         // Puts the values the player changed into the settings.json tree; true when that changes anything

@@ -47,7 +47,7 @@
     <sys:Double x:Key="Art.Keep">0.08</sys:Double>
     <sys:Double x:Key="Art.Brightness.Scene">0.8</sys:Double>
     <sys:Double x:Key="Art.Brightness.Emblem">0.6</sys:Double>
-    <sys:Double x:Key="Art.Backdrop">0.4</sys:Double>
+    <sys:Double x:Key="Art.Backdrop">0.25</sys:Double>
 
     <!-- The layers over the art, from the back (plan 3-c): on Home a scrim from the left and one from the bottom, then
          everywhere a vignette, a fine grain at Art.Grain, and a scrim behind the tabs. All are Bg.Window at some opacity.

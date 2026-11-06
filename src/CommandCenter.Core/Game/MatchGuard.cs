@@ -6,8 +6,9 @@ namespace CommandCenter.Core.Game
     // A file that decides whether players match (P5-D3): its path in the game folder, its size and last write time (UTC)
     public sealed record GuardedFile(string Path, long Size, DateTime Written);
 
-    // The guarded files as they were after the last online match that ended without a mismatch, with that match's start
-    public sealed record GoodMatch(DateTime Start, IReadOnlyList<GuardedFile> Files);
+    // The guarded files of one game folder as they were after its last online match that ended without a mismatch, with
+    // that match's start. Files is null while the folder has had no such match since the player switched to it at Start.
+    public sealed record GoodMatch(string Game, DateTime Start, IReadOnlyList<GuardedFile>? Files);
 
     // What changed since the last good match. AfterMismatch: the newest match ended in a mismatch, and these changes are
     // its likely reason.
@@ -38,14 +39,20 @@ namespace CommandCenter.Core.Game
 
             var kept = Load();
             var last = ReplayService.Read(ReplayService.LastReplayPath);
+            // A folder the player switched to starts after the last replay, which was played with the folder before
+            if (kept != null && !kept.Game.Equals(game, StringComparison.OrdinalIgnoreCase))
+            {
+                kept = new GoodMatch(game, last?.Start ?? DateTime.MinValue, null);
+                Save(kept);
+            }
             bool newOnlineMatch = last != null && last.Players.Count(p => p.IsHuman) >= 2 && (kept == null || last.Start > kept.Start);
             var now = Files(game);
             if (newOnlineMatch && !last!.Desync)
             {
-                kept = new GoodMatch(last.Start, now);
+                kept = new GoodMatch(game, last.Start, now);
                 Save(kept);
             }
-            return kept == null ? null : Compare(kept, now, afterMismatch: newOnlineMatch && last!.Desync);
+            return kept?.Files is { } files ? Compare(files, now, afterMismatch: newOnlineMatch && last!.Desync) : null;
         }
 
         // The guarded files now: every archive under the game folder and every loose INI file under Data\INI, without
@@ -66,9 +73,9 @@ namespace CommandCenter.Core.Game
                 .ToList();
         }
 
-        public static MatchChanges Compare(GoodMatch kept, IReadOnlyList<GuardedFile> now, bool afterMismatch)
+        public static MatchChanges Compare(IReadOnlyList<GuardedFile> kept, IReadOnlyList<GuardedFile> now, bool afterMismatch)
         {
-            var before = kept.Files.DistinctBy(f => f.Path, StringComparer.OrdinalIgnoreCase).ToDictionary(f => f.Path, StringComparer.OrdinalIgnoreCase);
+            var before = kept.DistinctBy(f => f.Path, StringComparer.OrdinalIgnoreCase).ToDictionary(f => f.Path, StringComparer.OrdinalIgnoreCase);
             var after = now.ToDictionary(f => f.Path, StringComparer.OrdinalIgnoreCase);
             List<string> Sorted(IEnumerable<string> paths) => paths.Order(StringComparer.OrdinalIgnoreCase).ToList();
             return new MatchChanges(
@@ -83,7 +90,7 @@ namespace CommandCenter.Core.Game
         {
             try
             {
-                return File.Exists(StorePath) && JsonSerializer.Deserialize<GoodMatch>(BoundedFile.Read(StorePath, StoreLimit)) is { Files: not null } kept
+                return File.Exists(StorePath) && JsonSerializer.Deserialize<GoodMatch>(BoundedFile.Read(StorePath, StoreLimit)) is { Game: not null } kept
                     ? kept
                     : null;
             }

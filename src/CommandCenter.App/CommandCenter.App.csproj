@@ -40,6 +40,11 @@
     <ProjectReference Include="..\CommandCenter.Core\CommandCenter.Core.csproj" />
   </ItemGroup>
 
+  <!-- View models for the pages that move to MVVM in phases 5 and 6 (docs/adr/0004) -->
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="CommandCenter.Tests" />
   </ItemGroup>

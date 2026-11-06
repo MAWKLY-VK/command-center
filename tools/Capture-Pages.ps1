@@ -38,7 +38,7 @@ $pages = @(
     'maps:installed', 'maps:library',
     'hotkeys:buttons', 'hotkeys:keys', 'hotkeys:letters',
     'health', 'health:history',
-    'settings:game', 'settings:camera', 'settings:chat', 'settings:input', 'settings:graphics',
+    'settings:game', 'settings:appearance', 'settings:camera', 'settings:chat', 'settings:input', 'settings:graphics',
     'settings:social', 'settings:network', 'settings:datapacks', 'settings:plugins', 'settings:addons', 'settings:launcher',
     'help'
 )

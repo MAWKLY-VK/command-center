@@ -1,3 +1,5 @@
+using System.Windows;
+
 namespace CommandCenter
 {
     // The hand-written composition root (ADR 0004): the one place where the services get what they need from the App at
@@ -5,6 +7,11 @@ namespace CommandCenter
     // from then on, the ViewModels get them from here.
     internal static class AppServices
     {
+        // The instance forms the view models use (ticket 08); pages that have not moved keep the static services
+        public static IGameFolder GameFolder { get; } = new CommandCenter.Core.Game.GameFolder();
+        public static IAppearance Appearance { get; } = new CommandCenter.Core.Settings.Appearance(() => SystemParameters.ClientAreaAnimation);
+        public static IAddons Addons { get; } = new CommandCenter.Core.Content.Addons();
+
         // First thing at startup, before anything reads a service. args are the command line as the program got it.
         public static void Configure(IReadOnlyList<string> args)
         {
@@ -12,6 +19,15 @@ namespace CommandCenter
             MapLibraryClient.SourceOverride = Value(args, "--map-library");
             MapLibraryClient.LibraryFolder = Value(args, "--library-folder");
             AppState.Samples = Has(args, "--samples");
+
+            // Another game folder: its hotkeys are read again, and the checks and the match guard run for it (Home's
+            // picture follows in MainWindow)
+            GameFolder.Changed += () =>
+            {
+                AppState.ForgetHotkeys();
+                _ = AppState.RefreshHealthAsync();
+                _ = AppState.RefreshMatchGuardAsync();
+            };
 #if TEST_KEYS
             // Test builds only (built with -p:TestKeys=true and never published): the signed files may also come from the
             // test key in this file, so the update path can be tried without the maintainer's key
