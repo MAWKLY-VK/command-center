@@ -7,7 +7,8 @@ loads `dxwrapper_go.dll` from its own folder when the file is there (`dx8wrapper
 
 How it works in Command Center:
 
-- It detects two graphics cards through WMI. Only then does it show a Health check and an Options › Graphics switch.
+- It detects two graphics cards through DXGI, which is part of every Windows (WMI would need a NuGet package; changed
+  on 2026-11-06 when the feature was built). Only then does it show a Health check and a Settings › Graphics switch.
 - Turning it on writes `dxwrapper_go.dll` and `dxwrapper_go.ini` into the client's folder, while the game is closed.
   The files must match pinned SHA-256 hashes, only these two names are allowed, and the write goes through
   `BackupService`.

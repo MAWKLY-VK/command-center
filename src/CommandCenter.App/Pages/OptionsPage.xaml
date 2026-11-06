@@ -371,6 +371,26 @@
                             </StackPanel>
                         </StackPanel>
                     </Border>
+
+                    <!-- The dedicated graphics card (ADR 0010), on a PC with two graphics cards -->
+                    <Border Style="{StaticResource PanelStyle}" Margin="{StaticResource Gap.Group}"
+                            DataContext="{Binding DataContext.Gpu, RelativeSource={RelativeSource AncestorType=Page}}"
+                            Visibility="{Binding IsAvailable, Converter={StaticResource Visible}}">
+                        <StackPanel>
+                            <CheckBox Style="{StaticResource CheckStyle}" HorizontalAlignment="Left" IsChecked="{Binding IsOn}" IsEnabled="{Binding IsIdle}">
+                                <TextBlock Text="Use the dedicated graphics card" Style="{StaticResource ButtonLabelStyle}"/>
+                            </CheckBox>
+                            <TextBlock Style="{StaticResource PanelTextStyle}"
+                                       Text="Your PC has two graphics cards, and Generals Online may run on the slower one. dxwrapper_go, two small files from the Generals Online team, makes it use the faster one. Command Center downloads them, checks them and copies them into the game folder while the game is closed."/>
+                            <TextBlock Text="{Binding Cards, StringFormat='This PC has {0}.'}" Style="{StaticResource PanelTextStyle}"/>
+                            <TextBlock Style="{StaticResource PanelTextStyle}" Visibility="{Binding HasNote, Converter={StaticResource Visible}}"
+                                       Text="dxwrapper_go in the game folder differs from Command Center's copy: edited by hand, or another build. Turning this off moves it to quarantine."/>
+                            <TextBlock Style="{StaticResource PanelTextStyle}"
+                                       Text="For experts: dxwrapper_go translates DirectX 8.1 to 9, so the dedicated graphics card can be used."/>
+                            <TextBlock Style="{StaticResource PanelTextStyle}" Margin="{StaticResource Gap.Group}"
+                                       Text="dxwrapper by elishacloud, build provided by the Generals Online team."/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
                 </Grid>
 

@@ -18,9 +18,14 @@ Decided with the user on 2026-11-04 (plan sections 6 and 10).
 
 ## Release order
 
-Changed with the user on 2026-11-06: no version is released before the complete one. The design phases (5 and 6) come
-before the installer and the release (phase 4), so the first release after 0.4.0 carries the new design together with
-all of phase 3's protections, and reaches every player in one forced update.
+~~Changed with the user on 2026-11-06: no version is released before the complete one. The design phases (5 and 6)
+come before the installer and the release (phase 4), so the first release after 0.4.0 carries the new design together
+with all of phase 3's protections, and reaches every player in one forced update.~~
+
+Changed again with the user later on 2026-11-06, because players are waiting for it: 0.5.0 goes out as soon as phase 5
+is merged and the dedicated graphics card (ADR 0010) is added, with all of phase 3's protections. The rest of phase 6
+(Replays, Maps and Hotkeys in the new look, the General's dossier) and the installer (phase 4) come in a later release,
+which reaches every player through the same forced update. Every release rule above still applies to both.
 
 ## Rollback
 

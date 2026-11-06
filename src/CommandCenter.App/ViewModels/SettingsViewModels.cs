@@ -8,8 +8,10 @@ namespace CommandCenter.ViewModels
     // which apply at once, and Generals Online's (ticket 09), which are read when Settings opens and written when it is
     // left. The services come from AppServices; tests pass stand-ins.
     public sealed class SettingsViewModel(GameFolderViewModel gameFolder, LauncherViewModel launcher, AppearanceViewModel appearance,
-        AddonsViewModel addons, GameSettingsViewModel game, NetworkDiagnosticsViewModel diagnostics, PluginsViewModel plugins) : ISettingsSection
+        AddonsViewModel addons, GameSettingsViewModel game, NetworkDiagnosticsViewModel diagnostics, PluginsViewModel plugins,
+        DedicatedGpuViewModel gpu) : ISettingsSection
     {
+        public DedicatedGpuViewModel Gpu { get; } = gpu;
         public GameFolderViewModel GameFolder { get; } = gameFolder;
         public LauncherViewModel Launcher { get; } = launcher;
         public AppearanceViewModel Appearance { get; } = appearance;
@@ -22,6 +24,7 @@ namespace CommandCenter.ViewModels
         {
             Game.Load();
             Plugins.Refresh();
+            Gpu.Refresh();
         }
 
         public void Commit() => Game.Commit();
